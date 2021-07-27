@@ -12,6 +12,7 @@ function Setup(ctx, setupData) {
     G.cards = shuffle(cards)
 
     G.mission = (setupData && setupData.mission) || 'planetx_1'
+    G.reception_dead_spot = false
 
     G.numGoals = 2 // TODO
     
@@ -19,6 +20,7 @@ function Setup(ctx, setupData) {
         G.players[i.toString()] = { 
             hand: [], 
             canCommunicate: false,
+            communication: null,
         }
     
     return G
@@ -54,8 +56,11 @@ function ChooseGoals(G, ctx, idx) {
     }
 }
 
-function Communicate(G, ctx) {
-    return;
+function Communicate(G, ctx, isCommunicating, card, order) {
+    if (G.player[ctx.currentPlayer].canCommunicate && isCommunicating && card.suite !== 'black') {
+        G.player[ctx.currentPlayer].canCommunicate = false
+        G.player.communication = {'card': card, 'order': G.reception_dead_spot ? null : order}
+    }
 }
 
 export const Crew = {
