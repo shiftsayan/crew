@@ -47,7 +47,7 @@ function DealGoals(G, ctx) {
     var goals = []
     for (var num = 1; num <= 9; num++)
         for (var suite of ['blue', 'red', 'green', 'yellow'])
-            goals.push({'num': num, 'suite': suite, 'player': null}) // TODO
+            goals.push({'num': num, 'suite': suite, 'player': null, 'accomplished': false})
     goals = shuffle(goals)
     
     for (var i = 0; i < G.numGoals; i++) {
