@@ -16,6 +16,7 @@ function Setup(ctx, setupData) {
 
     G.numGoals = 2 // TODO
     
+    G.players = {}
     for (var i = 0; i < ctx.numPlayers; i++)
         G.players[i.toString()] = { 
             hand: [], 
@@ -23,6 +24,8 @@ function Setup(ctx, setupData) {
             communication: null,
         }
     
+    G.goals = []
+
     return G
 }
 
@@ -50,17 +53,30 @@ function DealGoals(G, ctx) {
 }
 
 function ChooseGoals(G, ctx, idx) {
-    if (G.goals[idx].player === null) {
-        G.goals[idx].player = ctx.currentPlayer
-        ctx.events.endTurn()
-    }
+    if (G.goals[idx].player !== null)
+        throw new Error("Goal Already Claimed")
+    
+    G.goals[idx].player = ctx.currentPlayer
+    // TODO: If only 1 goal remains, auto-assign it.
+    ctx.events.endTurn()
 }
 
 function Communicate(G, ctx, isCommunicating, card, order) {
-    if (G.player[ctx.currentPlayer].canCommunicate && isCommunicating && card.suite !== 'black') {
-        G.player[ctx.currentPlayer].canCommunicate = false
-        G.player.communication = {'card': card, 'order': G.reception_dead_spot ? null : order}
+    if (!isCommunicating)
+        return;
+    
+    if (!G.player[ctx.currentPlayer].canCommunicate) {
+        if (G.player.communication !== null)
+            throw new Error("Player Already Communicated")
+        else
+            throw new Error("Player Not Allowed To Communicate")
     }
+
+    if (card.suite === 'black')
+        throw new Error("Cannot Communicate Rockets") // TODO
+    
+    G.player[ctx.currentPlayer].canCommunicate = false
+    G.player.communication = {'card': card, 'order': G.reception_dead_spot ? null : order}
 }
 
 export const Crew = {
