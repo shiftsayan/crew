@@ -26,6 +26,9 @@ function Setup(ctx, setupData) {
     
     G.goals = []
 
+    G.currentTrick = []
+    G.allTricks = []
+
     return G
 }
 
@@ -79,6 +82,37 @@ function Communicate(G, ctx, isCommunicating, card, order) {
     G.player.communication = {'card': card, 'order': G.reception_dead_spot ? null : order}
 }
 
+function PlayTrick(G, ctx, card) {
+    if (!G.players[ctx.currentPlayer].hand.includes(card))
+        throw new Error("Card Not Possessed")
+    
+    if (G.currentTrick !== [] // this is not a new trick
+        && G.currentTrick[0].suite !== card.suite // and the suite does not match the trick suit
+        && !G.players[ctx.currentPlayer].hand.every(_card => _card.suite !== card.suite)) // even though the player has it
+        throw new Error("Must Play Card of Same Suite When Possible")
+
+    G.players[ctx.currentPlayer].hand.splice(G.players[ctx.currentPlayer].hand.indexOf(card), 1)
+    G.currentTrick.push({'player': ctx.currentPlayer, 'card': card})
+
+    ctx.events.endTurn()
+}
+
+function EndTrick(G, ctx) {
+    var best = null
+    var bestNum = null
+    var bestSuite = null
+    for (play of G.currentTrick) {
+        if ((play.card.suite === bestSuite && play.card.num > bestNum) || play.card.suite === 'black') {
+            best = play.player
+            bestNum = play.card.num
+            bestSuite = play.card.suite
+        }
+    }
+    
+    G.allTricks.push({'winner': best, 'trick': G.currentTrick}) // TODO: Validate win condition
+    G.currentTrick = []
+}
+
 export const Crew = {
     minPlayers: 3,
     maxPlayers: 5,
@@ -102,11 +136,17 @@ export const Crew = {
         ChooseGoals: {
             moves: { ChooseGoals },
             endIf: G => (G.goals.every(goal => goal.player !== null)),
-            next: 'Communicate'
+            next: 'Communicate',
         },
         
         Communicate: {
-            moves: { Communicate }
-        }
+            moves: { Communicate },
+            next: 'PlayTrick',
+        },
+
+        PlayTrick: {
+            moves: { PlayTrick },
+            onEnd: EndTrick,
+        },
     },
 };
