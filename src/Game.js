@@ -101,7 +101,7 @@ function EndTrick(G, ctx) {
     var best = null
     var bestNum = null
     var bestSuite = null
-    for (play of G.currentTrick) {
+    for (var play of G.currentTrick) {
         if ((play.card.suite === bestSuite && play.card.num > bestNum) || play.card.suite === 'black') {
             best = play.player
             bestNum = play.card.num
