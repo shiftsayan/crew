@@ -4,10 +4,10 @@ function Setup(ctx, setupData) {
     const G = {}
 
     var cards = []
-    for (var num = 1; num <= 9; num++)
-        for (var suite of ['blue', 'red', 'green', 'yellow'])
+    for (let num = 1; num <= 9; num++)
+        for (let suite of ['blue', 'red', 'green', 'yellow'])
             cards.push({'num': num, 'suite': suite})
-    for (num = 1; num <= 4; num++)
+    for (let num = 1; num <= 4; num++)
         cards.push({'num': num, 'suite': 'black'})
     G.cards = shuffle(cards)
 
@@ -17,7 +17,7 @@ function Setup(ctx, setupData) {
     G.numGoals = 2 // TODO
     
     G.players = {}
-    for (var i = 0; i < ctx.numPlayers; i++)
+    for (let i = 0; i < ctx.numPlayers; i++)
         G.players[i.toString()] = { 
             hand: [], 
             canCommunicate: false,
@@ -28,6 +28,8 @@ function Setup(ctx, setupData) {
 
     G.currentTrick = []
     G.allTricks = []
+
+    G.lost = false
 
     return G
 }
@@ -45,23 +47,23 @@ function DealCards(G, ctx) {
 
 function DealGoals(G, ctx) {
     var goals = []
-    for (var num = 1; num <= 9; num++)
-        for (var suite of ['blue', 'red', 'green', 'yellow'])
-            goals.push({'num': num, 'suite': suite, 'player': null, 'accomplished': false})
+    for (let num = 1; num <= 9; num++)
+        for (let suite of ['blue', 'red', 'green', 'yellow'])
+            goals.push({'card': {'num': num, 'suite': suite}, 'player': null, 'accomplished': false})
     goals = shuffle(goals)
     
-    for (var i = 0; i < G.numGoals; i++) {
+    for (let i = 0; i < G.numGoals; i++) {
         G.goals.push(goals[i])
     }
 }
 
 function ChooseGoals(G, ctx, idx) {
     if (G.goals[idx].player !== null)
-        throw new Error("Goal Already Claimed")
+        throw new Error("Goal Already Chosen")
     
     G.goals[idx].player = ctx.currentPlayer
     // TODO: If only 1 goal remains, auto-assign it.
-    ctx.events.endTurn()
+    ctx.events.endTurn() // TODO
 }
 
 function Communicate(G, ctx, isCommunicating, card, order) {
@@ -98,18 +100,29 @@ function PlayTrick(G, ctx, card) {
 }
 
 function EndTrick(G, ctx) {
-    var best = null
-    var bestNum = null
-    var bestSuite = null
-    for (var play of G.currentTrick) {
-        if ((play.card.suite === bestSuite && play.card.num > bestNum) || play.card.suite === 'black') {
-            best = play.player
-            bestNum = play.card.num
-            bestSuite = play.card.suite
+    var winner = null
+    var winnerNum = null
+    var winnerSuite = null
+    for (let play of G.currentTrick) {
+        if ((play.card.suite === winnerSuite && play.card.num > winnerNum) || play.card.suite === 'black') {
+            winner = play.player
+            winnerNum = play.card.num
+            winnerSuite = play.card.suite
+        }
+    }
+
+    for (let goal of G.goals) {
+        if (G.currentTrick.some(play => (play.card === goal.card))) {
+            if (goal.player === winner) {
+                goal.accomplished = true
+            }
+            else {
+                G.lost = true
+            }
         }
     }
     
-    G.allTricks.push({'winner': best, 'trick': G.currentTrick}) // TODO: Validate win condition
+    G.allTricks.push({'winner': winner, 'trick': G.currentTrick})
     G.currentTrick = []
 }
 
@@ -136,7 +149,8 @@ export const Crew = {
         ChooseGoals: {
             moves: { ChooseGoals },
             endIf: G => (G.goals.every(goal => goal.player !== null)),
-            next: 'Communicate',
+            // next: 'Communicate',
+            next: 'PlayTrick',
         },
         
         Communicate: {
