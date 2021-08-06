@@ -126,7 +126,7 @@ function EndTrick(G, ctx) {
     G.currentTrick = []
 }
 
-export const Crew = {
+export const CrewGame = {
     minPlayers: 3,
     maxPlayers: 5,
 
