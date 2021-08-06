@@ -1,20 +1,13 @@
 import { CrewHand } from "./Hand";
 
-// onClick(id) {
-//   this.props.moves.clickCell(id);
-// }
-
-const cards = [
-  {'num': '1', 'suite': 'red'},
-  {'num': '4', 'suite': 'black'},
-  {'faceDown': true},
-]
-
 export function CrewBoard(props) {
+  const currentPlayer = props.ctx.currentPlayer
+  const hands = Object.keys(props.G.players).map((player) => <CrewHand hand={props.G.players[player].hand.slice(0, 8)} faceDown={player === currentPlayer} key={player} />) // TODO
+
   return (
     <>
       <div className="p-12">
-        <CrewHand cards={cards}/>
+        {hands}
       </div>
     </>
   )
