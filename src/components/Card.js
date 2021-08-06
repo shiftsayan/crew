@@ -18,17 +18,39 @@ const mapSuiteToEmoji = {
     'black': '🚀',
 }
 
+function CrewCardBack() {
+    return (
+        <div className="flex-grow flex justify-center">
+            <span role="img" className="text-3xl m-auto">
+                🧑‍🚀
+            </span>
+        </div>
+    )
+}
+
+function CrewCardFront(num, suite) {
+    return (
+        <>
+            <div className="flex-grow flex">
+                <span role="img" aria-label={num} className="text-3xl m-auto">
+                    {mapNumberToEmoji[num]}
+                </span>
+            </div>
+            <div className="flex-grow flex">
+                <span role="img" aria-label={suite} className="text-3xl m-auto">
+                    {mapSuiteToEmoji[suite]}
+                </span>
+            </div>
+        </>
+    )
+}
+
 export function CrewCard(props) {
-    const {num, suite} = props
+    const {num, suite, faceDown} = props
 
     return (
-        <div className="h-28 w-20 bg-red-100 rounded-xl">
-            <div>
-                <span role="img" aria-label={num}>{mapNumberToEmoji[num]}</span>
-            </div>
-            <div>
-                <p>{mapSuiteToEmoji[suite]}</p>
-            </div>
+        <div className="h-28 w-20 rounded-xl flex flex-col border-2 py-3">
+            {faceDown ? CrewCardBack() : CrewCardFront(num, suite)}
         </div>
     )
 }
