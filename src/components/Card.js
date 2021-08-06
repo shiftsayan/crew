@@ -1,3 +1,7 @@
+import classNames from 'classnames'
+
+import { CrewEmoji } from "./Emoji"
+
 const mapNumberToEmoji = {
     '1': '1️⃣',
     '2': '2️⃣',
@@ -21,9 +25,7 @@ const mapSuiteToEmoji = {
 function CrewCardBack() {
     return (
         <div className="flex-grow flex justify-center">
-            <span role="img" className="text-3xl m-auto">
-                🧑‍🚀
-            </span>
+            <CrewEmoji emoji="🧑‍🚀" />
         </div>
     )
 }
@@ -32,24 +34,27 @@ function CrewCardFront(num, suite) {
     return (
         <>
             <div className="flex-grow flex">
-                <span role="img" aria-label={num} className="text-3xl m-auto">
-                    {mapNumberToEmoji[num]}
-                </span>
+                <CrewEmoji emoji={mapNumberToEmoji[num]} />
             </div>
             <div className="flex-grow flex">
-                <span role="img" aria-label={suite} className="text-3xl m-auto">
-                    {mapSuiteToEmoji[suite]}
-                </span>
+                <CrewEmoji emoji={mapSuiteToEmoji[suite]} />
             </div>
         </>
     )
 }
 
 export function CrewCard(props) {
-    const {num, suite, faceDown} = props
+    const {num, suite, faceDown, float} = props
+    const classes = classNames({
+        "h-28 w-20 rounded-xl flex flex-col border-2 py-3 select-none bg-white": true,
+        "mx-2": !float,
+    })
+    const styles = {
+        transform: "translate(-2.5rem, -3.5rem)"
+    }
 
     return (
-        <div className="h-28 w-20 rounded-xl flex flex-col border-2 py-3 mx-2 select-none">
+        <div className={classes} style={float ? styles : {}}>
             {faceDown ? CrewCardBack() : CrewCardFront(num, suite)}
         </div>
     )
