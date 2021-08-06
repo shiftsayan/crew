@@ -49,7 +49,7 @@ export function CrewCard(props) {
     const {num, suite, faceDown} = props
 
     return (
-        <div className="h-28 w-20 rounded-xl flex flex-col border-2 py-3">
+        <div className="h-28 w-20 rounded-xl flex flex-col border-2 py-3 mx-2 select-none">
             {faceDown ? CrewCardBack() : CrewCardFront(num, suite)}
         </div>
     )
