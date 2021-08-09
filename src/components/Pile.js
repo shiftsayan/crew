@@ -1,8 +1,6 @@
-import { CrewCard } from "./Card"
+import getRandomNumberInRange from "../util/random"
 
-function getRandomNumberInRange(min, max) {
-    return Math.random() * (max - min) + min;
-  }
+import { CrewCard } from "./Card"
 
 export function CrewPile(props) {
     const cards = props.cards.map((card, idx) => 
