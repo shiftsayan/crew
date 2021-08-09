@@ -1,6 +1,7 @@
 import { CrewHand } from "./Hand";
 import { CrewPile } from "./Pile";
 import { CrewHUD } from "./HUD";
+import { CrewLayout } from "./Layout";
 
 const cards = [
   {'num': '1', 'suite': 'red'},
@@ -16,11 +17,11 @@ export function CrewBoard(props) {
 
   return (
     <>
-      <div className="p-12">
+      <CrewLayout>
         {/* {hands} */}
         {/* <CrewPile cards={cards} /> */}
-        <CrewHUD />
-      </div>
+        {/* <CrewHUD /> */}
+      </CrewLayout>
     </>
   )
 }
