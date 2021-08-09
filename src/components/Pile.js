@@ -1,4 +1,4 @@
-import getRandomNumberInRange from "../util/random"
+import { getRandomNumberInRange } from "../util/random"
 
 import { CrewCard } from "./Card"
 
