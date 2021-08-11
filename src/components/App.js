@@ -1,10 +1,13 @@
-import { Client } from "boardgame.io/react";
-import { CrewGame } from "./Game";
-import { CrewBoard } from "./Board";
+import queryString from 'query-string'
 
-const App = Client({
-  game: CrewGame,
-  board: CrewBoard,
-});
+import { CrewClient } from "./Client"
 
-export default App;
+function App() {
+	const values = queryString.parse(window.location.search)
+
+	return <CrewClient 
+		numPlayers={values.numPlayers || 3}
+	/>
+} 
+
+export default App
