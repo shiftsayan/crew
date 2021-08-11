@@ -46,8 +46,7 @@ function CrewCardFront(num, suite) {
 export function CrewCard(props) {
     const {num, suite, faceDown, float} = props
     const classes = classNames({
-        "h-28 w-20 rounded-xl flex flex-col border-2 py-3 select-none bg-white": true,
-        "mx-2": !float,
+        "h-28 w-20 rounded-xl flex flex-col select-none bg-white": true,
     })
     const styles = {
         transform: "translate(-2.5rem, -3.5rem)"
