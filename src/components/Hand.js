@@ -11,12 +11,7 @@ export function CrewHand(props) {
 
     const cards = hand.map((card, idx) =>
         <div
-            className={classNames({
-                "mx-1": !props.condense && props.pi % 2 === 0,
-                "-mx-4": props.condense && props.pi % 2 === 0,
-                "my-1": !props.condense && props.pi % 2 === 1,
-                "-my-4": props.condense && props.pi % 2 === 1,
-            })}
+            className="mx-2"
             style={{
                 'zIndex': idx,
             }}
@@ -26,10 +21,7 @@ export function CrewHand(props) {
     )
 
     return (
-        <div className={classNames({
-            "flex": true,
-            "flex-col": props.pi % 2 === 1,
-        })}>
+        <div className="flex">
             {cards}
         </div>
     )

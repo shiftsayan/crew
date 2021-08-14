@@ -26,8 +26,10 @@ function CrewHUDNamesPanel(props) {
 
 export function CrewHUD(props) {
     return (
-        <div className="flex">
-            <CrewHUDNamesPanel names={['alpha', 'beta', 'gamma', 'delta']} />
+        <div className="w-full h-1/2 mb-12 bg-gray-100 flex justify-center rounded-3xl">
+            <div className="m-auto">
+                HUD
+            </div>
         </div>
     )
 }
