@@ -6,7 +6,7 @@ export function CrewLayout(props) {
 
     return (
         <>
-            <div className="absolute h-full w-full">
+            {!props.disableParticles && <div className="absolute">
                 <Particles
                     id="particles"
                     options={{
@@ -47,10 +47,10 @@ export function CrewLayout(props) {
                         detectRetina: true,
                     }}
                 />
-            </div>
-            <div className="absolute z-10">
+            </div>}
+            <div className="h-screen w-screen absolute z-10">
                 {props.children}
             </div>
         </>
-        )
-    }
+    )
+}

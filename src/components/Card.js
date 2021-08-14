@@ -22,39 +22,36 @@ const mapSuiteToEmoji = {
     'black': '🚀',
 }
 
-function CrewCardBack() {
+function CrewCardBack(props) {
     return (
         <div className="flex-grow flex justify-center">
-            <CrewEmoji emoji="🧑‍🚀" />
+            <CrewEmoji emoji="🧑‍🚀" pi={props.pi} />
         </div>
     )
 }
 
-function CrewCardFront(num, suite) {
+function CrewCardFront(props) {
     return (
         <>
             <div className="flex-grow flex">
-                <CrewEmoji emoji={mapNumberToEmoji[num]} />
+                <CrewEmoji emoji={mapNumberToEmoji[props.num]} pi={props.pi} />
             </div>
             <div className="flex-grow flex">
-                <CrewEmoji emoji={mapSuiteToEmoji[suite]} />
+                <CrewEmoji emoji={mapSuiteToEmoji[props.suite]} pi={props.pi} />
             </div>
         </>
     )
 }
 
 export function CrewCard(props) {
-    const {num, suite, faceDown, float} = props
-    const classes = classNames({
-        "h-28 w-20 rounded-xl flex flex-col select-none bg-white": true,
-    })
-    const styles = {
-        transform: "translate(-2.5rem, -3.5rem)"
-    }
-
     return (
-        <div className={classes} style={float ? styles : {}}>
-            {faceDown ? CrewCardBack() : CrewCardFront(num, suite)}
+        <div className={classNames({
+            "rounded-xl flex flex-col bg-white py-2": true,
+            "h-24 w-16": props.pi % 2 === 0,
+            "h-16 w-24": props.pi % 2 === 1,
+            "transform scale-125": props.selected, // TODO
+        })}>
+            {props.faceDown ? <CrewCardBack pi={props.pi} /> : <CrewCardFront num={props.num} suite={props.suite} pi={props.pi} />}
         </div>
     )
 }

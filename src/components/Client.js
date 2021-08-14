@@ -7,6 +7,7 @@ export function CrewClient(props) {
 		game: CrewGame,
 		board: CrewBoard,
 		numPlayers: props.numPlayers,
+		debug: false,
 	})
 	return <CrewClient />
 }
