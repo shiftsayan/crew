@@ -10,10 +10,17 @@ export function CrewHand(props) {
     }
 
     const cards = hand.map((card, idx) =>
-        <div className={classNames({
-            "mx-1": props.pi % 2 === 0,
-            "my-1": props.pi % 2 === 1,
-        })}>
+        <div
+            className={classNames({
+                "mx-1": !props.condense && props.pi % 2 === 0,
+                "-mx-4": props.condense && props.pi % 2 === 0,
+                "my-1": !props.condense && props.pi % 2 === 1,
+                "-my-4": props.condense && props.pi % 2 === 1,
+            })}
+            style={{
+                'zIndex': idx,
+            }}
+        >
             <CrewCard key={idx} num={card.num} suite={card.suite} faceDown={props.faceDown || card.faceDown} pi={props.pi} />
         </div>
     )

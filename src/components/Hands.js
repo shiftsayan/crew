@@ -21,6 +21,7 @@ export function CrewHands(props) {
                 key={player}
                 hand={props.players[player].hand}
                 faceDown={player !== props.currentPlayer}
+                condense={player !== props.currentPlayer}
                 pi={pi}
                 sort={player === props.currentPlayer}
             />
