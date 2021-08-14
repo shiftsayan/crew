@@ -46,10 +46,16 @@ function CrewCardFront(props) {
 export function CrewCard(props) {
     return (
         <div className={classNames({
-            "rounded-xl flex flex-col bg-white py-2": true,
+            "rounded-xl flex flex-col py-2": true,
             "h-24 w-16": props.pi % 2 === 0,
             "h-16 w-24": props.pi % 2 === 1,
             "transform scale-125": props.selected, // TODO
+            "bg-red-100": !props.faceDown && props.suite === 'red',
+            "bg-blue-100": !props.faceDown && props.suite === 'blue',
+            "bg-green-100": !props.faceDown && props.suite === 'green',
+            "bg-yellow-100": !props.faceDown && props.suite === 'yellow',
+            "bg-black": !props.faceDown && props.suite === 'black',
+            "bg-white": props.faceDown,
         })}>
             {props.faceDown ? <CrewCardBack pi={props.pi} /> : <CrewCardFront num={props.num} suite={props.suite} pi={props.pi} />}
         </div>

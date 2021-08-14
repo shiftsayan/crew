@@ -5,7 +5,7 @@ import { calculatePi } from "../util/placement"
 import { CrewHand } from "./Hand"
 
 export function CrewHands(props) {
-    const hands = Object.keys(props.players).map(function f(player) {
+    const hands = Object.keys(props.players).map((player) => {
         const pi = calculatePi(parseInt(player), parseInt(props.currentPlayer), parseInt(props.numPlayers))
 
         return <div
