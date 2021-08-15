@@ -22,8 +22,8 @@ export function CrewPanel(props) {
                 </div>
                 <div className="w-full flex justify-between px-4">
                     <div className="flex flex-col justify-between">
-                        <CrewGoal />
-                        <CrewGoal />
+                        <CrewGoal num={5} suite={'red'} color={props.color} />
+                        <CrewGoal num={5} suite={'red'} color={props.color} />
                     </div>
                     <CrewCard />
                     {/* <CrewCard /> */}

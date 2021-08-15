@@ -11,6 +11,7 @@ export function CrewPanels(props) {
                 active={idx === props.thisPlayer}
                 afterActive={idx === props.thisPlayer + 1}
                 name={name}
+                color={props.color}
             />)
     })
 
