@@ -4,21 +4,16 @@ import { CrewHUD } from "./HUD";
 import { CrewLayout } from "./Layout";
 import { CrewConsole } from "./Console"
 
-const cards = [
-	{ 'num': '1', 'suite': 'red' },
-	{ 'num': '4', 'suite': 'black' },
-	{ 'faceDown': true },
-]
-
 export function CrewBoard(props) {
+	const thisPlayer = 2
 	const color = getColorPalette('pink') // TODO
 	return (
 		<CrewLayout color={color}>
 			<CrewConsole
 				numPlayers={parseInt(props.ctx.numPlayers)}
-				thisPlayer={2}
+				thisPlayer={thisPlayer}
 				currentPlayer={parseInt(props.ctx.currentPlayer)}
-				hand={props.G.players[2].hand}
+				hand={props.G.players[thisPlayer].hand}
 				color={color}
 			/>
 			<CrewHUD />
