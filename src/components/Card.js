@@ -33,10 +33,10 @@ function CrewCardBack(props) {
 function CrewCardFront(props) {
     return (
         <>
-            <div className="flex-grow flex">
+            <div className="m-auto">
                 <CrewEmoji emoji={mapNumberToEmoji[props.num]} pi={props.pi} />
             </div>
-            <div className="flex-grow flex">
+            <div className="m-auto">
                 <CrewEmoji emoji={mapSuiteToEmoji[props.suite]} pi={props.pi} />
             </div>
         </>

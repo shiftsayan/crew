@@ -1,6 +1,7 @@
 import classNames from "classnames";
 
 import { CrewCard } from "./Card";
+import { CrewGoal } from "./Goal";
 
 export function CrewPanel(props) {
     return (
@@ -12,14 +13,21 @@ export function CrewPanel(props) {
             })}>
             <div className={classNames({
                 "h-full flex flex-col": true,
-                "bg-gray-200 rounded-t-3xl py-2": props.active,
+                "bg-gray-200 rounded-t-3xl py-4": props.active,
             })}>
                 <div className="m-auto">
                     <p className="text-lg uppercase font-bold">
                         {props.name}
                     </p>
                 </div>
-                <CrewCard />
+                <div className="w-full flex justify-between px-4">
+                    <div className="flex flex-col justify-between">
+                        <CrewGoal />
+                        <CrewGoal />
+                    </div>
+                    <CrewCard />
+                    {/* <CrewCard /> */}
+                </div>
             </div>
         </div>
     )
