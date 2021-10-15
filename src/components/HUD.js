@@ -26,7 +26,7 @@ function CrewHUDNamesPanel(props) {
 
 export function CrewHUD(props) {
     return (
-        <div className="w-full h-1/2 mb-12 bg-gray-100 flex justify-center rounded-3xl">
+        <div className="w-full h-1/2 mb-6 bg-gray-100 flex justify-center rounded-3xl">
             <div className="m-auto">
                 HUD
             </div>

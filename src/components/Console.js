@@ -1,5 +1,3 @@
-import classNames from "classnames"
-
 import { CrewDock } from "./Dock"
 import { CrewPanels } from "./Panels"
 

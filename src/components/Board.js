@@ -6,9 +6,10 @@ import { CrewConsole } from "./Console"
 
 export function CrewBoard(props) {
 	const thisPlayer = 2
-	const color = getColorPalette('pink') // TODO
+	const color = getColorPalette('red') // TODO
 	return (
 		<CrewLayout color={color}>
+			<CrewHUD />
 			<CrewConsole
 				numPlayers={parseInt(props.ctx.numPlayers)}
 				thisPlayer={thisPlayer}
@@ -16,7 +17,6 @@ export function CrewBoard(props) {
 				hand={props.G.players[thisPlayer].hand}
 				color={color}
 			/>
-			<CrewHUD />
 		</CrewLayout>
 	)
 }
