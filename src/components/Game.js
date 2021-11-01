@@ -93,10 +93,9 @@ function PlayTrick(G, ctx, card) {
     G.currentTrick !== [] && // this is not a new trick
     G.currentTrick[0].suite !== card.suite && // and the suite does not match the trick suit
     !G.players[ctx.currentPlayer].hand.every(
-      (_card) => _card.suite !== card.suite
+      (_card) => _card.suite !== card.suite // even though the player has it
     )
   )
-    // even though the player has it
     throw new Error("Must Play Card of Same Suite When Possible");
 
   G.players[ctx.currentPlayer].hand.splice(

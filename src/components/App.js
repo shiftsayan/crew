@@ -7,7 +7,7 @@ function App() {
 	const values = queryString.parse(window.location.search)
 
 	return <CrewClient
-		numPlayers={values.numPlayers || 3}
+		numPlayers={values.numPlayers || 5}
 		colors={getColorPalette('red')}
 	/>
 }
