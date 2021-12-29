@@ -10,10 +10,11 @@ export const GOAL_VIEW_PHASES = [Phase.Preflight, Phase.Goal, Phase.GoldenBorder
 export function CrewView({ state, setState }) {
     var view = undefined
     if (GOAL_VIEW_PHASES.includes(state.phase)) {
+        console.log("here")
         view = <CrewGoalView state={state} setState={setState} />
     }
     else {
-        state.view === View.Trick
+        view = state.view === View.Trick
             ? <CrewTrickView state={state} setState={setState} />
             : <CrewTableView state={state} setState={setState} />
     }
@@ -59,21 +60,23 @@ function CrewTrickView({ state, setState }) {
         )
     }
 
-    var last_col = []
-    for (let j = 0; j < state.num_players; j++) {
-        last_col.push(
-            <CrewPill
-                key={j}
-                num={state.current_trick[j].num}
-                suite={state.current_trick[j].suite}
-            />
+    if (state.current_trick) {
+        var last_col = []
+        for (let j = 0; j < state.num_players; j++) {
+            last_col.push(
+                <CrewPill
+                    key={j}
+                    num={state.current_trick[j].num}
+                    suite={state.current_trick[j].suite}
+                />
+            )
+        }
+        grid.push(
+            <div className={col_classes} key="last">
+                {last_col}
+            </div>
         )
     }
-    grid.push(
-        <div className={col_classes} key="last">
-            {last_col}
-        </div>
-    )
 
     return (
         <div className="flex h-full">

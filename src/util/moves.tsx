@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { Agent, Condition, GoldenBorder, Move, } from "./enums"
 import { mapPhaseToDetails } from "./phases"
-import { advancePhase, communicateCard, communicateValue, playCard, toggleGoal } from "./state"
+import { advancePhase, communicateCard, communicateValue, playCard, startTrick, toggleGoal } from "./state"
 
 export function performMove(state, setState, move, data) {
     var phase_details = mapPhaseToDetails[state.phase]
@@ -33,6 +33,9 @@ export function performMove(state, setState, move, data) {
             case Move.SkipGoldenBorder:
                 move_updates = { golden_border: GoldenBorder.Skipped }
                 break
+            case Move.StartTrick:
+                move_updates = startTrick(state)
+                break
             case Move.PlayCard:
                 move_updates = playCard(data.card, state)
                 break
@@ -49,7 +52,6 @@ export function performMove(state, setState, move, data) {
     } catch (error) {
         console.error(error)
     }
-
 
     // Update current player
     if (success) {

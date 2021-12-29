@@ -112,10 +112,14 @@ function CrewSidebarCTA({ state, setState }) {
                 })
             }
             break
-        // else 
-        // default:
-        //     buttons_data.push({ 'text': 'Waiting...', 'style': 'neutral' })
-        //     break
+        case Phase.Communication:
+            if (state.this_player === state.commander) {
+                buttons_data.push({
+                    text: 'Start Trick',
+                    style: 'positive',
+                    onClick: () => performMove(state, setState, Move.StartTrick, {})
+                })
+            }
     }
     if (buttons_data.length === 0) {
         buttons_data.push({ 'text': 'Waiting...', 'style': 'neutral' })

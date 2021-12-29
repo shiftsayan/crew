@@ -38,6 +38,7 @@ export function getInitialState(setup_data) {
     state.golden_border = mission_details.golden_border ? GoldenBorder.Available : GoldenBorder.None
 
     state.players = {}
+    state.current_trick = undefined
     for (let i = 0; i < setup_data.num_players; i++) {
         state.players[i] = {
             name: setup_data.names[i],
@@ -50,7 +51,6 @@ export function getInitialState(setup_data) {
     }
 
     state.all_tricks = []
-    state.current_trick = startTrick(state)
     state.last_winner = undefined
 
     state.view = View.Trick
@@ -286,16 +286,25 @@ export function communicateValue(value, state) {
     }
 }
 
+export function startTrick(state) {
+    // Check no player is communicating
+    var communicating = false
+    for (let i = 0; i < state.num_players; i++) {
+        communicating = communicating || (state.players[i].communication_value === Communication.Communicating)
+    }
+    if (communicating) {
+        throw new Error("ERROR: Cannot start trick while a player is communicating.")
+    }
 
-
-function startTrick(state) {
     var trick: any = {}
     for (let i = 0; i < state.num_players; i++) {
         trick[i] = {}
     }
     trick.suite = undefined
 
-    return trick
+    return {
+        current_trick: trick
+    }
 }
 
 export function endTrick(state) {
@@ -345,7 +354,7 @@ export function endTrick(state) {
 
     return {
         goals: goals,
-        current_trick: startTrick(state),
+        current_trick: undefined,
         last_winner: winner,
         condition: condition,
     }

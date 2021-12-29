@@ -49,9 +49,10 @@ export enum Move {
     StartGame,
     ToggleGoal,
     SkipGoldenBorder,
-    PlayCard,
     CommunicateCard,
     CommunicateValue,
+    PlayCard,
+    StartTrick,
 }
 
 export enum View {

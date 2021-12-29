@@ -12,6 +12,10 @@ export function CrewPanel({ idx, state, setState }) {
         goals.push(<CrewGoal key="blank" blank />)
     }
 
+    var played_card = {}
+    if (state.current_trick)
+        played_card = state.current_trick[idx]
+
     return (
         <div className="h-full bg-gray-100">
             {/* Title */}
@@ -27,7 +31,7 @@ export function CrewPanel({ idx, state, setState }) {
             </div>
             {/* Cards */}
             <div className="w-full mt-1 justify-around px-4 flex">
-                <CrewCard state={state} setState={setState} card={state.current_trick[idx]} />
+                <CrewCard state={state} setState={setState} card={played_card} />
                 <CrewCard state={state} setState={setState} card={state.players[idx].communication_card} communication={state.players[idx].communication_value} />
             </div>
             {/* Goals */}

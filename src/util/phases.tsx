@@ -38,7 +38,9 @@ export const mapPhaseToDetails = {
     [Phase.Communication]: {
         starting_agent: Agent.Commander,
         agent: Agent.All,
-        moves: [Move.CommunicateCard, Move.CommunicateValue],
+        moves: [Move.CommunicateCard, Move.CommunicateValue, Move.StartTrick],
+        end_condition: (state) => state.current_trick !== undefined,
+        next_phase: () => Phase.StartTrick,
     },
 
     [Phase.StartTrick]: {
