@@ -4,6 +4,7 @@ import { Communication, Move } from "./enums";
 import { advancePhase, toggleGoal } from "./state";
 
 export const mapNumberToEmoji = {
+    '0': '0️⃣',
     '1': '1️⃣',
     '2': '2️⃣',
     '3': '3️⃣',

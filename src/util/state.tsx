@@ -25,6 +25,7 @@ export function getInitialState(setup_data) {
             state.cards.push({ num: num, suite: suite })
         }
     }
+    state.played_cards = []
 
     state.max_tricks = Math.floor(state.cards.length / setup_data.num_players)
 
@@ -44,6 +45,7 @@ export function getInitialState(setup_data) {
             name: setup_data.names[i],
             hand: [],
             goals: [],
+            tricks_won: 0,
             can_communicate: true,
             communication_card: {},
             communication_value: Communication.NotCommunicated,
@@ -195,6 +197,9 @@ export function playCard(card, state) {
 
     // Remove card from hand
     var new_hand = state.players[state.this_player].hand.filter((_card) => !(_card.num === card.num && _card.suite === card.suite))
+
+    // Add card to played cards
+    state.played_cards.push(card)
 
     return {
         players: {
@@ -357,5 +362,12 @@ export function endTrick(state) {
         current_trick: undefined,
         last_winner: winner,
         condition: condition,
+        players: {
+            ...state.players,
+            [winner]: {
+                ...state.players[winner],
+                tricks_won: state.players[winner].tricks_won + 1
+            }
+        }
     }
 }

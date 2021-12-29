@@ -9,7 +9,7 @@ export function CrewPill({ num, suite, dimmed = false, blank = false }) {
     return (
         <div className={classNames({
             "h-8 w-14 bg-white rounded-md flex": true,
-            "scale-90 saturate-50 transition": dimmed,
+            "scale-75 saturate-0 transition": dimmed,
         })}
         >
             {!blank &&

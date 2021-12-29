@@ -92,13 +92,14 @@ function CrewTableView({ state, setState }) {
         var row = [
             <CrewViewHeader text={suite} />
         ]
-        for (var i = 1; i <= (suite === state.trump_suit ? 4 : 9); i++) {
+        for (let i = 1; i <= (suite === state.trump_suit ? 4 : 9); i++) {
+            let played = state.played_cards.some((card) => (card.num === i && card.suite === suite))
             row.push(
                 <CrewPill
                     key={i}
                     num={i}
                     suite={suite}
-                    dimmed={Math.random() < 0.2}
+                    dimmed={played}
                 />
             )
         }
