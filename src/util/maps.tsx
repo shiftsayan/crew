@@ -1,7 +1,6 @@
 import { FiCircle, FiSquare, FiX, FiTriangle, FiChevronsUp, FiArrowUpCircle, FiAlertCircle, FiArrowDownCircle, FiHelpCircle } from "react-icons/fi";
 
-import { Communication, Move } from "./enums";
-import { advancePhase, toggleGoal } from "./state";
+import { Communication, Suite } from "./enums";
 
 export const mapNumberToEmoji = {
     '0': '0️⃣',
@@ -17,11 +16,11 @@ export const mapNumberToEmoji = {
 }
 
 export const mapSuiteToIcon = {
-    'red': <FiSquare />,
-    'blue': <FiCircle />,
-    'yellow': <FiX />,
-    'green': <FiTriangle />,
-    'black': <FiChevronsUp />,
+    [Suite.Red]: <FiSquare />,
+    [Suite.Blue]: <FiCircle />,
+    [Suite.Yellow]: <FiX />,
+    [Suite.Green]: <FiTriangle />,
+    [Suite.Black]: <FiChevronsUp />,
 }
 
 export const mapOrderToIcon = {
@@ -36,27 +35,27 @@ export const mapOrderToIcon = {
 }
 
 export const mapSuiteToBackgroundColor = {
-    'red': 'bg-red-600',
-    'blue': 'bg-blue-500',
-    'yellow': 'bg-amber-400',
-    'green': 'bg-emerald-500',
-    'black': 'bg-black',
+    [Suite.Red]: 'bg-red-600',
+    [Suite.Blue]: 'bg-blue-500',
+    [Suite.Yellow]: 'bg-amber-400',
+    [Suite.Green]: 'bg-emerald-500',
+    [Suite.Black]: 'bg-black',
 }
 
 export const mapSuiteToTextColor = {
-    'red': 'text-red-600',
-    'blue': 'text-blue-500',
-    'yellow': 'text-amber-400',
-    'green': 'text-emerald-500',
-    'black': 'text-black',
+    [Suite.Red]: 'text-red-600',
+    [Suite.Blue]: 'text-blue-500',
+    [Suite.Yellow]: 'text-amber-400',
+    [Suite.Green]: 'text-emerald-500',
+    [Suite.Black]: 'text-black',
 }
 
 export const mapSuiteToBorderColor = {
-    'red': 'border-red-600',
-    'blue': 'border-blue-500',
-    'yellow': 'border-amber-400',
-    'green': 'border-emerald-500',
-    'black': 'border-black',
+    [Suite.Red]: 'border-red-600',
+    [Suite.Blue]: 'border-blue-500',
+    [Suite.Yellow]: 'border-amber-400',
+    [Suite.Green]: 'border-emerald-500',
+    [Suite.Black]: 'border-black',
 }
 
 export const mapPlayersToGridsClass = {

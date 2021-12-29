@@ -1,11 +1,10 @@
-import { forEachLeadingCommentRange } from "typescript"
-import { Agent, Communication, Condition, GoldenBorder, Phase, View } from "./enums"
+import { Agent, Communication, Condition, GoldenBorder, Phase, Suite, View } from "./enums"
 import { missions } from "./missions"
 import { mapPhaseToDetails } from "./phases"
 import { shuffle } from "./random"
 
-const SUITES = ["blue", "red", "green", "yellow", "black"]
-const TRUMP_SUIT = "black"
+const SUITES = [Suite.Black, Suite.Blue, Suite.Green, Suite.Red, Suite.Yellow,]
+const TRUMP_SUIT = Suite.Black
 
 export function getInitialState(setup_data) {
     const state = { ...setup_data }

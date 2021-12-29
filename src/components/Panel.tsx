@@ -24,7 +24,7 @@ export function CrewPanel({ idx, state, setState }) {
                     {state.players[idx].name}
                 </div>
                 <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
-                    {idx === state.commander && <CrewPanelBadge emoji="🧑‍🚀" />}
+                    {idx === state.commander && <CrewPanelBadge emoji="👑" />}
                     <CrewPanelBadge emoji={mapNumberToEmoji[state.players[idx].tricks_won]} />
                     {/* <CrewPanelBadge emoji="🏅" /> */}
                 </div>

@@ -9,6 +9,14 @@ export enum Phase {
     Result = "RESULT",
 }
 
+export enum Suite {
+    Black,
+    Blue,
+    Red,
+    Yellow,
+    Green,
+}
+
 export enum Decoration {
     None,
     Blank,
