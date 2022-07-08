@@ -14,6 +14,16 @@ module.exports = {
             },
             scale: {
                 '80': '0.8',
+            },
+            animation: {
+                gradient: 'gradient 150s ease infinite',
+            },
+            keyframes: {
+                'gradient': {
+                    '0%': { 'background-position': '0%' },
+                    '50%': { 'background-position': '100%' },
+                    '100%': { 'background-position': '0%' },
+                }
             }
         },
     },
