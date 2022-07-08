@@ -1,9 +1,10 @@
 import classnames from "classnames"
-
 import { FiInfo } from "react-icons/fi"
+
+import { GOAL_VIEW_PHASES } from "./Viewx"
+
 import { Move, Phase, View } from "../util/enums"
 import { check_agency, performMove } from "../util/moves"
-import { GOAL_VIEW_PHASES } from "./View"
 
 export function CrewSidebar({ state, setState }) {
     return (

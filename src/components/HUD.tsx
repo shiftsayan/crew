@@ -1,5 +1,5 @@
 import { CrewSidebar } from "./Sidebar"
-import { CrewView } from './View'
+import { CrewView } from './Viewx'
 
 export function CrewHUD({ state, setState }) {
     return (

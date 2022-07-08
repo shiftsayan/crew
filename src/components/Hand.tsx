@@ -1,6 +1,7 @@
+import { CrewCard } from "./Card"
+
 import { Move, Phase } from "../util/enums"
 import { performMove } from "../util/moves"
-import { CrewCard } from "./Card"
 
 export function CrewHand({ state, setState, sorted }) {
     const hand = [...state.players[state.this_player].hand]

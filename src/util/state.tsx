@@ -45,9 +45,8 @@ export function getInitialState(setup_data) {
             hand: [],
             goals: [],
             tricks_won: 0,
-            can_communicate: true,
             communication_card: {},
-            communication_value: Communication.NotCommunicated,
+            communication_qualifier: Communication.NotCommunicated,
         }
     }
 
@@ -145,7 +144,7 @@ export function dealCardsAndGoals(state) {
 export function toggleGoal(goal_idx, state) {
     // Only allow discarding goals in GoldenBorderDiscard phase
     if (state.goals[goal_idx].player !== undefined && state.phase !== Phase.GoldenBorderDiscard) {
-        throw new Error("ERROR: Goal already chosen.")
+        throw new Error("Goal already chosen.")
     }
 
     var previous_player = state.goals[goal_idx].player
@@ -183,7 +182,7 @@ export function toggleGoal(goal_idx, state) {
 export function playCard(card, state) {
     // Only allow playing cards you have
     if (!state.players[state.this_player].hand.includes(card)) {
-        throw new Error("ERROR: Card not possessed.")
+        throw new Error("Card not possessed.")
     }
     if (state.current_trick.suite &&                // If trick has already been started
         card.suite !== state.current_trick.suite && // and card's suite does not match trick suite
@@ -191,7 +190,7 @@ export function playCard(card, state) {
             (_card) => _card.suite !== state.current_trick.suite   // then the player must not have a card of the trick suite.
         )
     ) {
-        throw new Error("ERROR: Must play card of trick suite when possible")
+        throw new Error("Must play card of trick suite when possible")
     }
 
     // Remove card from hand
@@ -219,15 +218,15 @@ export function playCard(card, state) {
 export function communicateCard(card, state) {
     // Only allow communicating cards you have
     if (!state.players[state.this_player].hand.includes(card)) {
-        throw new Error("ERROR: Card not possessed.")
+        throw new Error("Card not possessed.")
     }
     // Only allow communicating once
-    if (state.players[state.this_player].communication_value !== Communication.NotCommunicated) {
-        throw new Error("ERROR: Player has already communicated.")
+    if (state.players[state.this_player].communication_qualifier !== Communication.NotCommunicated) {
+        throw new Error("Player has already communicated.")
     }
     // Do not allow communicating trump cards
     if (card.suite === state.trump_suit) {
-        throw new Error("ERROR: Cannot communicate cards of the trump suite.")
+        throw new Error("Cannot communicate cards of the trump suite.")
     }
 
     var values = []
@@ -237,7 +236,7 @@ export function communicateCard(card, state) {
     }
     // Do not allow communicating a card that's not the lowest, only, or highest
     if (values.length !== 1 && Math.min(...values) !== card.num && Math.max(...values) !== card.num) {
-        throw new Error("ERROR: This card is not the lowest, only, or highest of the suite.")
+        throw new Error("This card is not the lowest, only, or highest of the suite.")
     }
 
 
@@ -247,7 +246,7 @@ export function communicateCard(card, state) {
             [state.this_player]: {
                 ...state.players[state.this_player],
                 communication_card: card,
-                communication_value: state.dead_spot ? Communication.DeadSpot : Communication.Communicating,
+                communication_qualifier: state.dead_spot ? Communication.DeadSpot : Communication.Communicating,
             },
         },
     }
@@ -256,11 +255,11 @@ export function communicateCard(card, state) {
 export function communicateValue(value, state) {
     // Do not allow communicating value during reception dead spot
     if (state.dead_spot) {
-        throw new Error("ERROR: Cannot communicate during reception dead spot.")
+        throw new Error("Cannot communicate during reception dead spot.")
     }
     // Only allow communicating value after a card has been placed
-    if (state.players[state.this_player].communication_value !== Communication.Communicating) {
-        throw new Error("ERROR: Player has not placed a card yet.")
+    if (state.players[state.this_player].communication_qualifier !== Communication.Communicating) {
+        throw new Error("Player has not placed a card yet.")
     }
 
     var values = []
@@ -270,13 +269,13 @@ export function communicateValue(value, state) {
     }
     // Ensure correct communication value
     if (value === Communication.Only && values.length !== 1) {
-        throw new Error("ERROR: This is not your only card of the suite.")
+        throw new Error("This is not your only card of the suite.")
     }
     if (value === Communication.Highest && Math.max(...values) !== state.players[state.this_player].communication_card.num) {
-        throw new Error("ERROR: This is not your highest card of the suite.")
+        throw new Error("This is not your highest card of the suite.")
     }
     if (value === Communication.Lowest && Math.min(...values) !== state.players[state.this_player].communication_card.num) {
-        throw new Error("ERROR: This is not your lowest card of the suite.")
+        throw new Error("This is not your lowest card of the suite.")
     }
 
     return {
@@ -284,7 +283,7 @@ export function communicateValue(value, state) {
             ...state.players,
             [state.this_player]: {
                 ...state.players[state.this_player],
-                communication_value: value,
+                communication_qualifier: value,
             },
         },
     }
@@ -294,10 +293,10 @@ export function startTrick(state) {
     // Check no player is communicating
     var communicating = false
     for (let i = 0; i < state.num_players; i++) {
-        communicating = communicating || (state.players[i].communication_value === Communication.Communicating)
+        communicating = communicating || (state.players[i].communication_qualifier === Communication.Communicating)
     }
     if (communicating) {
-        throw new Error("ERROR: Cannot start trick while a player is communicating.")
+        throw new Error("Cannot start trick while a player is communicating.")
     }
 
     var trick: any = {}

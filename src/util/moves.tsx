@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { Agent, Condition, GoldenBorder, Move, } from "./enums"
 import { mapPhaseToDetails } from "./phases"
 import { advancePhase, communicateCard, communicateValue, playCard, startTrick, toggleGoal } from "./state"
@@ -8,19 +7,18 @@ export function performMove(state, setState, move, data) {
 
     // Check if move is allowed in current phase
     if (!phase_details.moves.includes(move)) {
-        console.error("ERROR: Move not allowed in this phase.")
+        console.error("Move not allowed in this phase.")
         return
     }
 
     // Check if this player is allowed to make this move
     var valid_agent = check_agency(state)
     if (!valid_agent) {
-        console.error("ERROR: Move not allowed by this player.")
+        console.error("Move not allowed by this player.")
         return
     }
 
     // Perform actual move
-    var success = false
     var move_updates: any = {}
     try {
         switch (move) {
@@ -46,22 +44,20 @@ export function performMove(state, setState, move, data) {
                 move_updates = communicateValue(data.value, state)
                 break
             default:
-                console.error("ERROR: Move not found.")
+                throw new Error("Move not found.")
         }
-        success = true
     } catch (error) {
         console.error(error)
+        return
     }
 
     // Update current player
-    if (success) {
-        switch (phase_details.agent) {
-            case Agent.Current:
-            case Agent.Next:
-                move_updates.current_player = (state.current_player + 1) % state.num_players
-                move_updates.this_player = (state.this_player + 1) % state.num_players
-                break
-        }
+    switch (phase_details.agent) {
+        case Agent.Current:
+        case Agent.Next:
+            move_updates.current_player = (state.current_player + 1) % state.num_players
+            move_updates.this_player = (state.this_player + 1) % state.num_players
+            break
     }
 
     // Check end condition

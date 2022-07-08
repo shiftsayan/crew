@@ -32,7 +32,7 @@ export function CrewPanel({ idx, state, setState }) {
             {/* Cards */}
             <div className="w-full mt-1 justify-around px-4 flex">
                 <CrewCard state={state} setState={setState} card={played_card} />
-                <CrewCard state={state} setState={setState} card={state.players[idx].communication_card} communication={state.players[idx].communication_value} />
+                <CrewCard state={state} setState={setState} card={state.players[idx].communication_card} communication={state.players[idx].communication_qualifier} />
             </div>
             {/* Goals */}
             <div className={classNames({
