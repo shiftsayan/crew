@@ -16,10 +16,10 @@ module.exports = {
                 '80': '0.8',
             },
             animation: {
-                gradient: 'gradient 150s ease infinite',
+                gradient: 'gradient 15s ease infinite',
             },
             keyframes: {
-                'gradient': {
+                gradient: {
                     '0%': { 'background-position': '0%' },
                     '50%': { 'background-position': '100%' },
                     '100%': { 'background-position': '0%' },
