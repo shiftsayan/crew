@@ -1,13 +1,10 @@
 import { Route, Routes, Navigate } from 'react-router-dom';
 
 import { Home } from "./Home"
-import { CrewClient } from "./Client"
+import { Board } from "./Board"
 import { Layout } from './Layout';
 
-import { get, child, ref } from "firebase/database"
-
-import { useEffect, useState } from 'react';
-import { database } from '../services/firebase';
+import { useState } from 'react';
 import { palette } from '../util/theme/palette'
 
 export default function App() {
@@ -34,7 +31,7 @@ export default function App() {
 						? <Navigate to="/play" />
 						: <Home state={state} setState={setState} view={view} setView={setView} />
 				} />
-				<Route path="/play" element={<CrewClient state={state} setState={setState} view={view} setView={setView} />} />
+				<Route path="/play" element={<Board state={state} setState={setState} view={view} setView={setView} />} />
 			</Routes>
 		</Layout>
 	)

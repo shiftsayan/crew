@@ -6,7 +6,7 @@ import { CrewGoal } from "./Goal";
 import { mapNumberToEmoji } from "../util/maps";
 import { Phase } from "../util/enums";
 
-export function CrewPanel({ idx, state, setState }) {
+export function Panel({ idx, state, setState }) {
     // const goals = state.players[idx].goals.map((goal, idx) => <CrewGoal key={idx} goal={goal} dimmed={goal.accomplished} />)
     // if (state.phase === Phase.Goal || state.phase === Phase.GoldenBorderAccept) {
     //     goals.push(<CrewGoal key="blank" blank />)

@@ -1,7 +1,7 @@
 import { CrewSidebar } from "./Sidebar"
 import { CrewView } from './Viewx'
 
-export function CrewHUD({ state, setState }) {
+export function HUD({ state, setState }) {
     return (
         <div className="w-full h-full flex-grow bg-gray-100 flex justify-center rounded-2xl py-6 px-8">
             <CrewView state={state} setState={setState} />
