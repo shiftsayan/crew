@@ -1,13 +1,13 @@
 import classnames from "classnames"
 
-import { CrewPanel } from "./Panel"
+import { Panel } from "./Panel"
 
 import { mapPlayersToGridsClass } from "../util/maps";
 
-export function CrewPanels({ state, setState, game, setGame, view, setView }) {
+export function Panels({ state, setState, game, setGame, view, setView }) {
     const panels = []
     for (let i = 0; i < game.num_players; i++) {
-        panels.push(<CrewPanel key={i} idx={i} state={game} setState={setState} />)
+        panels.push(<Panel key={i} idx={i} state={game} setState={setState} />)
     }
 
     return (

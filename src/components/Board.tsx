@@ -1,16 +1,27 @@
-import { CrewDock } from "./Dock"
-import { CrewConsole } from "./Console"
+import { Dock } from "./Dock"
+import { Console } from "./Console"
 
 import { gameRef } from "../services/firebase"
 import { onValue } from "@firebase/database"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
-export function CrewBoard({ state, setState, game, setGame, view, setView }) {
+export function Board({ state, setState, view, setView }) {
+	var [game, setGame] = useState({})
+
+	useEffect(() => {
+		onValue(gameRef, (snapshot) => {
+			var data = snapshot.val()
+			setGame(data)
+		})
+	}, [])
+
 	return (
 		<>
-			<CrewConsole state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
-			{/* <CrewDock state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} /> */}
+			<Console state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
+			<Dock state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
 		</>
 	)
 }
+
+
 
