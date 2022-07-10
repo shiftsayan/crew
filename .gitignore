@@ -1,5 +1,4 @@
-src/services/firebase.tsx
-src/services/auth.tsx
+.env
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
