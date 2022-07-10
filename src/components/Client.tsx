@@ -2,6 +2,9 @@ import { useEffect, useState } from "react"
 
 import { CrewBoard } from "./Board"
 
+import { gameRef } from "../services/firebase"
+import { onValue } from "@firebase/database"
+
 import { getInitialState } from "../util/state"
 
 const SETUP_DATA = {
@@ -21,6 +24,13 @@ const SETUP_DATA = {
 
 export function CrewClient({ state, setState, view, setView }) {
 	var [game, setGame] = useState(getInitialState(SETUP_DATA))
+
+	useEffect(() => {
+		onValue(gameRef, (snapshot) => {
+			var data = snapshot.val()
+			setGame(data)
+		})
+	}, [])
 
 	return <CrewBoard state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
 }
