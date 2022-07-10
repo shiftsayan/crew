@@ -7,10 +7,11 @@ import { mapNumberToEmoji } from "../util/maps";
 import { Phase } from "../util/enums";
 
 export function CrewPanel({ idx, state, setState }) {
-    const goals = state.players[idx].goals.map((goal, idx) => <CrewGoal key={idx} goal={goal} dimmed={goal.accomplished} />)
-    if (state.phase === Phase.Goal || state.phase === Phase.GoldenBorderAccept) {
-        goals.push(<CrewGoal key="blank" blank />)
-    }
+    // const goals = state.players[idx].goals.map((goal, idx) => <CrewGoal key={idx} goal={goal} dimmed={goal.accomplished} />)
+    // if (state.phase === Phase.Goal || state.phase === Phase.GoldenBorderAccept) {
+    //     goals.push(<CrewGoal key="blank" blank />)
+    // }
+    const goals = []
 
     var played_card = {}
     if (state.current_trick)
@@ -18,7 +19,7 @@ export function CrewPanel({ idx, state, setState }) {
 
     return (
         <div className="h-full bg-gray-100">
-            {/* Title */}
+
             <div className="w-full h-12 flex justify-center space-x-2">
                 <div className="my-auto">
                     {state.players[idx].name}
@@ -26,21 +27,20 @@ export function CrewPanel({ idx, state, setState }) {
                 <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
                     {idx === state.commander && <CrewPanelBadge emoji="👑" />}
                     <CrewPanelBadge emoji={mapNumberToEmoji[state.players[idx].tricks_won]} />
-                    {/* <CrewPanelBadge emoji="🏅" /> */}
                 </div>
             </div>
-            {/* Cards */}
-            <div className="w-full mt-1 justify-around px-4 flex">
+
+            {/* <div className="w-full mt-1 justify-around px-4 flex">
                 <CrewCard state={state} setState={setState} card={played_card} />
                 <CrewCard state={state} setState={setState} card={state.players[idx].communication_card} communication={state.players[idx].communication_qualifier} />
-            </div>
-            {/* Goals */}
-            <div className={classNames({
+            </div> */}
+
+            {/* <div className={classNames({
                 "w-full h-8 mt-2 justify-around flex": true,
                 "px-4": state.players[idx].goals.length !== 4,
             })}>
                 {goals}
-            </div>
+            </div> */}
         </div>
     )
 }

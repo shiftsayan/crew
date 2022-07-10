@@ -3,7 +3,7 @@ import { CrewCard } from "./Card"
 import { Move, Phase } from "../util/enums"
 import { performMove } from "../util/moves"
 
-export function CrewHand({ state, setState, sorted }) {
+export function CrewHand({ state, setState, game, setGame, view, setView, sorted }) {
     const hand = [...state.players[state.this_player].hand]
     if (sorted) sortHand(hand)
 

@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 
 import { Home } from "./Home"
 import { CrewClient } from "./Client"
@@ -8,33 +8,33 @@ import { get, child, ref } from "firebase/database"
 
 import { useEffect, useState } from 'react';
 import { database } from '../services/firebase';
+import { palette } from '../util/theme/palette'
 
 export default function App() {
-	const [state, setState] = useState({})
-	const [view, setView] = useState({
-		background: "bg-zinc-900",
-		text: "This is a success message!",
+	const [state, setState] = useState({
+		auth: true,
+		crew: "thethecrewcrew"
 	})
-
-	useEffect(() => {
-		get(child(ref(database), 'crews')).then((snapshot) => {
-			let data = snapshot.val()
-			// setAllCrews(data)
-		})
+	const [view, setView] = useState({
+		...palette,
 	})
 
 	// useEffect(() => {
-	// 	onValue(stateRef, (snapshot) => {
-	// 		var state = snapshot.val()
-	// 		setState(state)
+	// 	get(child(ref(database), 'crews')).then((snapshot) => {
+	// 		let data = snapshot.val()
+	// 		// setAllCrews(data)
 	// 	})
-	// }, [])
+	// })
 
 	return (
 		<Layout view={view}>
 			<Routes>
-				<Route path="/" element={<Home state={state} setState={setState} setView={setView} />} />
-				<Route path="/play" element={<CrewClient />} />
+				<Route path="/" element={
+					state.auth
+						? <Navigate to="/play" />
+						: <Home state={state} setState={setState} view={view} setView={setView} />
+				} />
+				<Route path="/play" element={<CrewClient state={state} setState={setState} view={view} setView={setView} />} />
 			</Routes>
 		</Layout>
 	)

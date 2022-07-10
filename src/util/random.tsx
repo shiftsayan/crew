@@ -16,3 +16,7 @@ export function shuffle(array) {
 
     return array;
 }
+
+export function choice(array) {
+    return array[Math.floor(Math.random() * array.length)]
+}

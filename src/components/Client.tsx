@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { CrewBoard } from "./Board"
 
@@ -19,9 +19,8 @@ const SETUP_DATA = {
 	},
 }
 
-export function CrewClient() {
-	var [state, setState] = useState(getInitialState(SETUP_DATA))
-	console.log(state.phase)
+export function CrewClient({ state, setState, view, setView }) {
+	var [game, setGame] = useState(getInitialState(SETUP_DATA))
 
-	return <CrewBoard state={state} setState={setState} />
+	return <CrewBoard state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
 }
