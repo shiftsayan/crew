@@ -6,13 +6,6 @@ import { onValue } from "@firebase/database"
 import { useEffect } from "react"
 
 export function CrewBoard({ state, setState, game, setGame, view, setView }) {
-	useEffect(() => {
-		onValue(gameRef, (snapshot) => {
-			var data = snapshot.val()
-			setGame(data)
-		})
-	})
-
 	return (
 		<>
 			<CrewConsole state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
