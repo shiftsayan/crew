@@ -1,4 +1,4 @@
-import { Agent, Communication, Condition, GoldenBorder, Phase, Suite, View } from "./enums"
+import { Agent, Communication, Condition, GoldenBorder, Phase, Suite, ViewName } from "./enums"
 import { missions } from "./missions"
 import { mapPhaseToDetails } from "./phases"
 import { shuffle } from "./random"
@@ -53,7 +53,7 @@ export function getInitialState(setup_data) {
     state.all_tricks = []
     state.last_winner = undefined
 
-    state.view = View.Trick
+    state.view = ViewName.Trick
 
     return state
 }

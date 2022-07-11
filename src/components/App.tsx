@@ -6,11 +6,13 @@ import { Layout } from './Layout';
 
 import { useState } from 'react';
 import { palette } from '../util/theme/palette'
+import { ViewName } from '../util/enums';
 
 export default function App() {
 	const [state, setState] = useState({
 		auth: true,
-		crew: "thethecrewcrew"
+		crew: "thethecrewcrew",
+		view: ViewName.Table,
 	})
 	const [view, setView] = useState({
 		...palette,

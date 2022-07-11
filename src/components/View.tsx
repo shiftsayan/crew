@@ -2,37 +2,37 @@ import { CrewPill } from "./Pill"
 import { CrewGoal } from "./Goal"
 
 import { mapMissionVersionToEmoji } from "../util/maps"
-import { Move, Phase, View } from "../util/enums"
+import { Move, Phase, ViewName } from "../util/enums"
 import { performMove } from "../util/moves"
 
 export const GOAL_VIEW_PHASES = [Phase.Preflight, Phase.Goal, Phase.GoldenBorderDiscard, Phase.GoldenBorderAccept]
 
-export function CrewView({ state, setState }) {
+export function View({ state, setState, game, setGame }) {
     var view = undefined
     if (GOAL_VIEW_PHASES.includes(state.phase)) {
-        view = <CrewGoalView state={state} setState={setState} />
+        view = <GoalView state={state} setState={setState} game={game} setGame={setGame} />
     }
     else {
-        view = state.view === View.Trick
-            ? <CrewTrickView state={state} setState={setState} />
-            : <CrewTableView state={state} setState={setState} />
+        view = state.view === ViewName.Trick
+            ? <TrickView state={state} setState={setState} game={game} setGame={setGame} />
+            : <TableView state={state} setState={setState} game={game} setGame={setGame} />
     }
 
     return (
         <div className="h-full w-full m-auto flex-grow justify-between">
-            {view}
+            {/* {view} */}
         </div>
     )
 }
 
-function CrewTrickView({ state, setState }) {
+function TrickView({ state, setState, game, setGame }) {
     const col_classes = "flex flex-col -my-3 p-3 justify-between rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out"
     const grid = []
 
     var firstCol = []
     for (let j = 0; j < state.num_players; j++) {
         firstCol.push(
-            <CrewViewHeader text={state.players[j].name} />
+            <Header text={state.players[j].name} />
         )
     }
     grid.push(
@@ -84,12 +84,12 @@ function CrewTrickView({ state, setState }) {
     )
 }
 
-function CrewTableView({ state, setState }) {
+function TableView({ state, setState, game, setGame }) {
     const grid = []
 
     for (let suite of state.suites) {
         var row = [
-            <CrewViewHeader text={suite} />
+            <Header text={suite} />
         ]
         for (let i = 1; i <= (suite === state.trump_suit ? 4 : 9); i++) {
             let played = state.played_cards.some((card) => (card.num === i && card.suite === suite))
@@ -116,7 +116,7 @@ function CrewTableView({ state, setState }) {
     )
 }
 
-function CrewViewHeader({ text }) {
+function Header({ text }) {
     return (
         <div className="flex bg-white rounded-md justify-between h-8 w-20">
             <div className="m-auto truncate p-1">
@@ -126,8 +126,7 @@ function CrewViewHeader({ text }) {
     )
 }
 
-
-function CrewGoalView({ state, setState }) {
+function GoalView({ state, setState, game, setGame }) {
     const breakpoint = state.goals.length >= 6 ? Math.ceil(state.goals.length / 2) : state.goals.length
 
     const goals_grid = []

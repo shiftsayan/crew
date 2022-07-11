@@ -63,7 +63,7 @@ export enum Move {
     StartTrick,
 }
 
-export enum View {
+export enum ViewName {
     None,
     Table,
     Trick,

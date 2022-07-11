@@ -1,33 +1,30 @@
 import classnames from "classnames"
 import { FiInfo } from "react-icons/fi"
 
-import { GOAL_VIEW_PHASES } from "./Viewx"
+import { GOAL_VIEW_PHASES } from "./View"
 
-import { Move, Phase, View } from "../util/enums"
+import { Move, Phase, ViewName } from "../util/enums"
 import { check_agency, performMove } from "../util/moves"
 
-export function CrewSidebar({ state, setState }) {
+export function Sidebar({ state, setState, game, setGame }) {
     return (
         <div className="w-64 flex flex-col space-y-4 justify-center bg-white rounded-2xl">
             <div className="mx-auto flex justify-center space-x-2">
-                <div className="m-auto">
-                    {state.team.icon}
-                </div>
                 <div className="m-auto font-bold">
-                    {state.team.name}
+                    {game.crew_name}
                 </div>
             </div>
             <div className="mx-auto grid grid-cols-2 gap-x-4">
-                <CrewSidebarCounter label="Mission" value={state.mission.num} icon={<FiInfo />} />
-                <CrewSidebarCounter label="Attempt" value={state.attempt} />
+                {game.mission && <Counter label="Mission" value={game.mission.num} icon={<FiInfo />} />}
+                <Counter label="Attempt" value={game.attempt} />
             </div>
-            <CrewSidebarToggle state={state} setState={setState} />
-            <CrewSidebarCTA state={state} setState={setState} />
+            <Toggle state={state} setState={setState} game={game} setGame={setGame} />
+            <CTA state={state} setState={setState} />
         </div>
     )
 }
 
-function CrewSidebarCounter({ label, value, icon = null }) {
+function Counter({ label, value, icon = null }) {
     return (
         <div className="flex-col">
             <div className="mx-auto uppercase text-sm">
@@ -45,39 +42,39 @@ function CrewSidebarCounter({ label, value, icon = null }) {
     )
 }
 
-function CrewSidebarToggle({ state, setState }) {
+function Toggle({ state, setState, game, setGame }) {
     return (
         <div className="flex-col mx-auto" >
             <div className={classnames({
                 "mx-auto uppercase text-sm": true,
-                "text-gray-300": GOAL_VIEW_PHASES.includes(state.phase),
+                "text-gray-300": GOAL_VIEW_PHASES.includes(game.phase),
             })}>
-                {state.view === View.Table ? "Table View" : "Trick View"}
+                {state.view === ViewName.Table ? "Table View" : "Trick View"}
             </div>
             <div className="mx-auto pt-1">
                 <label className={classnames({
                     "flex": true,
-                    "cursor-pointer": GOAL_VIEW_PHASES.includes(state.phase),
-                    "cursor-not-allowed": GOAL_VIEW_PHASES.includes(state.phase),
+                    "cursor-pointer": GOAL_VIEW_PHASES.includes(game.phase),
+                    "cursor-not-allowed": GOAL_VIEW_PHASES.includes(game.phase),
                 })}>
                     <input
                         type="checkbox"
                         className="hidden"
                         onClick={() => setState({
                             ...state,
-                            view: (state.view === View.Table ? View.Trick : View.Table),
+                            view: (state.view === ViewName.Table ? ViewName.Trick : ViewName.Table),
                         })}
-                        disabled={GOAL_VIEW_PHASES.includes(state.phase)}
+                        disabled={GOAL_VIEW_PHASES.includes(game.phase)}
                     />
                     <div className={classnames({
                         "w-14 h-8 rounded-full transition mx-auto relative": true,
-                        "bg-gray-300": GOAL_VIEW_PHASES.includes(state.phase),
-                        "bg-gray-500": state.view === View.Trick,
-                        "bg-blue-500": state.view === View.Table,
+                        "bg-gray-300": GOAL_VIEW_PHASES.includes(game.phase),
+                        "bg-gray-500": state.view === ViewName.Trick,
+                        "bg-blue-500": state.view === ViewName.Table,
                     })}>
                         <div className={classnames({
                             "absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition": true,
-                            "translate-x-full": state.view === View.Table,
+                            "translate-x-full": state.view === ViewName.Table,
                         })} />
                     </div>
                 </label>
@@ -86,7 +83,7 @@ function CrewSidebarToggle({ state, setState }) {
     )
 }
 
-function CrewSidebarCTA({ state, setState }) {
+function CTA({ state, setState }) {
     const buttons_data = []
     switch (state.phase) {
         case Phase.Preflight:
