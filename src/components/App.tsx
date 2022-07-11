@@ -13,6 +13,8 @@ export default function App() {
 		auth: true,
 		crew: "thethecrewcrew",
 		view: ViewName.Table,
+		palette: palette,
+		this_player: "shift",
 	})
 	const [view, setView] = useState({
 		...palette,

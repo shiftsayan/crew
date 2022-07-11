@@ -1,5 +1,6 @@
 export enum Phase {
-
+    None,
+    Lobby,
 }
 
 export enum OldPhase {
