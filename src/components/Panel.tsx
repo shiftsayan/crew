@@ -28,7 +28,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
             <div className="w-full h-12 flex justify-center space-x-2">
                 <div className={classnames({
                     "my-auto": true,
-                    "underline": player === state.this_player
+                    "underline": player === state.player
                 })}>
                     {player}
                 </div>

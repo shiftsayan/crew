@@ -5,33 +5,37 @@ export class Login extends Action {
         if (!username) {
             this.setState({
                 ...this.state,
+                show_toast: true,
                 toast: {
                     style: "error",
                     text: "Invalid Username",
                 }
             })
-            return false;
+            return false
         }
         if (!password) {
             this.setState({
                 ...this.state,
+                show_toast: true,
                 toast: {
                     style: "error",
                     text: "Invalid Password",
                 }
             })
-            return false;
+            return false
         }
+        return true
     }
 
     commitState(username, password): void {
-        this.setState({
+        return {
             ...this.state,
             crew: username,
+            show_toast: true,
             toast: {
                 style: "success",
                 text: "Logged In",
             }
-        })
+        }
     }
 }

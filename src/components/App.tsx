@@ -10,10 +10,12 @@ import { ViewName } from '../util/enums';
 
 export default function App() {
 	const [state, setState] = useState({
+		// crew: false,
 		crew: "thethecrewcrew",
+		player: "shift",
 		view: ViewName.Table,
 		palette: palette,
-		this_player: "shift",
+		show_toast: false,
 	})
 	const [view, setView] = useState({
 		...palette,
@@ -27,12 +29,12 @@ export default function App() {
 	// })
 
 	return (
-		<Layout view={view}>
+		<Layout state={state} setState={setState}>
 			<Routes>
 				<Route path="/" element={
 					state.crew
 						? <Navigate to="/play" />
-						: <Home state={state} setState={setState} view={view} setView={setView} />
+						: <Home state={state} setState={setState} />
 				} />
 				<Route path="/play" element={<Board state={state} setState={setState} view={view} setView={setView} />} />
 			</Routes>

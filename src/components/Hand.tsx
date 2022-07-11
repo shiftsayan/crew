@@ -4,7 +4,7 @@ import { Move, OldPhase } from "../util/enums"
 import { performMove } from "../util/moves"
 
 export function Hand({ state, setState, game, setGame, view, setView, sorted }) {
-    const hand = [...state.players[state.this_player].hand]
+    const hand = [...state.players[state.player].hand]
     if (sorted) sortHand(hand)
 
     var move = (state.phase === OldPhase.Communication) ? Move.CommunicateCard : Move.PlayCard

@@ -2,13 +2,14 @@ import { Move } from "./move";
 
 export class Join extends Move {
     validateParams(player): boolean {
-        return !this.game.players[player].active
+        return !this.state.player  // player is not set
+            && !this.game.players[player].active  // player is not taken
     }
 
     commitState(player): void {
         return {
             ...this.state,
-            this_player: player,
+            player: player,
         }
     }
 

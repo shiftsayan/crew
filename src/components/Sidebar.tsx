@@ -118,7 +118,7 @@ function CTA({ state, setState }) {
             }
             break
         case OldPhase.Communication:
-            if (state.this_player === state.commander) {
+            if (state.player === state.commander) {
                 buttons_data.push({
                     text: 'Start Trick',
                     style: 'positive',

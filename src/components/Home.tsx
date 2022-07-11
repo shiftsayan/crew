@@ -1,9 +1,9 @@
 import { TextField, Button } from "@mui/material";
 import { useState } from "react";
-import { loginController } from "../util/controllers/login";
+import { Login } from "../util/actions/login";
 
 
-export function Home({ state, setState, view, setView }) {
+export function Home({ state, setState }) {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
 
@@ -17,8 +17,8 @@ export function Home({ state, setState, view, setView }) {
                         <Button
                             variant="contained"
                             size="large"
-                            color={view.accent}
-                            onClick={() => loginController(username, password, state, setState, view, setView)}
+                            color={state.palette.accent}
+                            onClick={() => new Login(state, setState).run(username, password)}
                             disableElevation
                         >
                             Login
