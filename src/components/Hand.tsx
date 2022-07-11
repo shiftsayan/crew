@@ -1,4 +1,4 @@
-import { CrewCard } from "./Card"
+import { Card } from "./Card"
 
 import { Move, Phase } from "../util/enums"
 import { performMove } from "../util/moves"
@@ -11,7 +11,7 @@ export function Hand({ state, setState, game, setGame, view, setView, sorted }) 
 
     const cards = hand.map((card, idx) =>
         <div key={idx} onClick={() => performMove(state, setState, move, { card: card })}>
-            <CrewCard state={state} setState={setState} card={card} />
+            <Card state={state} setState={setState} card={card} />
         </div>
     )
 

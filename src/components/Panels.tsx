@@ -4,10 +4,10 @@ import { Panel } from "./Panel"
 
 import { mapPlayersToGridsClass } from "../util/maps";
 
-export function Panels({ state, setState, game, setGame, view, setView }) {
+export function Panels({ state, setState, game, setGame }) {
     const panels = []
     for (let i = 0; i < game.num_players; i++) {
-        panels.push(<Panel key={i} idx={i} state={game} setState={setState} />)
+        panels.push(<Panel key={i} idx={i} state={state} setState={setState} game={game} setGame={setGame} />)
     }
 
     return (

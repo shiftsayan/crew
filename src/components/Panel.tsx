@@ -1,59 +1,59 @@
-import classNames from "classnames";
+import classnames from "classnames";
 
-import { CrewCard } from "./Card";
+import { Card } from "./Card";
 import { CrewGoal } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
 import { Phase } from "../util/enums";
 
-export function Panel({ idx, state, setState }) {
-    // const goals = state.players[idx].goals.map((goal, idx) => <CrewGoal key={idx} goal={goal} dimmed={goal.accomplished} />)
-    // if (state.phase === Phase.Goal || state.phase === Phase.GoldenBorderAccept) {
-    //     goals.push(<CrewGoal key="blank" blank />)
-    // }
-    const goals = []
+export function Panel({ idx, state, setState, game, setGame }) {
+    const player = game.seating[idx]
+    const player_data = game.players[player]
 
-    var played_card = {}
-    if (state.current_trick)
-        played_card = state.current_trick[idx]
+    const current_trick = game.tricks[game.tricks.length - 1]
+    const card = current_trick ? current_trick[player] : {}
+
+    const goals = player_data.goals
+        ? player_data.goals.map((goal, idx) => <CrewGoal key={idx} goal={goal} dimmed={goal.accomplished} />)
+        : []
+    // if (state.phase === Phase.Goal || state.phase === Phase.GoldenBorderAccept) {
+    goals.push(<CrewGoal key="blank" blank />)
+    // }
 
     return (
         <div className="h-full bg-gray-100">
-
+            {/* Title */}
             <div className="w-full h-12 flex justify-center space-x-2">
                 <div className="my-auto">
-                    {state.players[idx].name}
+                    {player}
                 </div>
                 <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
-                    {idx === state.commander && <CrewPanelBadge emoji="👑" />}
-                    <CrewPanelBadge emoji={mapNumberToEmoji[state.players[idx].tricks_won]} />
+                    {idx === game.commander && <Badge emoji="👑" />}
+                    <Badge emoji={mapNumberToEmoji[player_data.tricks_won]} />
                 </div>
             </div>
-
-            {/* <div className="w-full mt-1 justify-around px-4 flex">
-                <CrewCard state={state} setState={setState} card={played_card} />
-                <CrewCard state={state} setState={setState} card={state.players[idx].communication_card} communication={state.players[idx].communication_qualifier} />
-            </div> */}
-
-            {/* <div className={classNames({
+            {/* Cards */}
+            <div className="w-full mt-1 justify-around px-4 flex">
+                <Card card={card} state={state} setState={setState} game={game} setGame={setGame} />
+                <Card card={player_data.communication.card} communication={player_data.communication.qualifier} state={state} setState={setState} game={game} setGame={setGame} />
+            </div>
+            {/* Goals */}
+            <div className={classnames({
                 "w-full h-8 mt-2 justify-around flex": true,
-                "px-4": state.players[idx].goals.length !== 4,
+                // "px-4": state.players[idx].goals.length !== 4,
             })}>
                 {goals}
-            </div> */}
+            </div>
         </div>
     )
 }
 
-function CrewPanelBadge({ emoji }) {
+function Badge({ emoji }) {
     return (
-        <div className="my-auto h-7 w-7 outline outline-1 outline-slate-100 flex justify-center rounded-full">
+        <div className="my-auto h-7 w-7 flex justify-center rounded-full">
             <div className='z-10 m-auto'>
                 {emoji}
             </div>
-            {/* <div className="z-0 absolute blur">
-                {emoji}
-            </div> */}
         </div>
     )
 }

@@ -6,7 +6,7 @@ import { Decoration, Communication, Move } from "../util/enums"
 import { mapSuiteToBackgroundColor, mapCommunicationToIcon } from '../util/maps'
 import { performMove } from "../util/moves"
 
-export function CrewCard({ state, setState, card, decoration = Decoration.None, communication = Communication.None }) {
+export function Card({ state, setState, game = null, setGame = null, card, decoration = Decoration.None, communication = Communication.None }) {
     var communication_icons = []
     if (communication === Communication.Communicating) {
         for (let key of [Communication.Lowest, Communication.Only, Communication.Highest]) {
