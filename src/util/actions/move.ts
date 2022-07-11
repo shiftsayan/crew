@@ -1,3 +1,5 @@
+import { ref, update } from "@firebase/database"
+import { database } from "../../services/firebase"
 import { Action } from "./action"
 
 export abstract class Move extends Action {
@@ -18,13 +20,27 @@ export abstract class Move extends Action {
         return true
     }
 
-    async commitGame(...params) { }
+    async _commitGame(updates): Promise<void> {
+        return update(ref(database), updates);
+    }
+
+    commitGame(...params) { }
+
+    postRun() {
+
+    }
 
     run(...params) {
-        if (!this.validatePhase(...params) || !this.validateAgency(...params) || !this.validateParams(...params)) {
+        if (!this.validatePhase(...params) ||
+            !this.validateAgency(...params) ||
+            !this.validateParams(...params)
+        ) {
             return
         }
-        this.commitState(...params)
-        this.commitGame(...params)
+
+        this._commitState(this.commitState(...params))
+        this._commitGame(this.commitGame(...params))
+
+        this.postRun()
     }
 }

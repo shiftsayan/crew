@@ -6,7 +6,7 @@ import { CrewGoal } from "./Goal";
 import { mapNumberToEmoji } from "../util/maps";
 import { OldPhase } from "../util/enums";
 import { Button } from "@mui/material";
-import { sitController } from "../util/controllers/sit";
+import { Join } from "../util/actions/join";
 
 export function Panel({ idx, state, setState, game, setGame }) {
     const player = game.seating[idx]
@@ -58,7 +58,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
                             variant="contained"
                             size="small"
                             color={state.palette.accent}
-                            onClick={() => sitController(player, state, setState)}
+                            onClick={() => new Join(state, setState, game, setGame).run(player)}
                             disableElevation
                         >
                             Sit
