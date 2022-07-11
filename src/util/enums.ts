@@ -10,11 +10,11 @@ export enum Phase {
 }
 
 export enum Suite {
-    Black,
-    Blue,
-    Red,
-    Yellow,
-    Green,
+    Black = "Black",
+    Blue = "Blue",
+    Red = "Red",
+    Yellow = "Yellow",
+    Green = "Green",
 }
 
 export enum Decoration {

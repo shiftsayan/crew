@@ -3,7 +3,7 @@ import { missions } from "./missions"
 import { mapPhaseToDetails } from "./phases"
 import { shuffle } from "./random"
 
-const SUITES = [Suite.Black, Suite.Blue, Suite.Green, Suite.Red, Suite.Yellow,]
+const SUITES = [Suite.Black, Suite.Blue, Suite.Green, Suite.Red, Suite.Yellow]
 const TRUMP_SUIT = Suite.Black
 
 export function getInitialState(setup_data) {
