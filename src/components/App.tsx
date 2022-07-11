@@ -10,7 +10,6 @@ import { ViewName } from '../util/enums';
 
 export default function App() {
 	const [state, setState] = useState({
-		auth: true,
 		crew: "thethecrewcrew",
 		view: ViewName.Table,
 		palette: palette,
@@ -31,7 +30,7 @@ export default function App() {
 		<Layout view={view}>
 			<Routes>
 				<Route path="/" element={
-					state.auth
+					state.crew
 						? <Navigate to="/play" />
 						: <Home state={state} setState={setState} view={view} setView={setView} />
 				} />
