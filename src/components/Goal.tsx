@@ -17,7 +17,7 @@ export function CrewGoal({ idx = undefined, goal = { num: 0, suite: "", order: "
                 {goal.order &&
                     <CrewLabelPendant icon={mapOrderToIcon[goal.order]} suite={goal.suite} />
                 }
-            </div >
+            </div>
         </div>
     )
 }

@@ -54,6 +54,6 @@ export function Card({ state, setState, game = null, setGame = null, card, decor
                     {communication_icons}
                 </div>
             }
-        </div >
+        </div>
     )
 }

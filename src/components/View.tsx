@@ -122,7 +122,7 @@ function Header({ text }) {
             <div className="m-auto truncate p-1">
                 {text}
             </div>
-        </div >
+        </div>
     )
 }
 
@@ -136,7 +136,7 @@ function GoalView({ state, setState, game, setGame }) {
         row.push(
             <div className="cursor-grab" onClick={() => performMove(state, setState, Move.ToggleGoal, { goal_idx: i })} key={i} >
                 <CrewGoal idx={i} goal={state.goals[i]} display dimmed={state.goals[i].player} />
-            </div >
+            </div>
         )
         if (row.length === breakpoint) {
             goals_grid.push(

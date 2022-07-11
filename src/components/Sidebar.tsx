@@ -79,7 +79,7 @@ function Toggle({ state, setState, game, setGame }) {
                     </div>
                 </label>
             </div>
-        </div >
+        </div>
     )
 }
 
