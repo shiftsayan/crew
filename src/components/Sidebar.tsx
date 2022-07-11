@@ -3,8 +3,10 @@ import { FiInfo } from "react-icons/fi"
 
 import { GOAL_VIEW_PHASES } from "./View"
 
-import { Move, Phase, ViewName } from "../util/enums"
+import { Move, OldPhase, ViewName } from "../util/enums"
 import { check_agency, performMove } from "../util/moves"
+import { Tooltip } from "@mui/material"
+import { mapMissionVersionToName } from "../util/maps"
 
 export function Sidebar({ state, setState, game, setGame }) {
     return (
@@ -15,7 +17,7 @@ export function Sidebar({ state, setState, game, setGame }) {
                 </div>
             </div>
             <div className="mx-auto grid grid-cols-2 gap-x-4">
-                {game.mission && <Counter label="Mission" value={game.mission.num} icon={<FiInfo />} />}
+                {game.mission && <Counter label="Mission" value={game.mission.num} icon={<FiInfo />} tooltip={mapMissionVersionToName[game.mission.version]} />}
                 <Counter label="Attempt" value={game.attempt} />
             </div>
             <Toggle state={state} setState={setState} game={game} setGame={setGame} />
@@ -24,7 +26,8 @@ export function Sidebar({ state, setState, game, setGame }) {
     )
 }
 
-function Counter({ label, value, icon = null }) {
+
+function Counter({ label, value, icon = null, tooltip = null }) {
     return (
         <div className="flex-col">
             <div className="mx-auto uppercase text-sm">
@@ -34,11 +37,15 @@ function Counter({ label, value, icon = null }) {
                 <div className="font-mono text-sm">
                     {value}
                 </div>
-                <div className="m-auto">
-                    {icon}
-                </div>
+                {icon && <div className="m-auto">
+                    <Tooltip title={tooltip} placement="right" PopperProps={{ modifiers: [{ name: "offset", options: { offset: [0, -10] } }] }}>
+                        <div>
+                            {icon}
+                        </div>
+                    </Tooltip>
+                </div>}
             </div>
-        </div>
+        </div >
     )
 }
 
@@ -86,14 +93,14 @@ function Toggle({ state, setState, game, setGame }) {
 function CTA({ state, setState }) {
     const buttons_data = []
     switch (state.phase) {
-        case Phase.Preflight:
+        case OldPhase.Preflight:
             buttons_data.push({
                 text: 'Start',
                 style: 'positive',
                 onClick: () => performMove(state, setState, Move.StartGame, {})
             })
             break
-        case Phase.Goal:
+        case OldPhase.Goal:
             if (check_agency(state)) {
                 buttons_data.push({
                     text: 'Choose Goal',
@@ -101,7 +108,7 @@ function CTA({ state, setState }) {
                 })
             }
             break
-        case Phase.GoldenBorderDiscard:
+        case OldPhase.GoldenBorderDiscard:
             if (check_agency(state)) {
                 buttons_data.push({
                     text: 'Continue',
@@ -110,7 +117,7 @@ function CTA({ state, setState }) {
                 })
             }
             break
-        case Phase.Communication:
+        case OldPhase.Communication:
             if (state.this_player === state.commander) {
                 buttons_data.push({
                     text: 'Start Trick',

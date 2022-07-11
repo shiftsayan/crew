@@ -4,7 +4,7 @@ import { Card } from "./Card";
 import { CrewGoal } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
-import { Phase } from "../util/enums";
+import { OldPhase } from "../util/enums";
 
 export function Panel({ idx, state, setState, game, setGame }) {
     const player = game.seating[idx]

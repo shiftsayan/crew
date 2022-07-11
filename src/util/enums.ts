@@ -1,4 +1,8 @@
 export enum Phase {
+
+}
+
+export enum OldPhase {
     Preflight = "PREFLIGHT",
     Goal = "GOAL",
     GoldenBorderDiscard = "GOLDEN_BORDER_DISCARD",

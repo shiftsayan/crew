@@ -2,11 +2,11 @@ import { CrewPill as Pill } from "./Pill"
 import { CrewGoal } from "./Goal"
 
 import { mapMissionVersionToEmoji } from "../util/maps"
-import { Move, Phase, ViewName } from "../util/enums"
+import { Move, OldPhase, ViewName } from "../util/enums"
 import { performMove } from "../util/moves"
 import { SUITES, SUIT_TRUMP } from "../util/game"
 
-export const GOAL_VIEW_PHASES = [Phase.Preflight, Phase.Goal, Phase.GoldenBorderDiscard, Phase.GoldenBorderAccept]
+export const GOAL_VIEW_PHASES = [OldPhase.Preflight, OldPhase.Goal, OldPhase.GoldenBorderDiscard, OldPhase.GoldenBorderAccept]
 
 export function View({ state, setState, game, setGame }) {
     var view = undefined

@@ -73,6 +73,11 @@ export const mapMissionVersionToEmoji = {
     'deep_sea': "🌊",
 }
 
+export const mapMissionVersionToName = {
+    'planet_x': "🌕 Planet X",
+    'deep_sea': "🌊 Deep Sea",
+}
+
 export const mapCommunicationToIcon = {
     [Communication.NotCommunicated]: <FiHelpCircle />,
     [Communication.DeadSpot]: <FiHelpCircle />,
