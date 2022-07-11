@@ -17,7 +17,7 @@ export function Board({ state, setState, view, setView }) {
 
 	return (
 		<>
-			<Console state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
+			<Console state={state} setState={setState} game={game} setGame={setGame} />
 			<Dock state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
 		</>
 	)
