@@ -1,5 +1,5 @@
 import { Communication, Condition, OldPhase, Order, Phase, Status, Suite, ViewName } from "./enums"
-import { missions } from "./missions"
+import { missions } from "./game/missions"
 import { shuffle } from "./random"
 
 export const SUITES = [Suite.Blue, Suite.Green, Suite.Red, Suite.Yellow, Suite.Black]

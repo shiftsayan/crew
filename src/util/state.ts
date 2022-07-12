@@ -1,5 +1,5 @@
 import { Agent, Communication, Condition, GoldenBorder, OldPhase, Suite, ViewName } from "./enums"
-import { missions } from "./missions"
+import { missions } from "./game/missions"
 import { mapPhaseToDetails } from "./phases"
 import { shuffle } from "./random"
 
