@@ -14,7 +14,7 @@ export function Panels({ state, setState, game, setGame }) {
         <div className="mb-5">
             <div className={classnames("grid divide-x-2 divide-gray-200", mapPlayersToGridsClass[game.num_players])} >
                 {panels}
-            </div >
-        </div >
+            </div>
+        </div>
     )
 }

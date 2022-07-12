@@ -1,57 +1,57 @@
 import { dealCardsAndGoals, endTrick } from "./state"
-import { Agent, Condition, GoldenBorder, Move, Phase } from "./enums"
+import { Agent, Condition, GoldenBorder, Move, OldPhase } from "./enums"
 
 export const mapPhaseToDetails = {
-    [Phase.Preflight]: {
+    [OldPhase.Preflight]: {
         starting_agent: Agent.None,
         agent: Agent.All,
         moves: [Move.StartGame],
         end_condition: (state) => (state.started !== Condition.None),
-        next_phase: () => Phase.Goal,
+        next_phase: () => OldPhase.Goal,
         on_end: dealCardsAndGoals,
     },
 
-    [Phase.Goal]: {
+    [OldPhase.Goal]: {
         starting_agent: Agent.Commander,
         agent: Agent.Current,
         moves: [Move.ToggleGoal],
         end_condition: (state) => state.goals.every((goal) => goal.player !== undefined),
-        next_phase: (state) => state.golden_border ? Phase.GoldenBorderDiscard : Phase.Communication,
+        next_phase: (state) => state.golden_border ? OldPhase.GoldenBorderDiscard : OldPhase.Communication,
     },
 
-    [Phase.GoldenBorderDiscard]: {
+    [OldPhase.GoldenBorderDiscard]: {
         starting_agent: Agent.Commander,
         agent: Agent.Commander,
         moves: [Move.ToggleGoal, Move.SkipGoldenBorder],
         end_condition: (state) => state.golden_border === GoldenBorder.Used || state.golden_border === GoldenBorder.Skipped,
-        next_phase: (state) => state.golden_border === GoldenBorder.Used ? Phase.GoldenBorderAccept : Phase.Communication,
+        next_phase: (state) => state.golden_border === GoldenBorder.Used ? OldPhase.GoldenBorderAccept : OldPhase.Communication,
     },
 
-    [Phase.GoldenBorderAccept]: {
+    [OldPhase.GoldenBorderAccept]: {
         starting_agent: Agent.All,
         agent: Agent.All,
         moves: [Move.ToggleGoal],
         end_condition: (state) => state.goals.every((goal) => goal.player !== undefined),
-        next_phase: () => Phase.Communication
+        next_phase: () => OldPhase.Communication
     },
 
-    [Phase.Communication]: {
+    [OldPhase.Communication]: {
         starting_agent: Agent.Commander,
         agent: Agent.All,
         moves: [Move.CommunicateCard, Move.CommunicateValue, Move.StartTrick],
         end_condition: (state) => state.current_trick !== undefined,
-        next_phase: () => Phase.StartTrick,
+        next_phase: () => OldPhase.StartTrick,
     },
 
-    [Phase.StartTrick]: {
+    [OldPhase.StartTrick]: {
         moves: [Move.PlayCard],
         starting_agent: Agent.Winner,
         agent: Agent.Winner,
         end_condition: (state) => state.current_trick.suite !== undefined,
-        next_phase: () => Phase.PlayTrick,
+        next_phase: () => OldPhase.PlayTrick,
     },
 
-    [Phase.PlayTrick]: {
+    [OldPhase.PlayTrick]: {
         starting_agent: Agent.Next,
         moves: [Move.PlayCard],
         agent: Agent.Current,
@@ -63,6 +63,6 @@ export const mapPhaseToDetails = {
             return played
         },
         on_end: endTrick,
-        next_phase: () => Phase.Communication,
+        next_phase: () => OldPhase.Communication,
     }
 }

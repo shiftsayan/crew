@@ -1,4 +1,9 @@
 export enum Phase {
+    None,
+    Lobby,
+}
+
+export enum OldPhase {
     Preflight = "PREFLIGHT",
     Goal = "GOAL",
     GoldenBorderDiscard = "GOLDEN_BORDER_DISCARD",
@@ -10,11 +15,11 @@ export enum Phase {
 }
 
 export enum Suite {
-    Black,
-    Blue,
-    Red,
-    Yellow,
-    Green,
+    Black = "Black",
+    Blue = "Blue",
+    Red = "Red",
+    Yellow = "Yellow",
+    Green = "Green",
 }
 
 export enum Decoration {
@@ -63,7 +68,7 @@ export enum Move {
     StartTrick,
 }
 
-export enum View {
+export enum ViewName {
     None,
     Table,
     Trick,

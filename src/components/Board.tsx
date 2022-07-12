@@ -5,7 +5,7 @@ import { gameRef } from "../services/firebase"
 import { onValue } from "@firebase/database"
 import { useEffect, useState } from "react"
 
-export function Board({ state, setState, view, setView }) {
+export function Board({ state, setState }) {
 	var [game, setGame] = useState({})
 
 	useEffect(() => {
@@ -18,7 +18,7 @@ export function Board({ state, setState, view, setView }) {
 	return (
 		<>
 			<Console state={state} setState={setState} game={game} setGame={setGame} />
-			<Dock state={state} setState={setState} game={game} setGame={setGame} view={view} setView={setView} />
+			<Dock state={state} setState={setState} game={game} setGame={setGame} />
 		</>
 	)
 }

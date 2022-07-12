@@ -1,21 +1,22 @@
-import { CrewPill } from "./Pill"
+import { CrewPill as Pill } from "./Pill"
 import { CrewGoal } from "./Goal"
 
 import { mapMissionVersionToEmoji } from "../util/maps"
-import { Move, Phase, View } from "../util/enums"
+import { Move, OldPhase, ViewName } from "../util/enums"
 import { performMove } from "../util/moves"
+import { SUITES, SUIT_TRUMP } from "../util/game"
 
-export const GOAL_VIEW_PHASES = [Phase.Preflight, Phase.Goal, Phase.GoldenBorderDiscard, Phase.GoldenBorderAccept]
+export const GOAL_VIEW_PHASES = [OldPhase.Preflight, OldPhase.Goal, OldPhase.GoldenBorderDiscard, OldPhase.GoldenBorderAccept]
 
-export function CrewView({ state, setState }) {
+export function View({ state, setState, game, setGame }) {
     var view = undefined
     if (GOAL_VIEW_PHASES.includes(state.phase)) {
-        view = <CrewGoalView state={state} setState={setState} />
+        view = <GoalView state={state} setState={setState} game={game} setGame={setGame} />
     }
     else {
-        view = state.view === View.Trick
-            ? <CrewTrickView state={state} setState={setState} />
-            : <CrewTableView state={state} setState={setState} />
+        view = state.view === ViewName.Trick
+            ? <TrickView state={state} setState={setState} game={game} setGame={setGame} />
+            : <TableView state={state} setState={setState} game={game} setGame={setGame} />
     }
 
     return (
@@ -25,14 +26,14 @@ export function CrewView({ state, setState }) {
     )
 }
 
-function CrewTrickView({ state, setState }) {
+function TrickView({ state, setState, game, setGame }) {
     const col_classes = "flex flex-col -my-3 p-3 justify-between rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out"
     const grid = []
 
     var firstCol = []
-    for (let j = 0; j < state.num_players; j++) {
+    for (let j = 0; j < game.num_players; j++) {
         firstCol.push(
-            <CrewViewHeader text={state.players[j].name} />
+            <Header text={game.seating[j]} />
         )
     }
     grid.push(
@@ -41,11 +42,11 @@ function CrewTrickView({ state, setState }) {
         </div>
     )
 
-    for (let trick of state.all_tricks) {
-        var col = []
-        for (let j = 0; j < state.num_players; j++) {
+    for (let trick of game.tricks) {
+        const col = []
+        for (let j = 0; j < game.num_players; j++) {
             col.push(
-                <CrewPill
+                <Pill
                     key={j}
                     num={trick[j].num}
                     suite={trick[j].suite}
@@ -59,23 +60,23 @@ function CrewTrickView({ state, setState }) {
         )
     }
 
-    if (state.current_trick) {
-        var last_col = []
-        for (let j = 0; j < state.num_players; j++) {
-            last_col.push(
-                <CrewPill
-                    key={j}
-                    num={state.current_trick[j].num}
-                    suite={state.current_trick[j].suite}
-                />
-            )
-        }
-        grid.push(
-            <div className={col_classes} key="last">
-                {last_col}
-            </div>
-        )
-    }
+    // if (state.current_trick) {
+    //     var last_col = []
+    //     for (let j = 0; j < state.num_players; j++) {
+    //         last_col.push(
+    //             <Pill
+    //                 key={j}
+    //                 num={state.current_trick[j].num}
+    //                 suite={state.current_trick[j].suite}
+    //             />
+    //         )
+    //     }
+    //     grid.push(
+    //         <div className={col_classes} key="last">
+    //             {last_col}
+    //         </div>
+    //     )
+    // }
 
     return (
         <div className="flex h-full">
@@ -84,17 +85,17 @@ function CrewTrickView({ state, setState }) {
     )
 }
 
-function CrewTableView({ state, setState }) {
+function TableView({ state, setState, game, setGame }) {
     const grid = []
 
-    for (let suite of state.suites) {
+    for (let suite of SUITES) {
         var row = [
-            <CrewViewHeader text={suite} />
+            <Header text={suite} />
         ]
-        for (let i = 1; i <= (suite === state.trump_suit ? 4 : 9); i++) {
-            let played = state.played_cards.some((card) => (card.num === i && card.suite === suite))
+        for (let i = 1; i <= (suite === SUIT_TRUMP ? 4 : 9); i++) {
+            let played = false // state.played_cards.some((card) => (card.num === i && card.suite === suite))
             row.push(
-                <CrewPill
+                <Pill
                     key={i}
                     num={i}
                     suite={suite}
@@ -116,18 +117,17 @@ function CrewTableView({ state, setState }) {
     )
 }
 
-function CrewViewHeader({ text }) {
+function Header({ text }) {
     return (
         <div className="flex bg-white rounded-md justify-between h-8 w-20">
             <div className="m-auto truncate p-1">
                 {text}
             </div>
-        </div >
+        </div>
     )
 }
 
-
-function CrewGoalView({ state, setState }) {
+function GoalView({ state, setState, game, setGame }) {
     const breakpoint = state.goals.length >= 6 ? Math.ceil(state.goals.length / 2) : state.goals.length
 
     const goals_grid = []
@@ -137,7 +137,7 @@ function CrewGoalView({ state, setState }) {
         row.push(
             <div className="cursor-grab" onClick={() => performMove(state, setState, Move.ToggleGoal, { goal_idx: i })} key={i} >
                 <CrewGoal idx={i} goal={state.goals[i]} display dimmed={state.goals[i].player} />
-            </div >
+            </div>
         )
         if (row.length === breakpoint) {
             goals_grid.push(

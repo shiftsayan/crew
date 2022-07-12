@@ -1,9 +1,9 @@
-import { Agent, Communication, Condition, GoldenBorder, Phase, Suite, View } from "./enums"
+import { Agent, Communication, Condition, GoldenBorder, OldPhase, Suite, ViewName } from "./enums"
 import { missions } from "./missions"
 import { mapPhaseToDetails } from "./phases"
 import { shuffle } from "./random"
 
-const SUITES = [Suite.Black, Suite.Blue, Suite.Green, Suite.Red, Suite.Yellow,]
+const SUITES = [Suite.Black, Suite.Blue, Suite.Green, Suite.Red, Suite.Yellow]
 const TRUMP_SUIT = Suite.Black
 
 export function getInitialState(setup_data) {
@@ -11,7 +11,7 @@ export function getInitialState(setup_data) {
 
     state.condition = Condition.None
 
-    state.phase = Phase.Preflight
+    state.phase = OldPhase.Preflight
     state.current_player = undefined
 
     state.suites = SUITES
@@ -53,7 +53,7 @@ export function getInitialState(setup_data) {
     state.all_tricks = []
     state.last_winner = undefined
 
-    state.view = View.Trick
+    state.view = ViewName.Trick
 
     return state
 }
@@ -143,7 +143,7 @@ export function dealCardsAndGoals(state) {
 
 export function toggleGoal(goal_idx, state) {
     // Only allow discarding goals in GoldenBorderDiscard phase
-    if (state.goals[goal_idx].player !== undefined && state.phase !== Phase.GoldenBorderDiscard) {
+    if (state.goals[goal_idx].player !== undefined && state.phase !== OldPhase.GoldenBorderDiscard) {
         throw new Error("Goal already chosen.")
     }
 
