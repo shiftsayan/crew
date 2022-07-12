@@ -8,7 +8,8 @@ import { ViewName } from '../util/enums';
 
 export default function App() {
 	const [state, setState] = useState({
-		crew: "thethecrewcrew",
+		crew: "",
+		// crew: "thethecrewcrew",
 		player: "shift",
 		view: ViewName.Table,
 		palette: palette,

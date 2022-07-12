@@ -5,20 +5,19 @@ import { Login } from "../util/actions/login";
 
 export function Home({ state, setState }) {
     const [username, setUsername] = useState("")
-    const [password, setPassword] = useState("")
 
     return (
         <div className="flex justify-center">
             <div className="bg-gray-100 rounded-2xl p-12">
                 <Form>
                     <TextField label="Team Name" value={username} onChange={e => setUsername(e.target.value)} required />
-                    <TextField label="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+                    {/* <TextField label="Password" value={password} onChange={e => setPassword(e.target.value)} required /> */}
                     <div className="w-32">
                         <Button
                             variant="contained"
                             size="large"
                             color={state.palette.accent}
-                            onClick={() => new Login(state, setState).run(username, password)}
+                            onClick={() => new Login(state, setState).run(username)}
                             disableElevation
                         >
                             Login

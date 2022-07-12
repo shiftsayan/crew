@@ -5,33 +5,25 @@ import { Action } from "./action";
 
 const SECONDS_IN_DAY = 60 * 60 * 24
 export class Login extends Action {
-    validateParams(username, password) {
-        if (!username) {
-            this.setState({
-                ...this.state,
-                show_toast: true,
-                toast: {
-                    style: "error",
-                    text: "Invalid Username",
-                }
-            })
-            return false
-        }
-        if (!password) {
-            this.setState({
-                ...this.state,
-                show_toast: true,
-                toast: {
-                    style: "error",
-                    text: "Invalid Password",
-                }
-            })
-            return false
-        }
+    validateParams(username) {
+        get(child(ref(database), "crews")).then((snapshot) => {
+            const all_crews = snapshot.val()
+            if (!(username && username in all_crews)) {
+                this.setState({
+                    ...this.state,
+                    show_toast: true,
+                    toast: {
+                        style: "error",
+                        text: "Invalid Username",
+                    }
+                })
+                return false
+            }
+        })
         return true
     }
 
-    commitState(username, password): void {
+    commitState(username): void {
         return {
             ...this.state,
             crew: username,
@@ -44,7 +36,7 @@ export class Login extends Action {
     }
 
     // Reset game state
-    postRun(username, password) {
+    postRun(username) {
         // Update seating
         get(child(ref(database), `crews/${username}/seating_ttl`)).then((snapshot) => {
             if (snapshot.val() < Date.now()) {
