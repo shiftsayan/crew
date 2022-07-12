@@ -4,13 +4,14 @@ import { Card } from "./Card";
 import { CrewGoal } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
-import { OldPhase } from "../util/enums";
+import { OldPhase, Phase } from "../util/enums";
 import { Button } from "@mui/material";
 import { Join } from "../util/actions/join";
 
 export function Panel({ idx, state, setState, game, setGame }) {
     const player = game.seating[idx]
     const player_data = game.players[player]
+    const active = game.active[player]
 
     const current_trick = game.tricks[game.tricks.length - 1]
     const card = current_trick ? current_trick[player] : {}
@@ -33,15 +34,15 @@ export function Panel({ idx, state, setState, game, setGame }) {
                     {player}
                 </div>
                 <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
-                    {idx === game.commander && <Badge emoji="👑" />}
+                    {game.phase > Phase.Lobby && player === game.commander && <Badge emoji="👑" />}
                     <Badge emoji={mapNumberToEmoji[player_data.tricks_won]} />
                 </div>
             </div>
             {/* Cards */}
-            {player_data.active && <>
+            {active && <>
                 <div className="w-full mt-1 justify-around px-4 flex">
                     <Card card={card} state={state} setState={setState} game={game} setGame={setGame} />
-                    <Card card={player_data.communication.card} communication={player_data.communication.qualifier} state={state} setState={setState} game={game} setGame={setGame} />
+                    {/* <Card card={player_data.communication.card} communication={player_data.communication.qualifier} state={state} setState={setState} game={game} setGame={setGame} /> */}
                 </div>
                 {/* Goals */}
                 <div className={classnames({
@@ -51,7 +52,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
                     {goals}
                 </div>
             </>}
-            {!player_data.active && <div className="h-40 -mt-1">
+            {!active && <div className="h-40 -mt-1">
                 <div className="flex h-full justify-center">
                     <div className="my-auto">
                         <Button

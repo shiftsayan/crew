@@ -1,6 +1,14 @@
 export enum Phase {
     None,
     Lobby,
+    Preflight,
+    DealCards,
+    DealGoals,
+    ChooseGoals,
+    GoldenBorder,
+    Limbo,
+    Communicate,
+    PlayTrick,
 }
 
 export enum OldPhase {
@@ -83,7 +91,15 @@ export enum GoldenBorder {
 
 export enum Condition {
     None,
-    InProgress = "IN_PROGRESS",
-    Lost = "LOST",
-    Won = "WON",
+    InProgress,
+    Lost,
+    Won,
+}
+
+export enum Status {
+    None,
+    NotChosen,
+    Chosen,
+    Success,
+    Failure,
 }

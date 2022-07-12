@@ -7,7 +7,7 @@ export abstract class Action {
         this.setState = setState
     }
 
-    validateParams(...params): boolean {
+    async validateParams(...params) {
         return true
     }
 
@@ -15,12 +15,14 @@ export abstract class Action {
         this.setState(updates)
     }
 
-    commitState(...params) { }
+    commitState(...params) {
+        return this.state
+    }
 
-    postRun(...params) { }
+    async postRun(...params) { }
 
-    run(...params) {
-        if (!this.validateParams(...params)) {
+    async run(...params) {
+        if (!(await this.validateParams(...params))) {
             return
         }
         this._commitState(this.commitState(...params))

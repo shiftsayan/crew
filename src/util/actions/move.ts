@@ -12,26 +12,30 @@ export abstract class Move extends Action {
         this.setGame = setGame
     }
 
-    validateAgency(...params): boolean {
+    validateAgency(...params) {
         return true
     }
 
-    validatePhase(...params): boolean {
+    validatePhase(...params) {
         return true
     }
 
-    async _commitGame(updates): Promise<void> {
+    _commitGame(updates) {
         return update(ref(database), updates);
     }
 
-    commitGame(...params) { }
+    commitGame(...params) {
+        return {}
+    }
 
-    postRun(...params) { }
+    async postRun(...params) {
 
-    run(...params) {
-        if (!this.validatePhase(...params) ||
-            !this.validateAgency(...params) ||
-            !this.validateParams(...params)
+    }
+
+    async run(...params) {
+        if (!(this.validatePhase(...params)) ||
+            !(this.validateAgency(...params)) ||
+            !(await this.validateParams(...params))
         ) {
             return
         }
