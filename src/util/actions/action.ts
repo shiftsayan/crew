@@ -17,13 +17,13 @@ export abstract class Action {
 
     commitState(...params) { }
 
-    postRun() { }
+    postRun(...params) { }
 
     run(...params) {
         if (!this.validateParams(...params)) {
             return
         }
         this._commitState(this.commitState(...params))
-        this.postRun()
+        this.postRun(...params)
     }
 }

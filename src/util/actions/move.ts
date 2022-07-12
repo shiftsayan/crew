@@ -26,9 +26,7 @@ export abstract class Move extends Action {
 
     commitGame(...params) { }
 
-    postRun() {
-
-    }
+    postRun(...params) { }
 
     run(...params) {
         if (!this.validatePhase(...params) ||
@@ -41,6 +39,6 @@ export abstract class Move extends Action {
         this._commitState(this.commitState(...params))
         this._commitGame(this.commitGame(...params))
 
-        this.postRun()
+        this.postRun(...params)
     }
 }
