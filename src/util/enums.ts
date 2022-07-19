@@ -1,16 +1,3 @@
-export enum Phase {
-    None,
-    Lobby,
-    Preflight,
-    DealCards,
-    DealGoals,
-    ChooseGoals,
-    GoldenBorder,
-    Limbo,
-    Communicate,
-    PlayTrick,
-}
-
 export enum OldPhase {
     Preflight = "PREFLIGHT",
     Goal = "GOAL",
@@ -23,6 +10,7 @@ export enum OldPhase {
 }
 
 export enum Suite {
+    None = "",
     Black = "Black",
     Blue = "Blue",
     Red = "Red",
@@ -85,7 +73,9 @@ export enum ViewName {
 
 export enum GoldenBorder {
     None,
+    NotAvailable,
     Available,
+    Using,
     Used,
     Skipped,
 }

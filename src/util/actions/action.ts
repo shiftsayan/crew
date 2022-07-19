@@ -11,11 +11,14 @@ export abstract class Action {
         return true
     }
 
-    _commitState(updates) {
-        this.setState(updates)
+    commitState(updates) {
+        return this.setState({
+            ...this.state,
+            ...updates,
+        })
     }
 
-    commitState(...params) {
+    updateState(...params) {
         return this.state
     }
 
@@ -25,7 +28,7 @@ export abstract class Action {
         if (!(await this.validateParams(...params))) {
             return
         }
-        this._commitState(this.commitState(...params))
+        this.commitState(this.updateState(...params))
         this.postRun(...params)
     }
 }

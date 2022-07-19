@@ -1,4 +1,4 @@
-import { Order, Suite } from "../enums"
+import { GoldenBorder, Order, Suite } from "../enums"
 
 type Card = {
     num: number,
@@ -11,6 +11,7 @@ abstract class BaseMission {
     dead_spot: boolean
     winners: Card[]
     losers: Card[]
+    golden_border: GoldenBorder
 
     constructor(
         num_goals,
@@ -18,12 +19,16 @@ abstract class BaseMission {
         dead_spot = false,
         winners = [],
         losers = [],
+        golden_border = false,
     ) {
         this.num_goals = num_goals
         this.orders = orders
         this.dead_spot = dead_spot
         this.winners = winners
         this.losers = losers
+        this.golden_border = golden_border ? GoldenBorder.Available : GoldenBorder.NotAvailable
+        // TODO
+        this.golden_border = GoldenBorder.Available
     }
 
     abstract accomplished(game)

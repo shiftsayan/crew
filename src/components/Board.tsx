@@ -9,9 +9,9 @@ export function Board({ state, setState }) {
 	var [game, setGame] = useState({})
 
 	useEffect(() => {
-		onValue(gameRef, (snapshot) => {
+		onValue(gameRef, async (snapshot) => {
 			var data = snapshot.val()
-			setGame(data)
+			await setGame(data)
 		})
 	}, [])
 

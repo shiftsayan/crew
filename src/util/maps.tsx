@@ -1,6 +1,6 @@
 import { FiCircle, FiSquare, FiX, FiTriangle, FiChevronsUp, FiArrowUpCircle, FiAlertCircle, FiArrowDownCircle, FiHelpCircle } from "react-icons/fi";
 
-import { Communication, Suite } from "./enums";
+import { Communication, Order, Suite } from "./enums";
 
 export const mapNumberToEmoji = {
     0: '0️⃣',
@@ -24,14 +24,14 @@ export const mapSuiteToIcon = {
 }
 
 export const mapOrderToIcon = {
-    'one': "1",
-    'two': "2",
-    'three': "3",
-    'four': "4",
-    'first': "-",
-    'second': "=",
-    'third': "≡",
-    'last': "Ω",
+    [Order.One]: "1",
+    [Order.Two]: "2",
+    [Order.Three]: "3",
+    [Order.Four]: "4",
+    [Order.First]: "-",
+    [Order.Second]: "=",
+    [Order.Third]: "≡",
+    [Order.Last]: "Ω",
 }
 
 export const mapSuiteToBackgroundColor = {

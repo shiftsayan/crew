@@ -8,12 +8,17 @@ import { ViewName } from '../util/enums';
 import { ref, update } from "@firebase/database";
 import { database } from "../services/firebase";
 
+let FIX = false
+// FIX = true
+
 export default function App() {
+	const params = window.location.search.split("?spoof=")
+	const spoof = params.length > 1 ? params[1] : "shift"
+
 	const [state, setState] = useState({
 		// crew: "",
-		player: "",
+		player: spoof,
 		crew: "thethecrewcrew",
-		// player: "shift",
 		view: ViewName.Table,
 		palette: palette,
 		show_toast: false,
@@ -35,8 +40,12 @@ export default function App() {
 
 	const unload = () => {
 		if (state.crew && state.player) {
-			update(ref(database), {
-				[`crews/${state.crew}/active/${state.player}`]: false
+			!FIX && update(ref(database), {
+				[`crews/${state.crew}/active/${state.player}`]: false,
+				// TODO
+				[`crews/${state.crew}/phase`]: "Preflight",
+				[`crews/${state.crew}/players`]: {},
+				[`crews/${state.crew}/goals`]: [],
 			})
 		}
 	}
