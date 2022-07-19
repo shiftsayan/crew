@@ -1,16 +1,14 @@
 import { Card } from "./Card"
 
-import { Move, OldPhase } from "../util/enums"
-import { performMove } from "../util/moves"
-
-export function Hand({ state, setState, game, setGame, view, setView, sorted }) {
-    const hand = [...state.players[state.player].hand]
+export function Hand({ state, setState, game, setGame, sorted }) {
+    let hand = []
+    if (game.players && game.players[state.player] && game.players[state.player].hand) {
+        hand = [...game.players[state.player].hand]
+    }
     if (sorted) sortHand(hand)
 
-    var move = (state.phase === OldPhase.Communication) ? Move.CommunicateCard : Move.PlayCard
-
     const cards = hand.map((card, idx) =>
-        <div key={idx} onClick={() => performMove(state, setState, move, { card: card })}>
+        <div key={idx} onClick={() => { }}>
             <Card state={state} setState={setState} card={card} />
         </div>
     )

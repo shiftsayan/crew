@@ -2,15 +2,24 @@ import { CrewPill as Pill } from "./Pill"
 import { CrewGoal } from "./Goal"
 
 import { mapMissionVersionToEmoji } from "../util/maps"
-import { Move, OldPhase, ViewName } from "../util/enums"
-import { performMove } from "../util/moves"
+import { ViewName } from "../util/enums"
 import { SUITES, SUIT_TRUMP } from "../util/game"
+import { PhaseName } from "../util/mechanics/phase"
+import { Toggle } from "../util/actions/toggle"
 
-export const GOAL_VIEW_PHASES = [OldPhase.Preflight, OldPhase.Goal, OldPhase.GoldenBorderDiscard, OldPhase.GoldenBorderAccept]
+export const GOAL_VIEW_PHASES = [
+    PhaseName.Lobby,
+    PhaseName.Preflight,
+    PhaseName.DealCards,
+    PhaseName.DealGoals,
+    PhaseName.ChooseGoals,
+    PhaseName.GoldenBorderDiscard,
+    PhaseName.GoldenBorderAccept,
+]
 
 export function View({ state, setState, game, setGame }) {
     var view = undefined
-    if (GOAL_VIEW_PHASES.includes(state.phase)) {
+    if (GOAL_VIEW_PHASES.includes(game.phase)) {
         view = <GoalView state={state} setState={setState} game={game} setGame={setGame} />
     }
     else {
@@ -128,15 +137,21 @@ function Header({ text }) {
 }
 
 function GoalView({ state, setState, game, setGame }) {
-    const breakpoint = state.goals.length >= 6 ? Math.ceil(state.goals.length / 2) : state.goals.length
+    const goals = game.goals || []
+
+    const breakpoint = goals.length >= 6 ? Math.ceil(goals.length / 2) : goals.length
 
     const goals_grid = []
     const row_classes = "flex justify-center space-x-20"
     var row = []
-    for (let i = 0; i < state.goals.length; i++) {
+    for (let i = 0; i < goals.length; i++) {
         row.push(
-            <div className="cursor-grab" onClick={() => performMove(state, setState, Move.ToggleGoal, { goal_idx: i })} key={i} >
-                <CrewGoal idx={i} goal={state.goals[i]} display dimmed={state.goals[i].player} />
+            <div
+                className="cursor-grab"
+                key={i}
+                onClick={() => new Toggle(state, setState, game, setGame).run(i)}
+            >
+                <CrewGoal idx={i} goal={goals[i]} display dimmed={goals[i].player} />
             </div>
         )
         if (row.length === breakpoint) {
@@ -161,10 +176,10 @@ function GoalView({ state, setState, game, setGame }) {
             <div className="w-64 flex flex-col space-y-4 justify-center bg-white rounded-2xl">
                 <div className="mx-auto flex justify-center space-x-2">
                     <div className="m-auto">
-                        {mapMissionVersionToEmoji[state.mission.version]}
+                        {mapMissionVersionToEmoji[game.mission.version]}
                     </div>
                     <div className="m-auto font-bold">
-                        Mission {state.mission.num}
+                        Mission {game.mission.num}
                     </div>
                 </div>
             </div>

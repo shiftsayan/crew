@@ -7,23 +7,28 @@ export abstract class Action {
         this.setState = setState
     }
 
-    validateParams(...params): boolean {
+    async validateParams(...params) {
         return true
     }
 
-    _commitState(updates) {
-        this.setState(updates)
+    commitState(updates) {
+        return this.setState({
+            ...this.state,
+            ...updates,
+        })
     }
 
-    commitState(...params) { }
+    updateState(...params) {
+        return this.state
+    }
 
-    postRun(...params) { }
+    async postRun(...params) { }
 
-    run(...params) {
-        if (!this.validateParams(...params)) {
+    async run(...params) {
+        if (!(await this.validateParams(...params))) {
             return
         }
-        this._commitState(this.commitState(...params))
+        this.commitState(this.updateState(...params))
         this.postRun(...params)
     }
 }

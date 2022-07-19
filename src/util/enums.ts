@@ -1,8 +1,3 @@
-export enum Phase {
-    None,
-    Lobby,
-}
-
 export enum OldPhase {
     Preflight = "PREFLIGHT",
     Goal = "GOAL",
@@ -15,6 +10,7 @@ export enum OldPhase {
 }
 
 export enum Suite {
+    None = "",
     Black = "Black",
     Blue = "Blue",
     Red = "Red",
@@ -77,14 +73,24 @@ export enum ViewName {
 
 export enum GoldenBorder {
     None,
+    NotAvailable,
     Available,
+    Using,
     Used,
     Skipped,
 }
 
 export enum Condition {
     None,
-    InProgress = "IN_PROGRESS",
-    Lost = "LOST",
-    Won = "WON",
+    InProgress,
+    Lost,
+    Won,
+}
+
+export enum Status {
+    None,
+    NotChosen,
+    Chosen,
+    Success,
+    Failure,
 }
