@@ -5,23 +5,36 @@ import { CrewGoal } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
 import { Button } from "@mui/material";
-import { Join } from "../util/actions/join";
 
+import { Join } from "../util/actions/join";
 import { PhaseName } from "../util/mechanics/phase";
+import { Communication, Decoration, Status } from "../util/enums";
 
 export function Panel({ idx, state, setState, game, setGame }) {
     const player = game.seating[idx]
-    const player_data = game.players && game.players[player]
+    const player_data = (game.players && game.players[player]) || {}
     const active = game.active[player]
 
-    const current_trick = [] // game.tricks[game.tricks.length - 1]
-    const card = {} // current_trick ? current_trick[player] : {}
+    const card = game.leading_trick ? game.leading_trick[player] : {}
+    const comm = (player_data.communication && player_data.communication.card) ? player_data.communication : {}
 
     const goals = (player_data && player_data.goals)
-        ? player_data.goals.map((goal, idx) => <CrewGoal key={idx} goal={goal} dimmed={goal.accomplished} />)
+        ? player_data.goals.map((goal, idx) => {
+            let accomplished = false
+            for (let _goal of game.goals) {
+                if (_goal.num === goal.num && _goal.suite === goal.suite) {
+                    accomplished = [Status.Success, Status.Failure].includes(_goal.status)
+                }
+            }
+            return <CrewGoal key={idx} goal={goal} decorations={{
+                [Decoration.Shrink]: accomplished,
+                [Decoration.Desaturate]: accomplished,
+                // [Decoration.Grayscale]: accomplished,
+            }} />
+        })
         : []
-    if (state.phase === PhaseName.ChooseGoals) {
-        goals.push(<CrewGoal key="blank" blank />)
+    if ([PhaseName.ChooseGoals, PhaseName.GoldenBorderAccept].includes(game.phase)) {
+        goals.push(<CrewGoal key="blank" decoration={Decoration.Pending} />)
     }
 
     return (
@@ -36,14 +49,14 @@ export function Panel({ idx, state, setState, game, setGame }) {
                 </div>
                 {player_data && <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
                     {idx === game.commander && <Badge emoji="👑" />}
-                    <Badge emoji={mapNumberToEmoji[player_data.tricks_won]} />
+                    <Badge emoji={mapNumberToEmoji[player_data.tricks_won ?? 0]} />
                 </div>}
             </div>
             {/* Cards */}
             {active && <>
                 <div className="w-full mt-1 justify-around px-4 flex">
-                    <Card card={card} state={state} setState={setState} game={game} setGame={setGame} />
-                    {/* <Card card={player_data.communication.card} communication={player_data.communication.qualifier} state={state} setState={setState} game={game} setGame={setGame} /> */}
+                    <Card card={card || {}} state={state} setState={setState} game={game} setGame={setGame} />
+                    <Card card={comm.card || {}} communication={comm.qualifier || Communication.NotCommunicated} state={state} setState={setState} game={game} setGame={setGame} qualifyDisabled={player !== state.player} />
                 </div>
                 {/* Goals */}
                 <div className={classnames({

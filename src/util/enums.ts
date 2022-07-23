@@ -21,6 +21,11 @@ export enum Suite {
 export enum Decoration {
     None,
     Blank,
+    Pending,
+    Desaturate,
+    Grayscale,
+    Display,
+    Shrink,
 }
 
 export enum Communication {
@@ -33,6 +38,7 @@ export enum Communication {
     Highest,
 }
 
+
 export enum Order {
     None,
     One,
@@ -43,6 +49,7 @@ export enum Order {
     Second,
     Third,
     Last,
+    LastTrick,
 }
 
 export enum Agent {

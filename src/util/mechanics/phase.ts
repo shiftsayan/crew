@@ -1,10 +1,11 @@
-import { Join } from "../actions/join";
-import { Toggle } from "../actions/toggle";
+// import { Play } from "../actions/play";
+
 import { Communication, Condition, GoldenBorder, Order, Status } from "../enums";
 import { CARDS, SUIT_TRUMP } from "../game";
 import { missions } from "../game/missions";
 import { shuffle } from "../random";
-import { AgentAll, AgentAuto, AgentCommander, AgentCurrent, AgentNone } from "./agent";
+import { AgentAll, AgentAuto, AgentCommander, AgentCurrent, AgentNone, AgentWinner } from "./agent";
+import { sortHand } from "./util";
 
 export enum PhaseName {
     None = "",
@@ -15,16 +16,14 @@ export enum PhaseName {
     DealGoals = "DealGoals",
     GoldenBorderDiscard = "GoldenBorderDiscard",
     GoldenBorderAccept = "GoldenBorderAccept",
-    Limbo = "Limbo",
-
-    // Communicate,
-    // PlayTrick,
+    Communicate = "Communicate",
+    PlayTrick = "PlayTrick",
+    EndGame = "EndGame"
 }
 
 export abstract class Phase {
     static starter
-    static agent
-    static moves
+    static agency
 
     static ended(state, game) {
         return false
@@ -43,8 +42,9 @@ export abstract class Phase {
 
 export class Preflight extends Phase {
     static starter = AgentNone
-    static agent = AgentAll
-    static moves = [Join]
+    static agency = {
+        "Join": AgentAll
+    }
 
     static ended(state, game) {
         // all players are active
@@ -64,6 +64,7 @@ export class Preflight extends Phase {
             players[name] = {
                 communication: {
                     qualifier: Communication.NotCommunicated,
+                    card: null,
                 },
                 hand: [],
                 goals: [],
@@ -71,22 +72,24 @@ export class Preflight extends Phase {
             }
         }
 
-        const mission_data = missions[game.mission.version][game.mission.num]
-
         return {
             players: players,
             goals: [],
+            played_cards: [],
+            tricks: [],
+            leading_trick: {},
+            leading_suite: null,
+            leading_winner: null,
+            commander: null,
             condition: Condition.InProgress,
             max_tricks: Math.floor(CARDS.length / names.length),
-            golden_border: mission_data.golden_border
         }
     }
 }
 
 export class DealCards extends Phase {
     static starter = AgentAuto
-    static agent = AgentAuto
-    static moves = []
+    static agency = {}
 
     static ended(state, game) {
         return true;
@@ -112,6 +115,11 @@ export class DealCards extends Phase {
             idx = (idx + 1) % names.length
         }
 
+        // Sort Hands
+        for (let name of names) {
+            sortHand(players[name].hand)
+        }
+
         return {
             players: players,
             commander: commander,
@@ -121,8 +129,7 @@ export class DealCards extends Phase {
 
 export class DealGoals extends Phase {
     static starter = AgentAuto
-    static agent = AgentAuto
-    static moves = []
+    static agency = {}
 
     static ended(state, game) {
         return true
@@ -158,8 +165,9 @@ export class DealGoals extends Phase {
 
 export class ChooseGoals extends Phase {
     static starter = AgentCommander
-    static agent = AgentCurrent
-    static moves = [Toggle]
+    static agency = {
+        "Toggle": AgentCurrent,
+    }
 
     static ended(state, game) {
         return game.goals.every((goal) => goal.player !== undefined)
@@ -172,11 +180,13 @@ export class ChooseGoals extends Phase {
 
 export class GoldenBorderDiscard extends Phase {
     static starter = AgentAll
-    static agent = AgentAll
-    static moves = [Toggle]
+    static agency = {
+        "Toggle": AgentAll,
+        "CTA": AgentCommander,
+    }
 
     static ended(state, game) {
-        return [GoldenBorder.NotAvailable, GoldenBorder.Using].includes(game.golden_border)
+        return game.advance_phase || [GoldenBorder.NotAvailable, GoldenBorder.Using].includes(game.golden_border)
     }
 
     static next(state, game) {
@@ -186,29 +196,143 @@ export class GoldenBorderDiscard extends Phase {
 
 export class GoldenBorderAccept extends Phase {
     static starter = AgentAll
-    static agent = AgentAll
-    static moves = [Toggle]
+    static agency = {
+        "Toggle": AgentAll,
+    }
 
     static ended(state, game) {
-        return [GoldenBorder.NotAvailable, GoldenBorder.Skipped, GoldenBorder.Used].includes(game.golden_border)
+        return game.advance_phase || [GoldenBorder.NotAvailable, GoldenBorder.Skipped, GoldenBorder.Used].includes(game.golden_border)
     }
 
     static next(state, game) {
-        return Limbo
+        return Communicate
+    }
+
+    static onEnd(state, game) {
+        return {
+            advance_phase: false
+        }
     }
 }
 
-export class Limbo extends Phase {
-    static starter = AgentCommander
-    static agent = AgentAll
-    static moves = []
+export class Communicate extends Phase {
+    static starter = AgentWinner
+    static agency = {
+        "Play": AgentAll,
+        "Qualify": AgentAll,
+        "CTA": AgentWinner,
+        "StartTrick": AgentCurrent,
+    }
 
-    // TODO
-    static next(state, game) { }
+    static ended(state: any, game: any): boolean {
+        const names = Object.keys(game.active)
+        const someone_communicating = names.some(name =>
+            game.players[name].communication.qualifier === Communication.Communicating
+        )
+        return game.advance_phase && !someone_communicating
+    }
 
-    static onStart(state, game) {
-        console.log("here")
-        return {}
+    static onEnd(state: any, game: any): {} {
+        return {
+            advance_phase: false
+        }
+    }
+
+    static next(state, game) {
+        return PlayTrick
+    }
+}
+
+export class PlayTrick extends Phase {
+    static starter = AgentCurrent
+    static agency = {
+        "Play": AgentCurrent,
+    }
+
+    static ended(state: any, game: any): boolean {
+        const names = Object.keys(game.active)
+        return game.leading_trick && names.every(name => game.leading_trick[name] !== undefined)
+    }
+
+    static next(state, game) {
+        return game.condition === Condition.InProgress ? Communicate : EndGame
+    }
+
+    static onEnd(state: any, game: any): {} {
+        const leading_trick = { ...game.leading_trick }
+        const leading_suite = game.leading_suite
+
+        // Decide winner
+        let winner = undefined;
+        let winner_num = Number.NEGATIVE_INFINITY;
+        let winner_suite = leading_suite
+        for (let player in game.leading_trick) {
+            const card = game.leading_trick[player]
+            if (
+                (card.suite === winner_suite && card.num > winner_num) ||
+                (card.suite !== winner_suite && card.suite === SUIT_TRUMP)
+            ) {
+                winner = player;
+                winner_num = card.num;
+                winner_suite = card.suite
+            }
+        }
+
+        const tricks = game.tricks ?? []
+        tricks.push(leading_trick)
+
+        const goals = [...game.goals]
+        const mission_data = missions[game.mission.version][game.mission.num]
+        const condition = mission_data.check(winner, goals, leading_trick, tricks, game.max_tricks)
+
+        return {
+            goals,
+            leading_trick: [],
+            leading_suite: null,
+            leading_winner: winner,
+            tricks,
+            condition: condition,
+            players: {
+                [winner]: {
+                    tricks_won: game.players[winner].tricks_won + 1
+                }
+            }
+        }
+    }
+}
+
+export class EndGame extends Phase {
+    static starter = AgentAll
+    static agency = {
+        "CTA": AgentAll,
+    }
+
+    static ended(state, game) {
+        return game.advance_phase
+    }
+
+    static onEnd(state, game) {
+        if (game.condition === Condition.Lost) {
+            return {
+                advance_phase: false,
+                mission: {
+                    attempt: game.mission.attempt + 1,
+                }
+            }
+        }
+        else if (game.condition === Condition.Won) {
+            return {
+                advance_phase: false,
+                mission: {
+                    num: game.mission.num + 1,
+                    attempt: 1,
+                },
+            }
+        }
+    }
+
+    static next(state, game) {
+        return Preflight
     }
 }
 
@@ -219,5 +343,7 @@ export const mapPhaseNameToPhase = {
     [PhaseName.ChooseGoals]: ChooseGoals,
     [PhaseName.GoldenBorderDiscard]: GoldenBorderDiscard,
     [PhaseName.GoldenBorderAccept]: GoldenBorderAccept,
-    [PhaseName.Limbo]: Limbo
+    [PhaseName.Communicate]: Communicate,
+    [PhaseName.PlayTrick]: PlayTrick,
+    [PhaseName.EndGame]: EndGame,
 }

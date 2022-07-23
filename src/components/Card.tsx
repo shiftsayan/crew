@@ -2,16 +2,16 @@ import classnames from "classnames"
 
 import { CrewLabelIcon, CrewLabelText } from "./Labels"
 
-import { Decoration, Communication, Move } from "../util/enums"
+import { Decoration, Communication } from "../util/enums"
 import { mapSuiteToBackgroundColor, mapCommunicationToIcon } from '../util/maps'
-import { performMove } from "../util/moves"
+import { Qualify } from "../util/actions/qualify"
 
-export function Card({ state, setState, game = null, setGame = null, card, decoration = Decoration.None, communication = Communication.None }) {
+export function Card({ state, setState, game = null, setGame = null, card, decoration = Decoration.None, communication = Communication.None, qualifyDisabled = false }) {
     var communication_icons = []
     if (communication === Communication.Communicating) {
         for (let key of [Communication.Lowest, Communication.Only, Communication.Highest]) {
             communication_icons.push(
-                <div className="m-auto" onClick={() => performMove(state, setState, Move.CommunicateValue, { value: key })} key={key}>
+                <div className="m-auto" onClick={() => new Qualify(state, setState, game, setGame).run(key, qualifyDisabled)} key={key}>
                     {mapCommunicationToIcon[key]}
                 </ div>
             )

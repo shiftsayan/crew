@@ -1,4 +1,4 @@
-import { merge, isArray } from "lodash"
+import { mergeWith, isArray } from "lodash"
 
 // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
 export function shuffle(array) {
@@ -24,7 +24,7 @@ export function choice(array) {
 }
 
 export function mergeUpdates(data, updates) {
-    merge(data, updates, (_, updatedValue) =>
+    mergeWith(data, updates, (_, updatedValue) =>
         isArray(updatedValue) ? updatedValue : undefined
     )
 }

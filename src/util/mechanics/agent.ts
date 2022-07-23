@@ -26,7 +26,7 @@ export class AgentAll extends AgentBase {
 
 export class AgentCurrent extends AgentBase {
     static check(player, game) {
-        return player === game.seating[game.current]
+        return game.seating && player === game.seating[game.current]
     }
 
     static next(game) {
@@ -34,21 +34,23 @@ export class AgentCurrent extends AgentBase {
     }
 }
 
-export class AgentNext extends AgentBase {
-    static check(player, game) {
-        return true
-    }
-}
-
 export class AgentWinner extends AgentBase {
     static check(player, game) {
-        return true
+        return game.seating && player === game.seating[AgentWinner.get(game)]
+    }
+
+    static get(game) {
+        if (game.leading_winner)
+            return game.seating.indexOf(game.leading_winner)
+        else {
+            return game.commander
+        }
     }
 }
 
 export class AgentCommander extends AgentBase {
     static check(player, game) {
-        return true
+        return game.seating && player === game.seating[AgentCommander.get(game)]
     }
 
     static get(game) {

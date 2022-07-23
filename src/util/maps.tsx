@@ -32,6 +32,7 @@ export const mapOrderToIcon = {
     [Order.Second]: "=",
     [Order.Third]: "≡",
     [Order.Last]: "Ω",
+    [Order.LastTrick]: "Ω",
 }
 
 export const mapSuiteToBackgroundColor = {
