@@ -18,9 +18,9 @@ export default function App() {
 	const spoof = params.length > 1 ? params[1] : (FIX ? "shift" : "");
 
 	const [state, setState] = useState({
-		crew: "",
-		// player: spoof,
-		// crew: 'thethecrewcrew',
+		// crew: "",
+		player: spoof,
+		crew: 'thethecrewcrew',
 		view: ViewName.Table,
 		palette,
 		show_toast: false,
