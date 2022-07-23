@@ -1,27 +1,35 @@
 import { Order } from "../enums"
-import { Mission } from "./mission"
+import { MissionCustom, MissionOrder } from "./mission"
 
-const planet_x_1 = new Mission(1)
+const planet_x_1 = new MissionOrder(1)
 
-const planet_x_2 = new Mission(2)
+const planet_x_2 = new MissionOrder(2)
 
-const planet_x_3 = new Mission(2, [Order.One, Order.Two])
+const planet_x_3 = new MissionOrder(2, [Order.One, Order.Two])
 
-const planet_x_4 = new Mission(3)
+const planet_x_4 = new MissionOrder(3)
 
-const planet_x_6 = new Mission(3, [Order.First, Order.Second], true)
+const planet_x_6 = new MissionOrder(3, [Order.First, Order.Second], true)
 
-const planet_x_7 = new Mission(1, [Order.Last])
+const planet_x_7 = new MissionOrder(1, [Order.Last])
 
-const planet_x_8 = new Mission(3, [Order.One, Order.Two, Order.Three])
+const planet_x_8 = new MissionOrder(3, [Order.One, Order.Two, Order.Three])
 
-const planet_x_10 = new Mission(4)
+const planet_x_10 = new MissionOrder(4)
 
-const planet_x_14 = new Mission(4, [Order.First, Order.Second, Order.Third])
+const planet_x_14 = new MissionOrder(4, [Order.First, Order.Second, Order.Third])
 
-const planet_x_15 = new Mission(4, [Order.One, Order.Two, Order.Three, Order.Four])
+const planet_x_15 = new MissionOrder(4, [Order.One, Order.Two, Order.Three, Order.Four])
 
-const planet_x_21 = new Mission(5, [Order.One, Order.Two], true)
+const planet_x_21 = new MissionOrder(5, [Order.One, Order.Two], true)
+
+const planet_x_47 = new MissionOrder(10)
+
+const planet_x_48 = new MissionOrder(3, [Order.LastTrick])
+
+const planet_x_49 = new MissionOrder(10, [Order.First, Order.Second, Order.Third])
+
+const planet_x_50 = new MissionCustom(0)
 
 export const planet_x = {
 	1: planet_x_1,
@@ -43,4 +51,8 @@ export const planet_x = {
 	// 19: planet_x_19,
 	// 20: planet_x_20,
 	21: planet_x_21,
+	47: planet_x_47,
+	48: planet_x_48,
+	49: planet_x_49,
+	50: planet_x_50,
 }

@@ -1,14 +1,17 @@
+import { Play } from "../util/actions/play"
 import { Card } from "./Card"
 
-export function Hand({ state, setState, game, setGame, sorted }) {
+export function Hand({ state, setState, game, setGame }) {
+
     let hand = []
     if (game.players && game.players[state.player] && game.players[state.player].hand) {
-        hand = [...game.players[state.player].hand]
+        hand = game.players[state.player].hand
     }
-    if (sorted) sortHand(hand)
 
     const cards = hand.map((card, idx) =>
-        <div key={idx} onClick={() => { }}>
+        <div key={idx} onClick={() => {
+            new Play(state, setState, game, setGame).run(idx)
+        }}>
             <Card state={state} setState={setState} card={card} />
         </div>
     )
@@ -20,8 +23,3 @@ export function Hand({ state, setState, game, setGame, sorted }) {
     )
 }
 
-function sortHand(hand) {
-    hand.sort((card1, card2) => {
-        return card1.suite === card2.suite ? card1.num - card2.num : (card1.suite < card2.suite ? -1 : 1)
-    })
-}

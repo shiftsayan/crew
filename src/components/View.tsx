@@ -2,7 +2,7 @@ import { CrewPill as Pill } from "./Pill"
 import { CrewGoal } from "./Goal"
 
 import { mapMissionVersionToEmoji } from "../util/maps"
-import { ViewName } from "../util/enums"
+import { Decoration, Order, ViewName } from "../util/enums"
 import { SUITES, SUIT_TRUMP } from "../util/game"
 import { PhaseName } from "../util/mechanics/phase"
 import { Toggle } from "../util/actions/toggle"
@@ -51,14 +51,15 @@ function TrickView({ state, setState, game, setGame }) {
         </div>
     )
 
-    for (let trick of game.tricks) {
+    for (let trick of (game.tricks ?? [])) {
         const col = []
         for (let j = 0; j < game.num_players; j++) {
+            const player = game.seating[j]
             col.push(
                 <Pill
                     key={j}
-                    num={trick[j].num}
-                    suite={trick[j].suite}
+                    num={trick[player].num}
+                    suite={trick[player].suite}
                 />
             )
         }
@@ -69,23 +70,24 @@ function TrickView({ state, setState, game, setGame }) {
         )
     }
 
-    // if (state.current_trick) {
-    //     var last_col = []
-    //     for (let j = 0; j < state.num_players; j++) {
-    //         last_col.push(
-    //             <Pill
-    //                 key={j}
-    //                 num={state.current_trick[j].num}
-    //                 suite={state.current_trick[j].suite}
-    //             />
-    //         )
-    //     }
-    //     grid.push(
-    //         <div className={col_classes} key="last">
-    //             {last_col}
-    //         </div>
-    //     )
-    // }
+    if (game.leading_trick) {
+        var last_col = []
+        for (let j = 0; j < game.num_players; j++) {
+            const player = game.seating[j]
+            last_col.push(
+                <Pill
+                    key={j}
+                    num={game.leading_trick[player]?.num}
+                    suite={game.leading_trick[player]?.suite}
+                />
+            )
+        }
+        grid.push(
+            <div className={col_classes} key="last">
+                {last_col}
+            </div>
+        )
+    }
 
     return (
         <div className="flex h-full">
@@ -99,16 +101,16 @@ function TableView({ state, setState, game, setGame }) {
 
     for (let suite of SUITES) {
         var row = [
-            <Header text={suite} />
+            <Header key={suite} text={suite} />
         ]
         for (let i = 1; i <= (suite === SUIT_TRUMP ? 4 : 9); i++) {
-            let played = false // state.played_cards.some((card) => (card.num === i && card.suite === suite))
+            let played = game.played_cards && game.played_cards.some((card) => (card.num === i && card.suite === suite))
             row.push(
-                <Pill
-                    key={i}
-                    num={i}
-                    suite={suite}
-                    dimmed={played}
+                <CrewGoal key={i} goal={{ num: i, suite: suite, order: Order.None }} decorations={{
+                    [Decoration.Grayscale]: played,
+                    [Decoration.Shrink]: played,
+                }
+                }
                 />
             )
         }
@@ -128,7 +130,7 @@ function TableView({ state, setState, game, setGame }) {
 
 function Header({ text }) {
     return (
-        <div className="flex bg-white rounded-md justify-between h-8 w-20">
+        <div className="flex bg-white rounded-md justify-between h-8 w-20 text-sm">
             <div className="m-auto truncate p-1">
                 {text}
             </div>
@@ -151,7 +153,11 @@ function GoalView({ state, setState, game, setGame }) {
                 key={i}
                 onClick={() => new Toggle(state, setState, game, setGame).run(i)}
             >
-                <CrewGoal idx={i} goal={goals[i]} display dimmed={goals[i].player} />
+                <CrewGoal key={i} goal={goals[i]} decorations={{
+                    [Decoration.Display]: true,
+                    [Decoration.Shrink]: Boolean(goals[i].player),
+                    [Decoration.Desaturate]: Boolean(goals[i].player),
+                }} />
             </div>
         )
         if (row.length === breakpoint) {

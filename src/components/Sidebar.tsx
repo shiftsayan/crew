@@ -3,10 +3,12 @@ import { FiInfo } from "react-icons/fi"
 
 import { GOAL_VIEW_PHASES } from "./View"
 
-import { Move, OldPhase, ViewName } from "../util/enums"
-import { check_agency, performMove } from "../util/moves"
+import { Condition, ViewName } from "../util/enums"
 import { Tooltip } from "@mui/material"
 import { mapMissionVersionToName } from "../util/maps"
+import { PhaseName } from "../util/mechanics/phase"
+import { AgentCommander, AgentCurrent, AgentWinner } from "../util/mechanics/agent"
+import { CTA } from "../util/actions/cta"
 
 export function Sidebar({ state, setState, game, setGame }) {
     return (
@@ -18,10 +20,10 @@ export function Sidebar({ state, setState, game, setGame }) {
             </div>
             <div className="mx-auto grid grid-cols-2 gap-x-4">
                 {game.mission && <Counter label="Mission" value={game.mission.num} icon={<FiInfo />} tooltip={mapMissionVersionToName[game.mission.version]} />}
-                <Counter label="Attempt" value={game.attempt} />
+                {game.mission && <Counter label="Attempt" value={game.mission.attempt} />}
             </div>
             <Toggle state={state} setState={setState} game={game} setGame={setGame} />
-            <CTA state={state} setState={setState} />
+            <Button state={state} setState={setState} game={game} setGame={setGame} />
         </div>
     )
 }
@@ -90,57 +92,90 @@ function Toggle({ state, setState, game, setGame }) {
     )
 }
 
-function CTA({ state, setState }) {
+function Button({ state, setState, game, setGame }) {
     const buttons_data = []
-    switch (state.phase) {
-        case OldPhase.Preflight:
-            buttons_data.push({
-                text: 'Start',
-                style: 'positive',
-                onClick: () => performMove(state, setState, Move.StartGame, {})
-            })
-            break
-        case OldPhase.Goal:
-            if (check_agency(state)) {
+
+    const is_current = AgentCurrent.check(state.player, game)
+    const is_winner = AgentWinner.check(state.player, game)
+    const is_commander = AgentCommander.check(state.player, game)
+    switch (game.phase) {
+        case PhaseName.ChooseGoals:
+            if (is_current) {
                 buttons_data.push({
                     text: 'Choose Goal',
                     style: 'info',
                 })
             }
             break
-        case OldPhase.GoldenBorderDiscard:
-            if (check_agency(state)) {
+
+        case PhaseName.GoldenBorderDiscard:
+            if (is_commander) {
                 buttons_data.push({
-                    text: 'Continue',
+                    text: 'Skip',
                     style: 'positive',
-                    onClick: () => performMove(state, setState, Move.SkipGoldenBorder, {})
+                    onClick: () => new CTA(state, setState, game, setGame).run()
+                })
+            }
+            else {
+                buttons_data.push({
+                    text: 'Discard Goal',
+                    style: 'info',
                 })
             }
             break
-        case OldPhase.Communication:
-            if (state.player === state.commander) {
+
+        case PhaseName.GoldenBorderAccept:
+            buttons_data.push({
+                text: 'Accept Goal',
+                style: 'info',
+                onClick: () => new CTA(state, setState, game, setGame).run()
+            })
+            break
+
+        case PhaseName.Communicate:
+            if (is_winner) {
                 buttons_data.push({
                     text: 'Start Trick',
                     style: 'positive',
-                    onClick: () => performMove(state, setState, Move.StartTrick, {})
+                    onClick: () => new CTA(state, setState, game, setGame).run(),
+                })
+            }
+            else {
+                buttons_data.push({
+                    text: 'Communicate',
+                    style: 'info',
+                })
+            }
+            break
+
+        case PhaseName.PlayTrick:
+            if (is_current) {
+                buttons_data.push({
+                    text: 'Play Card',
+                    style: 'info',
+                })
+            }
+            break
+
+        case PhaseName.EndGame:
+            if (game.condition === Condition.Won)
+                buttons_data.push({
+                    text: 'Next Mission',
+                    style: 'positive',
+                    onClick: () => new CTA(state, setState, game, setGame).run()
+                })
+            else if (game.condition === Condition.Lost) {
+                buttons_data.push({
+                    text: 'Retry Mission',
+                    style: 'negative',
+                    onClick: () => new CTA(state, setState, game, setGame).run(),
                 })
             }
     }
-    if (buttons_data.length === 0) {
-        buttons_data.push({ 'text': 'Waiting...', 'style': 'neutral' })
-    }
-    // if (state.phase === "GoldenBorder") {
-    //     if (state.this_player === state.commander && state.allow_exchange === undefined) {
-    //         buttons_data.push({ 'text': 'Allow', 'style': 'positive', 'onClick': () => state.moves.AllowExchange(true) })
-    //         buttons_data.push({ 'text': 'Disallow', 'style': 'negative', 'onClick': () => state.moves.AllowExchange(false) })
-    //     }
-    //     else {
-    //         buttons_data.push({ 'text': 'Waiting...', 'style': 'neutral' })
-    //     }
-    // }
-    // else {
 
-    // }
+    if (buttons_data.length === 0) {
+        buttons_data.push({ 'text': 'Wait...', 'style': 'neutral' })
+    }
 
     const buttons = buttons_data.map(({ text, style, onClick }, idx) =>
         <div key={idx} onClick={onClick} className={classnames({

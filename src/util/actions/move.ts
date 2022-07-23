@@ -17,9 +17,8 @@ export abstract class Move extends Action {
 
     async validateAgency(...params) {
         const phase = mapPhaseNameToPhase[this.game.phase]
-        const validate_move = phase.moves === undefined || phase.moves.some(move => move.name === this.constructor.name)
-        const validate_agent = phase.agent === undefined || phase.agent.check(this.state.player, this.game)
-        return validate_move && validate_agent
+        const agent = phase.agency[this.constructor.name]
+        return agent && agent.check(this.state.player, this.game)
     }
 
     commitGame(updates) {
@@ -44,11 +43,10 @@ export abstract class Move extends Action {
         let phase = mapPhaseNameToPhase[this.game.phase]
 
         const updates: any = {
-            current: phase.agent.next(this.game)
+            current: phase.agency[this.constructor.name].next(this.game)
         }
 
         while (phase.ended(this.state, this.game)) {
-            console.log(phase)
             // end this phase
             const end_updates = phase.onEnd(this.state, this.game)
             mergeUpdates(updates, end_updates)
@@ -66,8 +64,6 @@ export abstract class Move extends Action {
         return updates
     }
 
-    async postRun(...params) { }
-
     async run(...params) {
         if (!(await this.validateAgency(...params)) ||
             !(await this.validateParams(...params))
@@ -78,7 +74,7 @@ export abstract class Move extends Action {
 
         const state_updates = this.updateState(...params)
         this.commitState(state_updates)
-        const game_updates = this.updateGame(...params)
+        const game_updates = await this.updateGame(...params)
         this.commitGame(game_updates)
         const phase_updates = this.updatePhase(...params)
         this.commitPhase(phase_updates)
@@ -90,7 +86,7 @@ export abstract class Move extends Action {
 function toFirebaseNotation(data, prefix = []) {
     function walk(into, data, prefix = []) {
         Object.entries(data).forEach(([key, val]) => {
-            if (typeof val === "object" && !Array.isArray(val)) walk(into, val, [...prefix, key]);
+            if (val && typeof val === "object" && !Array.isArray(val)) walk(into, val, [...prefix, key]);
             else { into[[...prefix, key].join("/")] = val; }
         });
     }
