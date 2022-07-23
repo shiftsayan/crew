@@ -11,16 +11,16 @@ import { ViewName } from '../util/enums';
 import { database } from '../services/firebase';
 
 let FIX = false;
-FIX = true;
+// FIX = true;
 
 export default function App() {
 	const params = window.location.search.split('?spoof=');
 	const spoof = params.length > 1 ? params[1] : (FIX ? "shift" : "");
 
 	const [state, setState] = useState({
-		// crew: "",
-		player: spoof,
-		crew: 'thethecrewcrew',
+		crew: "",
+		// player: spoof,
+		// crew: 'thethecrewcrew',
 		view: ViewName.Table,
 		palette,
 		show_toast: false,
@@ -32,21 +32,21 @@ export default function App() {
 	};
 
 	const unload = () => {
-		if (!FIX) {
-			update(ref(database), {
-				[`crews/${state.crew}/active/shift`]: false,
-				// TODO
-				[`crews/${state.crew}/phase`]: 'Preflight',
-				[`crews/${state.crew}/players`]: {},
-				[`crews/${state.crew}/goals`]: [],
-				[`crews/${state.crew}/played_cards`]: [],
-				[`crews/${state.crew}/tricks`]: [],
-				[`crews/${state.crew}/leading_trick`]: [],
-				[`crews/${state.crew}/leading_suite`]: null,
-				[`crews/${state.crew}/leading_winner`]: null,
-				[`crews/${state.crew}/commander`]: null,
-			});
-		}
+		// if (!FIX) {
+		// 	update(ref(database), {
+		// 		[`crews/${state.crew}/active/shift`]: false,
+		// 		// TODO
+		// 		[`crews/${state.crew}/phase`]: 'Preflight',
+		// 		[`crews/${state.crew}/players`]: {},
+		// 		[`crews/${state.crew}/goals`]: [],
+		// 		[`crews/${state.crew}/played_cards`]: [],
+		// 		[`crews/${state.crew}/tricks`]: [],
+		// 		[`crews/${state.crew}/leading_trick`]: [],
+		// 		[`crews/${state.crew}/leading_suite`]: null,
+		// 		[`crews/${state.crew}/leading_winner`]: null,
+		// 		[`crews/${state.crew}/commander`]: null,
+		// 	});
+		// }
 	};
 
 	useEffect(() => {

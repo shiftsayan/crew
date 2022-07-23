@@ -22,7 +22,7 @@ export class Login extends Action {
         return auth
     }
 
-    commitState(username) {
+    updateState(username) {
         return {
             ...this.state,
             crew: username,
