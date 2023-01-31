@@ -198,7 +198,7 @@ function Button({ state, setState, game, setGame }) {
   }
 
   if (buttons_data.length === 0) {
-    buttons_data.push({ text: "Wait...", style: "neutral" });
+    buttons_data.push({ text: "Waiting...", style: "neutral" });
   }
 
   const buttons = buttons_data.map(({ text, style, onClick }, idx) => (

@@ -106,17 +106,29 @@ export function Panel({ idx, state, setState, game, setGame }) {
         <div className="h-40 -mt-1">
           <div className="flex h-full justify-center">
             <div className="my-auto">
-              <Button
-                variant="contained"
-                size="small"
-                color={state.palette.accent}
-                onClick={() =>
-                  new Join(state, setState, game, setGame).run(player)
-                }
-                disableElevation
-              >
-                Sit
-              </Button>
+              {state.player ? (
+                <Button
+                  variant="contained"
+                  size="small"
+                  color={state.palette.accent}
+                  disableElevation
+                  disabled
+                >
+                  Waiting...
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  size="small"
+                  color={state.palette.accent}
+                  onClick={() =>
+                    new Join(state, setState, game, setGame).run(player)
+                  }
+                  disableElevation
+                >
+                  Sit
+                </Button>
+              )}
             </div>
           </div>
         </div>
