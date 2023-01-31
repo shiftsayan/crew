@@ -3,16 +3,22 @@ import { useState } from "react";
 import { Login } from "../util/actions/login";
 
 export function Home({ state, setState }) {
-  const [username, setUsername] = useState("");
+  const [crewName, setCrewName] = useState("");
 
   return (
     <div className="flex justify-center">
       <div className="bg-gray-100 rounded-2xl p-12">
         <Form>
           <TextField
-            label="Team Name"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            label="Crew Name"
+            value={crewName}
+            onChange={(e) => setCrewName(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                new Login(state, setState).run(crewName);
+              }
+            }}
             required
           />
           <div className="w-32">
@@ -20,7 +26,7 @@ export function Home({ state, setState }) {
               variant="contained"
               size="large"
               color={state.palette.accent}
-              onClick={() => new Login(state, setState).run(username)}
+              onClick={() => new Login(state, setState).run(crewName)}
               disableElevation
             >
               Login
