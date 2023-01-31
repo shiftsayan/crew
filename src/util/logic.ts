@@ -74,7 +74,6 @@
 // 		},
 // 	},
 
-
 // };
 
 // function Setup(ctx, setupData) {
@@ -315,4 +314,4 @@
 // 	G.current_trick = [];
 // }
 
-export { }
+export {};

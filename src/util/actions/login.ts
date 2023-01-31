@@ -3,46 +3,46 @@ import { database } from "../../services/firebase";
 import { shuffle } from "../random";
 import { Action } from "./action";
 
-const SECONDS_IN_DAY = 60 * 60 * 24
+const SECONDS_IN_DAY = 60 * 60 * 24;
 
 export class Login extends Action {
-    async validateParams(username) {
-        const all_crews = (await get(child(ref(database), "crews"))).val()
-        const auth = username && username in all_crews
-        if (!auth) {
-            this.setState({
-                ...this.state,
-                show_toast: true,
-                toast: {
-                    style: "error",
-                    text: "Invalid Username",
-                }
-            })
-        }
-        return auth
+  async validateParams(username) {
+    const all_crews = (await get(child(ref(database), "crews"))).val();
+    const auth = username && username in all_crews;
+    if (!auth) {
+      this.setState({
+        ...this.state,
+        show_toast: true,
+        toast: {
+          style: "error",
+          text: "Invalid Username",
+        },
+      });
     }
+    return auth;
+  }
 
-    updateState(username) {
-        return {
-            ...this.state,
-            crew: username,
-            show_toast: true,
-            toast: {
-                style: "success",
-                text: "Logged In",
-            }
-        }
-    }
+  updateState(username) {
+    return {
+      ...this.state,
+      crew: username,
+      show_toast: true,
+      toast: {
+        style: "success",
+        text: "Logged In",
+      },
+    };
+  }
 
-    async postRun(username) {
-        // update seating
-        const game = (await get(child(ref(database), `crews/${username}`))).val()
-        const now = Date.now()
-        if (game.seating_ttl < now) {
-            update(ref(database), {
-                [`crews/${username}/seating`]: shuffle(Object.keys(game.active)),
-                [`crews/${username}/seating_ttl`]: now + SECONDS_IN_DAY,
-            });
-        }
+  async postRun(username) {
+    // update seating
+    const game = (await get(child(ref(database), `crews/${username}`))).val();
+    const now = Date.now();
+    if (game.seating_ttl < now) {
+      update(ref(database), {
+        [`crews/${username}/seating`]: shuffle(Object.keys(game.active)),
+        [`crews/${username}/seating_ttl`]: now + SECONDS_IN_DAY,
+      });
     }
+  }
 }
