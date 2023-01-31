@@ -10,10 +10,11 @@ import { palette } from "../util/theme/palette";
 import { ViewName } from "../util/enums";
 import { database } from "../services/firebase";
 
-export default function App() {
+export function App() {
   const [state, setState] = useState({
     player: "",
-    crew: "",
+    // TODO(@shiftsayan)
+    crew: "thethecrewcrew",
     view: ViewName.Table,
     palette,
     show_toast: false,
