@@ -1,24 +1,34 @@
 import { useEffect, useState } from "react";
 
-import { ref, update } from "@firebase/database";
+import { ref, update, onValue } from "@firebase/database";
 
 import { Home } from "./Home";
 import { Board } from "./Board";
 import { Layout } from "./Layout";
 
-import { palette } from "../util/theme/palette";
+import { PALETTES } from "../util/theme/palette";
 import { ViewName } from "../util/enums";
 import { database } from "../services/firebase";
+import { choice } from "../util/random";
 
 export function App() {
+  const palette = choice(PALETTES);
   const [state, setState] = useState({
     player: "",
-    // TODO(@shiftsayan)
     crew: "thethecrewcrew",
     view: ViewName.Table,
     palette,
     show_toast: false,
   });
+  const [game, setGame] = useState({});
+
+  useEffect(() => {
+    const gameRef = ref(database, `crews/thethecrewcrew`);
+    onValue(gameRef, async (snapshot) => {
+      const data = snapshot.val();
+      setGame(data);
+    });
+  }, [state.crew]);
 
   const unloadAlert = (event: any) => {
     event.preventDefault();
@@ -45,7 +55,12 @@ export function App() {
   return (
     <Layout state={state} setState={setState}>
       {state.crew ? (
-        <Board state={state} setState={setState} />
+        <Board
+          state={state}
+          setState={setState}
+          game={game}
+          setGame={setGame}
+        />
       ) : (
         <Home state={state} setState={setState} />
       )}

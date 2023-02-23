@@ -3,7 +3,11 @@ import classnames from "classnames";
 import { CrewPill } from "./Pill";
 
 import { mapOrderToIcon, mapSuiteToBorderColor } from "../util/maps";
-import { Decoration, Order, Suite } from "../util/enums";
+import { Decoration, Order, Status, Suite } from "../util/enums";
+import { MAP_TASK_TO_COMPONENT } from "./Task";
+import { FiLoader, FiCheck, FiPlus, FiX } from "react-icons/fi";
+import { useState } from "react";
+import { Mark } from "../util/actions/mark";
 
 export function CrewGoal({
   goal = { num: 0, suite: Suite.None, order: Order.None },
@@ -49,6 +53,84 @@ function CrewPendant({ icon, suite, decorations }) {
       })}
     >
       <div className="text-xs m-auto">{icon}</div>
+    </div>
+  );
+}
+
+export function CrewGoalNew({
+  id = undefined,
+  idx = undefined,
+  goal = {
+    num: 0,
+    status: Status.None,
+    suite: Suite.None,
+    order: Order.None,
+    description: "",
+  },
+  decorations = {},
+  state,
+  setState,
+  game,
+  setGame,
+}) {
+  const [check, setCheck] = useState(0);
+
+  const main = (
+    <div
+      className={classnames({
+        "h-14 w-14 rounded-md": true,
+        relative: true,
+        "border-dashed border-3 border-gray-300": goal.description === "",
+        "bg-white": goal.description !== "",
+      })}
+    >
+      <div className="flex flex-col h-full w-full absolute justify-start">
+        {id ? (
+          MAP_TASK_TO_COMPONENT[id]
+        ) : (
+          <div className="flex h-full w-full justify-center">
+            <FiPlus className="m-auto text-gray-300 stroke-icon text-2xl" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className={classnames({
+        "scale-150 transition": decorations[Decoration.Display],
+        "scale-75": decorations[Decoration.Shrink],
+      })}
+    >
+      {/* only add the following div when decorations are not display or blank */}
+      {!(
+        decorations[Decoration.Display] || decorations[Decoration.Pending]
+      ) && (
+        <div
+          className={classnames({
+            "cursor-pointer": true,
+            "h-5 w-5 absolute z-10 -m-2 rounded-full flex justify-center": true,
+            "bg-gray-500": [Status.Chosen, Status.NotChosen].includes(
+              goal.status
+            ),
+            "bg-emerald-500": [Status.Success].includes(goal.status),
+            "bg-red-600": [Status.Failure].includes(goal.status),
+          })}
+          onClick={() => new Mark(state, setState, game, setGame).run(idx)}
+        >
+          {[Status.Chosen, Status.NotChosen].includes(goal.status) && (
+            <FiLoader className="m-auto text-white text-sm animate-spin-slow" />
+          )}
+          {[Status.Success].includes(goal.status) && (
+            <FiCheck className="m-auto text-sm text-white stroke-icon" />
+          )}
+          {[Status.Failure].includes(goal.status) && (
+            <FiX className="m-auto text-sm text-white stroke-icon" />
+          )}
+        </div>
+      )}
+      {main}
     </div>
   );
 }

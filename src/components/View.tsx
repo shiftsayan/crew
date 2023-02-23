@@ -1,5 +1,5 @@
 import { CrewPill as Pill } from "./Pill";
-import { CrewGoal } from "./Goal";
+import { CrewGoalNew, CrewGoal } from "./Goal";
 
 import { mapMissionVersionToEmoji } from "../util/maps";
 import { Decoration, Order, ViewName } from "../util/enums";
@@ -48,13 +48,15 @@ export function View({ state, setState, game, setGame }) {
   }
 
   return (
-    <div className="h-full w-full m-auto flex-grow justify-between">{view}</div>
+    <div className="h-full w-full m-auto flex-grow justify-between py-2">
+      {view}
+    </div>
   );
 }
 
 function TrickView({ state, setState, game, setGame }) {
   const col_classes =
-    "flex flex-col -my-3 p-3 justify-between rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out";
+    "flex flex-col -my-5 p-3 justify-between rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out";
   const grid = [];
 
   var firstCol = [];
@@ -97,7 +99,7 @@ function TrickView({ state, setState, game, setGame }) {
     );
   }
 
-  return <div className="flex h-full">{grid}</div>;
+  return <div className="flex h-full py-3">{grid}</div>;
 }
 
 function TableView({ state, setState, game, setGame }) {
@@ -125,7 +127,7 @@ function TableView({ state, setState, game, setGame }) {
     grid.push(
       <div
         key={suite}
-        className="flex w-fit -my-2 -mx-3 py-2 px-3 space-x-6 rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out"
+        className="flex w-fit -my-2 -mx-3 py-3 px-3 space-x-6 rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out"
       >
         {row}
       </div>
@@ -133,7 +135,7 @@ function TableView({ state, setState, game, setGame }) {
   }
 
   return (
-    <div className="flex flex-col px-3 justify-between h-full w-full">
+    <div className="flex flex-col px-3 justify-between h-full w-full -py-2">
       {grid}
     </div>
   );
@@ -163,14 +165,20 @@ function GoalView({ state, setState, game, setGame }) {
         key={i}
         onClick={() => new Toggle(state, setState, game, setGame).run(i)}
       >
-        <CrewGoal
+        <CrewGoalNew
           key={i}
+          id={goals[i].id}
+          idx={i}
           goal={goals[i]}
           decorations={{
             [Decoration.Display]: true,
             [Decoration.Shrink]: Boolean(goals[i].player),
             [Decoration.Desaturate]: Boolean(goals[i].player),
           }}
+          state={state}
+          setState={setState}
+          game={game}
+          setGame={setGame}
         />
       </div>
     );
@@ -192,14 +200,14 @@ function GoalView({ state, setState, game, setGame }) {
 
   return (
     <div className="h-full flex">
-      <div className="w-64 flex flex-col space-y-4 justify-center bg-white rounded-2xl">
+      {/* <div className="w-64 flex flex-col space-y-4 justify-center bg-white rounded-2xl">
         <div className="mx-auto flex justify-center space-x-2">
           <div className="m-auto">
             {mapMissionVersionToEmoji[game.mission.version]}
           </div>
           <div className="m-auto font-bold">Mission {game.mission.num}</div>
         </div>
-      </div>
+      </div> */}
       <div className="w-full flex flex-col h-full space-y-20 justify-center">
         {goals_grid}
       </div>

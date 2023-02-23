@@ -130,3 +130,30 @@ export class MissionCustom extends Mission {
     return Condition.InProgress;
   }
 }
+
+export class MissionDeepSea {
+  max_difficulty: number;
+
+  constructor(max_difficulty: number) {
+    this.max_difficulty = max_difficulty;
+  }
+
+  check(winner, goals, trick, tricks, max_tricks): Condition {
+    // if any goal has Status.Failure, return Condition.Lost
+    const anyLoss = goals.reduce(
+      (res, goal) => res || goal.status === Status.Failure,
+      false
+    );
+    if (anyLoss) return Condition.Lost;
+
+    // if all goals have Status.Success, return Condition.Won
+    const allSuccess = goals.reduce(
+      (res, goal) => res && goal.status === Status.Success,
+      true
+    );
+    if (allSuccess) return Condition.Won;
+
+    // all goals are Status.Success or Status.InProgress (at least 1)
+    return Condition.InProgress;
+  }
+}

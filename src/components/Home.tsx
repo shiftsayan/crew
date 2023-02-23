@@ -1,6 +1,9 @@
-import { TextField, Button } from "@mui/material";
+import { TextField, Button as MUIButton } from "@mui/material";
+import classnames from "classnames";
 import { useState } from "react";
 import { Login } from "../util/actions/login";
+import { PALETTES } from "../util/theme/palette";
+import { Button } from "./Button";
 
 export function Home({ state, setState }) {
   const [crewName, setCrewName] = useState("");
@@ -21,14 +24,24 @@ export function Home({ state, setState }) {
             }}
             required
           />
+          <div className="flex justify-between py-1">
+            {PALETTES.map((palette) => (
+              <div
+                className={classnames(
+                  "bg-white w-10 h-10 rounded-full bg-gradient-to-tl cursor-pointer",
+                  palette,
+                  "hover:ring-4 hover:ring-offset-2 hover:ring-indigo-300 duration-300",
+                  {
+                    "ring-4 ring-offset-2 ring-indigo-500 hover:ring-indigo-500":
+                      palette === state.palette,
+                  }
+                )}
+                onClick={() => setState({ ...state, palette })}
+              />
+            ))}
+          </div>
           <div className="w-32">
-            <Button
-              variant="contained"
-              size="large"
-              color={state.palette.accent}
-              onClick={() => new Login(state, setState).run(crewName)}
-              disableElevation
-            >
+            <Button onClick={() => new Login(state, setState).run(crewName)}>
               Login
             </Button>
           </div>

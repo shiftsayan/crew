@@ -1,14 +1,16 @@
 import classnames from "classnames";
 
 import { Card } from "./Card";
-import { CrewGoal } from "./Goal";
+import { CrewGoalNew } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
-import { Button } from "@mui/material";
+import { Button as MuiButton } from "@mui/material";
 
 import { Join } from "../util/actions/join";
 import { PhaseName } from "../util/mechanics/phase";
-import { Communication, Decoration, Status } from "../util/enums";
+import { Communication, Decoration, Order, Status, Suite } from "../util/enums";
+import { CrewGoal } from "./Goal";
+import { Button } from "./Button";
 
 export function Panel({ idx, state, setState, game, setGame }) {
   const player = game.seating[idx];
@@ -25,22 +27,34 @@ export function Panel({ idx, state, setState, game, setGame }) {
     player_data && player_data.goals
       ? player_data.goals.map((goal, idx) => {
           let accomplished = false;
+          let goal_idx = 0;
           for (let _goal of game.goals) {
-            if (_goal.num === goal.num && _goal.suite === goal.suite) {
+            if (_goal.id === goal.id) {
+              idx = _goal.idx;
               accomplished = [Status.Success, Status.Failure].includes(
                 _goal.status
               );
+              break;
             }
+            goal_idx++;
           }
           return (
-            <CrewGoal
+            <CrewGoalNew
               key={idx}
-              goal={goal}
-              decorations={{
-                [Decoration.Shrink]: accomplished,
-                [Decoration.Desaturate]: accomplished,
-                // [Decoration.Grayscale]: accomplished,
-              }}
+              idx={goal_idx}
+              id={goal.id}
+              goal={game.goals[goal_idx]}
+              decorations={
+                {
+                  // [Decoration.Shrink]: accomplished,
+                  // [Decoration.Desaturate]: accomplished,
+                  // [Decoration.Grayscale]: accomplished,
+                }
+              }
+              state={state}
+              setState={setState}
+              game={game}
+              setGame={setGame}
             />
           );
         })
@@ -48,7 +62,16 @@ export function Panel({ idx, state, setState, game, setGame }) {
   if (
     [PhaseName.ChooseGoals, PhaseName.GoldenBorderAccept].includes(game.phase)
   ) {
-    goals.push(<CrewGoal key="blank" decoration={Decoration.Pending} />);
+    goals.push(
+      <CrewGoalNew
+        key="blank"
+        decorations={{ [Decoration.Pending]: true }}
+        state={state}
+        setState={setState}
+        game={game}
+        setGame={setGame}
+      />
+    );
   }
 
   return (
@@ -58,10 +81,10 @@ export function Panel({ idx, state, setState, game, setGame }) {
         <div
           className={classnames({
             "my-auto": true,
-            underline: player === state.player,
+            "bg-white px-4 h-10 rounded-full flex": player === state.player,
           })}
         >
-          {player}
+          <div className="my-auto">{player}</div>
         </div>
         {player_data && (
           <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
@@ -73,7 +96,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
       {/* Cards */}
       {active && (
         <>
-          <div className="w-full mt-1 justify-around px-4 flex">
+          <div className="w-full mt-2 justify-between px-11 flex gap-8">
             <Card
               card={card || {}}
               state={state}
@@ -94,7 +117,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
           {/* Goals */}
           <div
             className={classnames({
-              "w-full h-8 mt-2 justify-around flex": true,
+              "w-full h-14 mt-4 justify-left flex px-11 gap-4": true,
               // "px-4": player_data.goals.length !== 4,
             })}
           >
@@ -103,30 +126,18 @@ export function Panel({ idx, state, setState, game, setGame }) {
         </>
       )}
       {!active && (
-        <div className="h-40 -mt-1">
+        <div className="h-[12rem]">
           <div className="flex h-full justify-center">
             <div className="my-auto">
               {state.player ? (
-                <Button
-                  variant="contained"
-                  size="small"
-                  color={state.palette.accent}
-                  disableElevation
-                  disabled
-                >
-                  Waiting...
-                </Button>
+                <Button disabled>WAITING...</Button>
               ) : (
                 <Button
-                  variant="contained"
-                  size="small"
-                  color={state.palette.accent}
                   onClick={() =>
                     new Join(state, setState, game, setGame).run(player)
                   }
-                  disableElevation
                 >
-                  Sit
+                  SIT
                 </Button>
               )}
             </div>

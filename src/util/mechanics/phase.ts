@@ -9,6 +9,7 @@ import {
 } from "../enums";
 import { CARDS, SUIT_TRUMP } from "../game";
 import { missions } from "../game/missions";
+import { TASKS } from "../game/tasks";
 import { shuffle } from "../random";
 import {
   AgentAll,
@@ -155,22 +156,42 @@ export class DealGoals extends Phase {
   static onStart(state, game) {
     const mission_data = missions[game.mission.version][game.mission.num];
 
-    const all_goals = shuffle([...CARDS]);
     const goals = [];
-    let count = 0;
-    while (count !== mission_data.num_goals) {
-      let goal = all_goals.pop();
-      if (goal.suite !== SUIT_TRUMP) {
-        goals.push({
-          ...goal,
-          order:
-            !mission_data.orders || count >= mission_data.orders.length
-              ? Order.None
-              : mission_data.orders[count],
-          status: Status.NotChosen,
-        });
-        count++;
+    if (game.mission.version === "planet_x") {
+      const all_goals = shuffle([...CARDS]);
+      let count = 0;
+      while (count !== mission_data.num_goals) {
+        let goal = all_goals.pop();
+        if (goal.suite !== SUIT_TRUMP) {
+          goals.push({
+            ...goal,
+            order:
+              !mission_data.orders || count >= mission_data.orders.length
+                ? Order.None
+                : mission_data.orders[count],
+            status: Status.NotChosen,
+          });
+          count++;
+        }
       }
+    } else if (game.mission.version === "deep_sea") {
+      const all_goals = shuffle([...TASKS]);
+      let total_difficulty = 0;
+      while (
+        all_goals.length &&
+        total_difficulty !== mission_data.max_difficulty
+      ) {
+        let goal = all_goals.pop();
+        if (total_difficulty + goal.difficulty <= mission_data.max_difficulty) {
+          goals.push({
+            ...goal,
+            status: Status.NotChosen,
+          });
+          total_difficulty += goal.difficulty;
+        }
+      }
+    } else {
+      throw new Error("Invalid mission version");
     }
 
     return {
@@ -183,6 +204,8 @@ export class ChooseGoals extends Phase {
   static starter = AgentCommander;
   static agency = {
     Toggle: AgentCurrent,
+    Join: AgentAll,
+    Mark: AgentAll,
   };
 
   static ended(state, game) {
@@ -199,6 +222,8 @@ export class GoldenBorderDiscard extends Phase {
   static agency = {
     Toggle: AgentAll,
     CTA: AgentCommander,
+    Join: AgentAll,
+    Mark: AgentAll,
   };
 
   static ended(state, game) {
@@ -219,6 +244,8 @@ export class GoldenBorderAccept extends Phase {
   static starter = AgentAll;
   static agency = {
     Toggle: AgentAll,
+    Join: AgentAll,
+    Mark: AgentAll,
   };
 
   static ended(state, game) {
@@ -250,6 +277,8 @@ export class Communicate extends Phase {
     Qualify: AgentAll,
     CTA: AgentWinner,
     StartTrick: AgentCurrent,
+    Join: AgentAll,
+    Mark: AgentAll,
   };
 
   static ended(state: any, game: any): boolean {
@@ -277,6 +306,8 @@ export class PlayTrick extends Phase {
   static starter = AgentCurrent;
   static agency = {
     Play: AgentCurrent,
+    Join: AgentAll,
+    Mark: AgentAll,
   };
 
   static ended(state: any, game: any): boolean {
@@ -344,6 +375,8 @@ export class EndGame extends Phase {
   static starter = AgentAll;
   static agency = {
     CTA: AgentAll,
+    Join: AgentAll,
+    Mark: AgentAll,
   };
 
   static ended(state, game) {

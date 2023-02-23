@@ -4,8 +4,8 @@ export class Join extends Move {
   async validateParams(player) {
     return (
       !this.state.player && // player is not set
-      !this.game.active[player]
-    ); // player is not taken
+      !this.game.active[player] // player is not taken
+    );
   }
 
   updateState(player) {

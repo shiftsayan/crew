@@ -3,7 +3,7 @@ import { database } from "../../services/firebase";
 import { shuffle } from "../random";
 import { Action } from "./action";
 
-const SECONDS_IN_DAY = 60 * 60 * 24;
+const MS_IN_DAY = 60 * 60 * 24 * 1000;
 
 export class Login extends Action {
   async validateParams(username) {
@@ -41,7 +41,7 @@ export class Login extends Action {
     if (game.seating_ttl < now) {
       update(ref(database), {
         [`crews/${username}/seating`]: shuffle(Object.keys(game.active)),
-        [`crews/${username}/seating_ttl`]: now + SECONDS_IN_DAY,
+        [`crews/${username}/seating_ttl`]: now + MS_IN_DAY,
       });
     }
   }

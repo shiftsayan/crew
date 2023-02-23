@@ -18,7 +18,7 @@ export function Sidebar({ state, setState, game, setGame }) {
   return (
     <div className="w-64 flex flex-col space-y-4 justify-center bg-white rounded-2xl">
       <div className="mx-auto flex justify-center space-x-2">
-        <div className="m-auto font-bold">{game.crew_name}</div>
+        <div className="m-auto font-bold">The Crew</div>
       </div>
       <div className="mx-auto grid grid-cols-2 gap-x-4">
         {game.mission && (

@@ -3,7 +3,7 @@ import { FiMoreHorizontal } from "react-icons/fi";
 
 import { CrewLabelIcon, CrewLabelText } from "./Labels";
 
-import { mapSuiteToBackgroundColor } from "../util/maps";
+import { mapSuiteToBackgroundColor, mapSuiteToTextColor } from "../util/maps";
 import { Decoration } from "../util/enums";
 
 export function CrewPill({ num, suite, blank = false, decorations = {} }) {
@@ -36,6 +36,23 @@ export function CrewPill({ num, suite, blank = false, decorations = {} }) {
           <FiMoreHorizontal />
         </div>
       )}
+    </div>
+  );
+}
+
+export function CrewPillMini({ num, suite, blank = false, decorations = {} }) {
+  return (
+    <div
+      className={classnames({
+        "font-display flex justify-center": true,
+        "w-5 h-5 rounded-full": true,
+        // "bg-red-100": true,
+        [mapSuiteToBackgroundColor[suite]]: !decorations[Decoration.Grayscale],
+        "text-white": true,
+        // "text-gray-600": decorations[Decoration.Grayscale],
+      })}
+    >
+      <div className="m-auto -my-0.5">{num}</div>
     </div>
   );
 }
