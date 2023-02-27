@@ -6,21 +6,19 @@ import { Home } from "./Home";
 import { Board } from "./Board";
 import { Layout } from "./Layout";
 
-import { PALETTES } from "../util/theme/palette";
 import { ViewName } from "../util/enums";
 import { database } from "../services/firebase";
-import { choice } from "../util/random";
+import { CrewGameType, CrewStateType } from "../util/types";
+import { AllTasks } from "./AllTasks";
 
 export function App() {
-  const palette = choice(PALETTES);
-  const [state, setState] = useState({
+  const [state, setState] = useState<CrewStateType>({
     player: "",
     crew: "thethecrewcrew",
     view: ViewName.Table,
-    palette,
-    show_toast: false,
+    toast: { show: false },
   });
-  const [game, setGame] = useState({});
+  const [game, setGame] = useState<CrewGameType>({});
 
   useEffect(() => {
     const gameRef = ref(database, `crews/thethecrewcrew`);

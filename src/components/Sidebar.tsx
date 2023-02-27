@@ -2,8 +2,9 @@ import classnames from "classnames";
 import { FiInfo } from "react-icons/fi";
 
 import { GOAL_VIEW_PHASES } from "./View";
+import { Button as XButton } from "./Button";
 
-import { Condition, ViewName } from "../util/enums";
+import { Condition, Size, ViewName } from "../util/enums";
 import { Tooltip } from "@mui/material";
 import { mapMissionVersionToName } from "../util/maps";
 import { PhaseName } from "../util/mechanics/phase";
@@ -119,108 +120,109 @@ function Toggle({ state, setState, game, setGame }) {
 }
 
 function Button({ state, setState, game, setGame }) {
-  const buttons_data = [];
-
   const is_current = AgentCurrent.check(state.player, game);
   const is_winner = AgentWinner.check(state.player, game);
   const is_commander = AgentCommander.check(state.player, game);
+
+  let button_data;
   switch (game.phase) {
     case PhaseName.ChooseGoals:
       if (is_current) {
-        buttons_data.push({
-          text: "Choose Goal",
-          style: "info",
-        });
+        button_data = {
+          text: "CHOOSE GOAL",
+          active: true,
+          disabled: true,
+        };
       }
       break;
 
     case PhaseName.GoldenBorderDiscard:
       if (is_commander) {
-        buttons_data.push({
-          text: "Skip",
-          style: "positive",
+        button_data = {
+          text: "SKIP GOLDEN BORDER",
           onClick: () => new CTA(state, setState, game, setGame).run(),
-        });
+        };
       } else {
-        buttons_data.push({
-          text: "Discard Goal",
-          style: "info",
-        });
+        // if state.player has goals then they can discard
+        if (game.players[state.player]?.goals?.length > 0) {
+          button_data = {
+            text: "DISCARD GOAL",
+            disabled: true,
+          };
+        }
       }
       break;
 
     case PhaseName.GoldenBorderAccept:
-      buttons_data.push({
-        text: "Accept Goal",
-        style: "info",
+      button_data = {
+        text: "ACCEPT GOAL",
+        disabled: true,
         onClick: () => new CTA(state, setState, game, setGame).run(),
-      });
+      };
       break;
 
     case PhaseName.Communicate:
       if (is_winner) {
-        buttons_data.push({
-          text: "Start Trick",
-          style: "positive",
+        button_data = {
+          text: "START TRICK",
+          active: true,
           onClick: () => new CTA(state, setState, game, setGame).run(),
-        });
+        };
       } else {
-        buttons_data.push({
-          text: "Communicate",
-          style: "info",
-        });
+        button_data = {
+          text: "COMMUNICATE",
+          disabled: true,
+        };
       }
       break;
 
     case PhaseName.PlayTrick:
       if (is_current) {
-        buttons_data.push({
-          text: "Play Card",
-          style: "info",
-        });
+        button_data = {
+          text: "PLAY CARD",
+          active: true,
+          disabled: true,
+        };
       }
       break;
 
     case PhaseName.EndGame:
       if (game.condition === Condition.Won)
-        buttons_data.push({
-          text: "Next Mission",
-          style: "positive",
+        button_data = {
+          text: "NEXT MISSION",
           onClick: () => new CTA(state, setState, game, setGame).run(),
-        });
+        };
       else if (game.condition === Condition.Lost) {
-        buttons_data.push({
-          text: "Retry Mission",
-          style: "negative",
+        button_data = {
+          text: "RETRY MISSION",
           onClick: () => new CTA(state, setState, game, setGame).run(),
-        });
+        };
+      } else {
+        button_data = {
+          text: "MARK GOALS",
+          disabled: true,
+          onClick: () => new CTA(state, setState, game, setGame).run(),
+        };
       }
+      break;
   }
+  button_data = button_data ?? {
+    text: "WAITING...",
+    active: false,
+    disabled: true,
+  };
 
-  if (buttons_data.length === 0) {
-    buttons_data.push({ text: "Waiting...", style: "neutral" });
-  }
-
-  const buttons = buttons_data.map(({ text, style, onClick }, idx) => (
-    <div
-      key={idx}
-      onClick={onClick}
-      className={classnames({
-        "flex rounded-md justify-center m-auto": true,
-        "bg-blue-600": style === "positive",
-        "bg-red-600": style === "negative",
-        "bg-gray-600": style === "neutral",
-        "bg-gray-400": style === "info",
-        "hover:shadow-lg hover:cursor-pointer":
-          style === "positive" || style === "negative",
-        "hover:cursor-not-allowed": style === "neutral",
-      })}
-    >
-      <div className="m-auto truncate py-2 px-3 uppercase text-sm font-bold text-white">
-        {text}
-      </div>
+  return (
+    <div className="flex justify-around px-2">
+      <XButton
+        key={button_data.text}
+        size={Size.Small}
+        active={button_data.active}
+        disabled={button_data.disabled}
+        onClick={button_data.onClick}
+      >
+        {button_data.text}
+      </XButton>
     </div>
-  ));
-
-  return <div className="flex justify-around px-2">{buttons}</div>;
+  );
 }

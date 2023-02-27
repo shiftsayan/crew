@@ -1,14 +1,3 @@
-export enum OldPhase {
-  Preflight = "PREFLIGHT",
-  Goal = "GOAL",
-  GoldenBorderDiscard = "GOLDEN_BORDER_DISCARD",
-  GoldenBorderAccept = "GOLDEN_BORDER_ACCEPT",
-  Communication = "COMMUNICATION",
-  StartTrick = "START_TRICK",
-  PlayTrick = "PLAY_TRICK",
-  Result = "RESULT",
-}
-
 export enum Suite {
   None = "",
   Black = "Black",
@@ -26,16 +15,17 @@ export enum Decoration {
   Grayscale,
   Display,
   Shrink,
+  Invert,
 }
 
 export enum Communication {
   None,
   NotCommunicated,
-  DeadSpot,
   Communicating,
   Lowest,
   Only,
   Highest,
+  Cancel,
 }
 
 export enum Order {
@@ -99,4 +89,14 @@ export enum Status {
   Chosen,
   Success,
   Failure,
+}
+
+export enum ToastStyle {
+  Success = "success",
+  Error = "error",
+}
+
+export enum Size {
+  Default = "default",
+  Small = "small",
 }

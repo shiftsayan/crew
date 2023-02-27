@@ -27,7 +27,7 @@ module.exports = {
         },
       },
       fontSize: {
-        xxs: ".55rem",
+        xxs: ".5rem",
       },
       borderWidth: {
         1.5: "1.5px",

@@ -3,8 +3,16 @@ import classnames from "classnames";
 import { Panel } from "./Panel";
 
 import { mapPlayersToGridsClass } from "../util/maps";
+import { CrewGameType, CrewStateType } from "../util/types";
 
-export function Panels({ state, setState, game, setGame }) {
+type PanelsProps = {
+  state: CrewStateType;
+  setState: React.Dispatch<React.SetStateAction<CrewStateType>>;
+  game: CrewGameType;
+  setGame: React.Dispatch<React.SetStateAction<CrewGameType>>;
+};
+
+export function Panels({ state, setState, game, setGame }: PanelsProps) {
   const panels = [];
   for (let i = 0; i < game.num_players; i++) {
     panels.push(

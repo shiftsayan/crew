@@ -5,29 +5,34 @@ import { Move } from "./move";
 
 export class Play extends Move {
   async validateParams(card_idx: number) {
-    // TODO communicate rockets
+    // invalid card index
     const xCardIdx =
       card_idx < 0 ||
       card_idx >= this.game.players[this.state.player].hand.length;
     const card = this.game.players[this.state.player].hand[card_idx];
 
-    const xCommunication =
-      this.game.phase === PhaseName.Communicate &&
-      this.game.players[this.state.player].communication.card &&
-      card.suite !== SUIT_TRUMP;
+    // invalid card during `PlayTrick` phase
     const xPlay =
       this.game.phase === PhaseName.PlayTrick &&
       this.game.leading_trick &&
       this.game.leading_trick[this.state.player];
 
+    // invalid card suite during `PlayTrick` phase
     const xSuite =
+      this.game.phase === PhaseName.PlayTrick &&
       this.game.leading_trick && // if this trick has been started
       card.suite !== this.game.leading_suite && // and card's suite does not match leading suite
       this.game.players[this.state.player].hand.some(
         (_card) => _card.suite === this.game.leading_suite // then the player must not have a card of the leading suite.
       );
 
-    return !xCommunication && !xPlay && !xCardIdx && !xSuite;
+    // invalid card during `Communicate` phase
+    const xCommunication =
+      this.game.phase === PhaseName.Communicate &&
+      (this.game.players[this.state.player].communication.card ||
+        card.suite === SUIT_TRUMP);
+
+    return !xCardIdx && !xPlay && !xSuite && !xCommunication;
   }
 
   updateGame(card_idx: number) {

@@ -13,6 +13,13 @@ export function Reset() {
         [`crews/${crewName}/phase`]: "Preflight",
         [`crews/${crewName}/players`]: {},
         [`crews/${crewName}/goals`]: [],
+        // [`crews/${crewName}/active`]: {
+        //   shift: false,
+        //   sml: false,
+        //   thepinetree: false,
+        //   Steven: false,
+        //   mewtwo: false,
+        // },
         [`crews/${crewName}/played_cards`]: [],
         [`crews/${crewName}/tricks`]: [],
         [`crews/${crewName}/leading_trick`]: [],

@@ -1,10 +1,29 @@
-import { Suite } from "../util/enums";
+import { Decoration } from "../util/enums";
 import { CrewPillMini } from "./Pill";
 
-export function TaskText({}) {
+export function TaskText({ text }) {
   return (
-    <div className="bg-red-100 h-full w-full text-xxs">
-      I will win Green 3, Yellow 4, and Yellow 5.
+    <div className="h-full w-full px-0.5 flex flex-col justify-center">
+      <div className="text-xxs text-center leading-tight whitespace-pre-line">
+        {text}
+      </div>
+    </div>
+  );
+}
+
+export function TaskHeader({ num, suite, header }) {
+  return (
+    <div className="h-full w-full py-1 flex flex-col justify-start">
+      <div className="mx-auto text-xxs flex-none">{header}</div>
+      <div className="grow flex justify-center">
+        <div className="my-auto">
+          <CrewPillMini
+            num={num}
+            suite={suite}
+            decorations={{ [Decoration.Invert]: suite === undefined }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -40,15 +59,15 @@ export function TaskUpTo4Cards({ cards }) {
   );
 }
 
-export const MAP_TASK_TO_COMPONENT = {
-  1: (
-    <TaskUpTo4Cards
-      cards={[
-        { num: 3, suite: Suite.Green },
-        { num: 4, suite: Suite.Yellow },
-        { num: 5, suite: Suite.Yellow },
-      ]}
-    />
-  ),
-  2: <TaskUpTo4Cards cards={[{ num: 3, suite: Suite.Black }]} />,
-};
+export function Task({ type, data }) {
+  if (type === "text") {
+    return <TaskText text={data.text} />;
+  } else if (type === "header") {
+    return (
+      <TaskHeader num={data.num} suite={data.suite} header={data.header} />
+    );
+  } else if (type === "cards") {
+    return <TaskUpTo4Cards cards={data.cards} />;
+  }
+  return <></>;
+}

@@ -1,5 +1,6 @@
 import { child, get, ref, update } from "@firebase/database";
 import { database } from "../../services/firebase";
+import { ToastStyle } from "../enums";
 import { shuffle } from "../random";
 import { Action } from "./action";
 
@@ -12,10 +13,10 @@ export class Login extends Action {
     if (!auth) {
       this.setState({
         ...this.state,
-        show_toast: true,
         toast: {
+          show: true,
           style: "error",
-          text: "Invalid Username",
+          message: "Invalid Username",
         },
       });
     }
@@ -26,10 +27,10 @@ export class Login extends Action {
     return {
       ...this.state,
       crew: username,
-      show_toast: true,
       toast: {
-        style: "success",
-        text: "Logged In",
+        show: true,
+        style: ToastStyle.Success,
+        message: "Logged In",
       },
     };
   }
@@ -38,10 +39,10 @@ export class Login extends Action {
     // update seating
     const game = (await get(child(ref(database), `crews/${username}`))).val();
     const now = Date.now();
-    if (game.seating_ttl < now) {
+    if (game.seatingTtl < now) {
       update(ref(database), {
         [`crews/${username}/seating`]: shuffle(Object.keys(game.active)),
-        [`crews/${username}/seating_ttl`]: now + MS_IN_DAY,
+        [`crews/${username}/seatingTtl`]: now + MS_IN_DAY,
       });
     }
   }

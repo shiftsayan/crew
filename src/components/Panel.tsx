@@ -4,12 +4,10 @@ import { Card } from "./Card";
 import { CrewGoalNew } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
-import { Button as MuiButton } from "@mui/material";
 
 import { Join } from "../util/actions/join";
 import { PhaseName } from "../util/mechanics/phase";
-import { Communication, Decoration, Order, Status, Suite } from "../util/enums";
-import { CrewGoal } from "./Goal";
+import { Communication, Decoration, Size } from "../util/enums";
 import { Button } from "./Button";
 
 export function Panel({ idx, state, setState, game, setGame }) {
@@ -18,39 +16,18 @@ export function Panel({ idx, state, setState, game, setGame }) {
   const active = game.active[player];
 
   const card = game.leading_trick ? game.leading_trick[player] : {};
-  const comm =
-    player_data.communication && player_data.communication.card
-      ? player_data.communication
-      : {};
+
+  const communicationCard = player_data?.communication?.card ?? {};
+  const communicationQualifier =
+    player_data?.communication?.qualifier ?? Communication.NotCommunicated;
 
   const goals =
     player_data && player_data.goals
-      ? player_data.goals.map((goal, idx) => {
-          let accomplished = false;
-          let goal_idx = 0;
-          for (let _goal of game.goals) {
-            if (_goal.id === goal.id) {
-              idx = _goal.idx;
-              accomplished = [Status.Success, Status.Failure].includes(
-                _goal.status
-              );
-              break;
-            }
-            goal_idx++;
-          }
+      ? player_data.goals.map((goal_idx) => {
           return (
             <CrewGoalNew
-              key={idx}
-              idx={goal_idx}
-              id={goal.id}
-              goal={game.goals[goal_idx]}
-              decorations={
-                {
-                  // [Decoration.Shrink]: accomplished,
-                  // [Decoration.Desaturate]: accomplished,
-                  // [Decoration.Grayscale]: accomplished,
-                }
-              }
+              key={goal_idx}
+              goal_idx={goal_idx}
               state={state}
               setState={setState}
               game={game}
@@ -105,13 +82,18 @@ export function Panel({ idx, state, setState, game, setGame }) {
               setGame={setGame}
             />
             <Card
-              card={comm.card || {}}
-              communication={comm.qualifier || Communication.NotCommunicated}
+              card={
+                communicationQualifier !== Communication.Communicating ||
+                state.player === player
+                  ? communicationCard
+                  : {}
+              }
+              communication={communicationQualifier}
               state={state}
               setState={setState}
               game={game}
               setGame={setGame}
-              qualifyDisabled={player !== state.player}
+              player={player}
             />
           </div>
           {/* Goals */}
@@ -130,12 +112,15 @@ export function Panel({ idx, state, setState, game, setGame }) {
           <div className="flex h-full justify-center">
             <div className="my-auto">
               {state.player ? (
-                <Button disabled>WAITING...</Button>
+                <Button disabled active={false} size={Size.Small}>
+                  WAITING...
+                </Button>
               ) : (
                 <Button
                   onClick={() =>
                     new Join(state, setState, game, setGame).run(player)
                   }
+                  size={Size.Small}
                 >
                   SIT
                 </Button>

@@ -8,6 +8,7 @@ import {
   FiAlertCircle,
   FiArrowDownCircle,
   FiHelpCircle,
+  FiXCircle,
 } from "react-icons/fi";
 
 import { Communication, Order, Suite } from "./enums";
@@ -90,9 +91,10 @@ export const mapMissionVersionToName = {
 };
 
 export const mapCommunicationToIcon = {
-  [Communication.NotCommunicated]: <FiHelpCircle />,
-  [Communication.DeadSpot]: <FiHelpCircle />,
+  [Communication.NotCommunicated]: <FiCircle />,
+  [Communication.Communicating]: <FiHelpCircle />,
   [Communication.Lowest]: <FiArrowDownCircle />,
   [Communication.Only]: <FiAlertCircle />,
   [Communication.Highest]: <FiArrowUpCircle />,
+  [Communication.Cancel]: <FiXCircle />,
 };

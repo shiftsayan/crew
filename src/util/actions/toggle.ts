@@ -25,7 +25,7 @@ export class Toggle extends Move {
 
       const player_goals = (
         this.game.players[this.state.player].goals ?? []
-      ).concat(goal);
+      ).concat(goal_idx);
 
       return {
         goals: goals,
@@ -34,6 +34,7 @@ export class Toggle extends Move {
             goals: player_goals,
           },
         },
+        // mark GoldenBorder as used if applicable
         golden_border:
           this.game.golden_border === GoldenBorder.Using
             ? GoldenBorder.Used
@@ -41,14 +42,11 @@ export class Toggle extends Move {
       };
     } else {
       const goals = [...this.game.goals];
-      const goal = goals[goal_idx];
       delete goals[goal_idx].player;
 
       const player_goals = (
         this.game.players[previous_player].goals ?? []
-      ).filter(
-        (_goal) => !(_goal.num === goal.num && _goal.suite === goal.suite)
-      );
+      ).filter((_goal_idx) => !(goal_idx === _goal_idx));
 
       return {
         goals: goals,
@@ -57,6 +55,7 @@ export class Toggle extends Move {
             goals: player_goals,
           },
         },
+        // deselection can only happen in GoldenBorderDiscard phase
         golden_border: GoldenBorder.Using,
       };
     }

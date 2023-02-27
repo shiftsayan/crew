@@ -18,7 +18,13 @@ export function Hand({ state, setState, game, setGame }) {
         new Play(state, setState, game, setGame).run(idx);
       }}
     >
-      <Card state={state} setState={setState} card={card} />
+      <Card
+        state={state}
+        setState={setState}
+        game={game}
+        setGame={setGame}
+        card={card}
+      />
     </div>
   ));
 

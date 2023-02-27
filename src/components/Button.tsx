@@ -1,24 +1,34 @@
 import classnames from "classnames";
+import { Size } from "../util/enums";
 
 type ButtonProps = {
   children: React.ReactNode;
   onClick?: () => void;
+  active?: boolean;
   disabled?: boolean;
+  size?: Size;
 };
 
-export function Button({ children, onClick, disabled }: ButtonProps) {
+export function Button({
+  children,
+  onClick,
+  disabled,
+  active = true,
+  size = Size.Default,
+}: ButtonProps) {
   return (
     <button
       type="button"
       className={classnames({
         "inline-flex items-center": true,
         "rounded-md": true,
-        "px-6 py-2": true,
-        "px-6 py-3": true,
-        "bg-indigo-100 text-indigo-700 hover:bg-indigo-200": !disabled,
-        "bg-gray-300 text-gray-700 cursor-auto": disabled,
-        "focus:outline-none focus:ring-2 focus:ring-indigo-500": !disabled,
-        "text-base font-medium": true,
+        "px-6 py-2 text-base font-medium": size === Size.Default,
+        "px-4 py-2 text-sm font-medium": size === Size.Small,
+        "bg-indigo-100 text-indigo-700": active,
+        "bg-gray-300 text-gray-700": !active,
+        "cursor-auto": disabled,
+        "hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500":
+          !disabled,
         "transition duration-200": true,
       })}
       onClick={onClick}

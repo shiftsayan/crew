@@ -2,47 +2,58 @@ import classnames from "classnames";
 
 import { CrewLabelIcon, CrewLabelText } from "./Labels";
 
-import { Decoration, Communication } from "../util/enums";
+import { Communication } from "../util/enums";
 import {
   mapSuiteToBackgroundColor,
   mapCommunicationToIcon,
 } from "../util/maps";
 import { Qualify } from "../util/actions/qualify";
+import { CrewGameType, CrewStateType, CrewCardType } from "../util/types";
+
+type CardProps = {
+  state: CrewStateType;
+  setState: React.Dispatch<React.SetStateAction<CrewStateType>>;
+  game: CrewGameType;
+  setGame: React.Dispatch<React.SetStateAction<CrewGameType>>;
+  card: CrewCardType;
+  communication?: Communication;
+  player?: string;
+};
 
 export function Card({
   state,
   setState,
-  game = null,
-  setGame = null,
+  game,
+  setGame,
   card,
-  decoration = Decoration.None,
   communication = Communication.None,
-  qualifyDisabled = false,
-}) {
-  var communication_icons = [];
-  if (communication === Communication.Communicating) {
-    for (let key of [
+  player,
+}: CardProps) {
+  const communicating =
+    state.player === player && communication === Communication.Communicating;
+
+  const communicationIcons = [];
+  if (communicating) {
+    for (const qualifier of [
       Communication.Lowest,
       Communication.Only,
       Communication.Highest,
+      Communication.Cancel,
     ]) {
-      communication_icons.push(
+      communicationIcons.push(
         <div
-          className="m-auto"
+          className="m-auto hover:text-indigo-700 transition cursor-pointer"
           onClick={() =>
-            new Qualify(state, setState, game, setGame).run(
-              key,
-              qualifyDisabled
-            )
+            new Qualify(state, setState, game, setGame).run(qualifier, player)
           }
-          key={key}
+          key={qualifier}
         >
-          {mapCommunicationToIcon[key]}
+          {mapCommunicationToIcon[qualifier]}
         </div>
       );
     }
   } else {
-    communication_icons.push(
+    communicationIcons.push(
       <div className="m-auto" key={communication}>
         {mapCommunicationToIcon[communication]}
       </div>
@@ -54,36 +65,34 @@ export function Card({
       <div
         className={classnames({
           "rounded-xl h-28 w-20 bg-white p-1.5": true,
-          "scale-80 -my-1": communication,
+          "scale-80 -my-1": communication !== Communication.None,
         })}
       >
-        {decoration !== Decoration.Blank && (
-          <>
-            <div
-              className={`rounded-lg h-full w-full ${
-                mapSuiteToBackgroundColor[card.suite]
-              } flex`}
-            >
-              <CrewLabelIcon suite={card.suite} size="text-4xl" />
-            </div>
-            <div className="rounded-tl-xl rounded-br-xl bg-white h-8 w-8 absolute top-0 left-0 flex">
-              <CrewLabelText num={card.num} suite={card.suite} />
-            </div>
-          </>
-        )}
+        <>
+          <div
+            className={classnames(
+              "rounded-lg h-full w-full flex",
+              mapSuiteToBackgroundColor[card.suite]
+            )}
+          >
+            <CrewLabelIcon suite={card.suite} size="text-4xl" />
+          </div>
+          <div className="rounded-tl-xl rounded-br-xl bg-white h-8 w-8 absolute top-0 left-0 flex">
+            <CrewLabelText num={card.num} suite={card.suite} />
+          </div>
+        </>
       </div>
       {communication !== Communication.None && (
         <div
           className={classnames({
             "absolute h-8 -my-8 inset-y-full inset-x-1/2": true,
-            "bg-white rounded-full": true,
-            "flex justify-evenly": true,
+            "bg-white rounded-full flex justify-evenly": true,
             "text-xl": true,
-            "w-8 -mx-4": communication !== Communication.Communicating,
-            "w-20 -mx-10 px-1": communication === Communication.Communicating,
+            "w-8 -mx-4": !communicating,
+            "w-24 -mx-12 px-1": communicating,
           })}
         >
-          {communication_icons}
+          {communicationIcons}
         </div>
       )}
     </div>

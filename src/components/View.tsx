@@ -167,9 +167,7 @@ function GoalView({ state, setState, game, setGame }) {
       >
         <CrewGoalNew
           key={i}
-          id={goals[i].id}
-          idx={i}
-          goal={goals[i]}
+          goal_idx={i}
           decorations={{
             [Decoration.Display]: true,
             [Decoration.Shrink]: Boolean(goals[i].player),

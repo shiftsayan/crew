@@ -1,15 +1,9 @@
 // import { Play } from "../actions/play";
 
-import {
-  Communication,
-  Condition,
-  GoldenBorder,
-  Order,
-  Status,
-} from "../enums";
+import { Communication, Condition, GoldenBorder, Status } from "../enums";
 import { CARDS, SUIT_TRUMP } from "../game";
 import { missions } from "../game/missions";
-import { TASKS } from "../game/tasks";
+import { DEEP_SEA_GOALS } from "../game/deep_sea_goals";
 import { shuffle } from "../random";
 import {
   AgentAll,
@@ -158,36 +152,45 @@ export class DealGoals extends Phase {
 
     const goals = [];
     if (game.mission.version === "planet_x") {
-      const all_goals = shuffle([...CARDS]);
-      let count = 0;
-      while (count !== mission_data.num_goals) {
-        let goal = all_goals.pop();
-        if (goal.suite !== SUIT_TRUMP) {
-          goals.push({
-            ...goal,
-            order:
-              !mission_data.orders || count >= mission_data.orders.length
-                ? Order.None
-                : mission_data.orders[count],
-            status: Status.NotChosen,
-          });
-          count++;
-        }
-      }
+      //   const all_goals = shuffle([...CARDS]);
+      //   let count = 0;
+      //   while (count !== mission_data.num_goals) {
+      //     let goal = all_goals.pop();
+      //     if (goal.suite !== SUIT_TRUMP) {
+      //       goals.push({
+      //         ...goal,
+      //         order:
+      //           !mission_data.orders || count >= mission_data.orders.length
+      //             ? Order.None
+      //             : mission_data.orders[count],
+      //         status: Status.NotChosen,
+      //       });
+      //       count++;
+      //     }
+      //   }
     } else if (game.mission.version === "deep_sea") {
-      const all_goals = shuffle([...TASKS]);
+      const all_goals = shuffle([...DEEP_SEA_GOALS]);
       let total_difficulty = 0;
       while (
         all_goals.length &&
         total_difficulty !== mission_data.max_difficulty
       ) {
-        let goal = all_goals.pop();
-        if (total_difficulty + goal.difficulty <= mission_data.max_difficulty) {
+        const goal = all_goals.pop();
+        console.log({
+          total_difficulty,
+          max_difficulty: mission_data.max_difficulty,
+          x: goal.difficulty[2],
+          sum: total_difficulty + goal.difficulty[2],
+        });
+        if (
+          total_difficulty + goal.difficulty[2] <=
+          mission_data.max_difficulty
+        ) {
           goals.push({
             ...goal,
             status: Status.NotChosen,
           });
-          total_difficulty += goal.difficulty;
+          total_difficulty += goal.difficulty[2];
         }
       }
     } else {
@@ -282,13 +285,7 @@ export class Communicate extends Phase {
   };
 
   static ended(state: any, game: any): boolean {
-    const names = Object.keys(game.active);
-    const someone_communicating = names.some(
-      (name) =>
-        game.players[name].communication.qualifier ===
-        Communication.Communicating
-    );
-    return game.advance_phase && !someone_communicating;
+    return game.advance_phase;
   }
 
   static onEnd(state: any, game: any): {} {
@@ -319,6 +316,7 @@ export class PlayTrick extends Phase {
   }
 
   static next(state, game) {
+    if (game.tricks.length === game.max_tricks) return EndGame;
     return game.condition === Condition.InProgress ? Communicate : EndGame;
   }
 
@@ -347,13 +345,7 @@ export class PlayTrick extends Phase {
 
     const goals = [...game.goals];
     const mission_data = missions[game.mission.version][game.mission.num];
-    const condition = mission_data.check(
-      winner,
-      goals,
-      leading_trick,
-      tricks,
-      game.max_tricks
-    );
+    const condition = mission_data.check(state, game);
 
     return {
       goals,

@@ -40,15 +40,15 @@ export function CrewPill({ num, suite, blank = false, decorations = {} }) {
   );
 }
 
-export function CrewPillMini({ num, suite, blank = false, decorations = {} }) {
+export function CrewPillMini({ num, suite, decorations = {} }) {
   return (
     <div
       className={classnames({
         "font-display flex justify-center": true,
         "w-5 h-5 rounded-full": true,
-        // "bg-red-100": true,
         [mapSuiteToBackgroundColor[suite]]: !decorations[Decoration.Grayscale],
-        "text-white": true,
+        "text-white": !decorations[Decoration.Invert],
+        "text-black": decorations[Decoration.Invert],
         // "text-gray-600": decorations[Decoration.Grayscale],
       })}
     >
