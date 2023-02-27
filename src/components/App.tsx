@@ -14,7 +14,7 @@ import { AllTasks } from "./AllTasks";
 export function App() {
   const [state, setState] = useState<CrewStateType>({
     player: "",
-    crew: "thethecrewcrew",
+    crew: "",
     view: ViewName.Table,
     toast: { show: false },
   });
