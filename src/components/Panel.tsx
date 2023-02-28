@@ -36,9 +36,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
           );
         })
       : [];
-  if (
-    [PhaseName.ChooseGoals, PhaseName.GoldenBorderAccept].includes(game.phase)
-  ) {
+  if ([PhaseName.ChooseGoals].includes(game.phase)) {
     goals.push(
       <CrewGoalNew
         key="blank"

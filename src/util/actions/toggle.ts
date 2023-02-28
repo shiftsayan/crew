@@ -1,5 +1,3 @@
-import { GoldenBorder } from "../enums";
-import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
 export class Choose extends Move<[number]> {
@@ -7,16 +5,6 @@ export class Choose extends Move<[number]> {
     // Check goal_idx is valid
     if (goal_idx < 0 || goal_idx >= this.game.goals.length) {
       return "Invalid Goal";
-    }
-
-    // Only allow discarding goals in GoldenBorderDiscard phase
-    if (
-      this.game.goals[goal_idx].player === undefined ||
-      this.game.phase === PhaseName.GoldenBorderDiscard
-    ) {
-      return;
-    } else {
-      return "Invalid Toggle";
     }
   }
 
@@ -43,11 +31,6 @@ export class Choose extends Move<[number]> {
             goals: player_goals,
           },
         },
-        // mark GoldenBorder as used if applicable
-        golden_border:
-          this.game.golden_border === GoldenBorder.Using
-            ? GoldenBorder.Used
-            : this.game.golden_border,
       };
     } else {
       const goals = [...this.game.goals];
@@ -64,8 +47,6 @@ export class Choose extends Move<[number]> {
             goals: player_goals,
           },
         },
-        // deselection can only happen in GoldenBorderDiscard phase
-        golden_border: GoldenBorder.Using,
       };
     }
   }
