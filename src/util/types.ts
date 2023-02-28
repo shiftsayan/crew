@@ -37,7 +37,6 @@ export type CrewGameType = {
     player?: string;
     status: Status;
   }[];
-  golden_border?: GoldenBorder;
   max_tricks?: number;
   mission?: {
     version?: number;

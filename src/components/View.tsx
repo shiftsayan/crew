@@ -11,8 +11,6 @@ export const GOAL_VIEW_PHASES = [
   PhaseName.DealCards,
   PhaseName.DealGoals,
   PhaseName.ChooseGoals,
-  PhaseName.GoldenBorderDiscard,
-  PhaseName.GoldenBorderAccept,
 ];
 
 export function View({ state, setState, game, setGame }) {

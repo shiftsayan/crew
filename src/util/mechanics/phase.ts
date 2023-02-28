@@ -19,8 +19,6 @@ export enum PhaseName {
   DealCards = "DealCards",
   ChooseGoals = "ChooseGoals",
   DealGoals = "DealGoals",
-  GoldenBorderDiscard = "GoldenBorderDiscard",
-  GoldenBorderAccept = "GoldenBorderAccept",
   Communicate = "Communicate",
   PlayTrick = "PlayTrick",
   EndGame = "EndGame",
@@ -175,12 +173,6 @@ export class DealGoals extends Phase {
         total_difficulty !== mission_data.max_difficulty
       ) {
         const goal = all_goals.pop();
-        console.log({
-          total_difficulty,
-          max_difficulty: mission_data.max_difficulty,
-          x: goal.difficulty[2],
-          sum: total_difficulty + goal.difficulty[2],
-        });
         if (
           total_difficulty + goal.difficulty[2] <=
           mission_data.max_difficulty
@@ -205,70 +197,24 @@ export class DealGoals extends Phase {
 export class ChooseGoals extends Phase {
   static starter = AgentCommander;
   static agency = {
-    Choose: AgentCurrent,
+    Choose: AgentAll,
     Join: AgentAll,
     Mark: AgentAll,
-  };
-
-  static ended(state, game) {
-    return game.goals.every((goal) => goal.player !== undefined);
-  }
-
-  static next(state, game) {
-    return GoldenBorderDiscard;
-  }
-}
-
-export class GoldenBorderDiscard extends Phase {
-  static starter = AgentAll;
-  static agency = {
-    Choose: AgentAll,
     CTA: AgentCommander,
-    Join: AgentAll,
-    Mark: AgentAll,
   };
 
   static ended(state, game) {
-    return (
-      game.advance_phase ||
-      [GoldenBorder.NotAvailable, GoldenBorder.Using].includes(
-        game.golden_border
-      )
-    );
+    return game.advance_phase;
   }
 
-  static next(state, game) {
-    return GoldenBorderAccept;
-  }
-}
-
-export class GoldenBorderAccept extends Phase {
-  static starter = AgentAll;
-  static agency = {
-    Choose: AgentAll,
-    Join: AgentAll,
-    Mark: AgentAll,
-  };
-
-  static ended(state, game) {
-    return (
-      game.advance_phase ||
-      [
-        GoldenBorder.NotAvailable,
-        GoldenBorder.Skipped,
-        GoldenBorder.Used,
-      ].includes(game.golden_border)
-    );
+  static onEnd(state: any, game: any): {} {
+    return {
+      advance_phase: false,
+    };
   }
 
   static next(state, game) {
     return Communicate;
-  }
-
-  static onEnd(state, game) {
-    return {
-      advance_phase: false,
-    };
   }
 }
 
@@ -403,8 +349,6 @@ export const mapPhaseNameToPhase: Record<PhaseName, typeof Phase> = {
   [PhaseName.DealCards]: DealCards,
   [PhaseName.DealGoals]: DealGoals,
   [PhaseName.ChooseGoals]: ChooseGoals,
-  [PhaseName.GoldenBorderDiscard]: GoldenBorderDiscard,
-  [PhaseName.GoldenBorderAccept]: GoldenBorderAccept,
   [PhaseName.Communicate]: Communicate,
   [PhaseName.PlayTrick]: PlayTrick,
   [PhaseName.EndGame]: EndGame,

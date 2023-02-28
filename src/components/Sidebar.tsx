@@ -127,38 +127,19 @@ function Button({ state, setState, game, setGame }) {
   let button_data;
   switch (game.phase) {
     case PhaseName.ChooseGoals:
-      if (is_current) {
+      if (is_commander) {
+        button_data = {
+          text: "START GAME",
+          active: true,
+          onClick: () => new CTA(state, setState, game, setGame).run(),
+        };
+      } else {
         button_data = {
           text: "CHOOSE GOAL",
           active: true,
           disabled: true,
         };
       }
-      break;
-
-    case PhaseName.GoldenBorderDiscard:
-      if (is_commander) {
-        button_data = {
-          text: "SKIP GOLDEN BORDER",
-          onClick: () => new CTA(state, setState, game, setGame).run(),
-        };
-      } else {
-        // if state.player has goals then they can discard
-        if (game.players[state.player]?.goals?.length > 0) {
-          button_data = {
-            text: "DISCARD GOAL",
-            disabled: true,
-          };
-        }
-      }
-      break;
-
-    case PhaseName.GoldenBorderAccept:
-      button_data = {
-        text: "ACCEPT GOAL",
-        disabled: true,
-        onClick: () => new CTA(state, setState, game, setGame).run(),
-      };
       break;
 
     case PhaseName.Communicate:
