@@ -9,7 +9,6 @@ import { Layout } from "./Layout";
 import { ViewName } from "../util/enums";
 import { database } from "../services/firebase";
 import { CrewGameType, CrewStateType } from "../util/types";
-import { AllTasks } from "./AllTasks";
 
 export function App() {
   const [state, setState] = useState<CrewStateType>({

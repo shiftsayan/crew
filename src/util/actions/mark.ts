@@ -3,12 +3,12 @@ import { missions } from "../game/missions";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
-export class Mark extends Move {
-  async validateParams(goal_idx) {
-    return true;
+export class Mark extends Move<[number]> {
+  async validateParams(goal_idx: number): Promise<string | void> {
+    return;
   }
 
-  updateGame(goal_idx) {
+  updateGame(goal_idx: number) {
     const goals = [...this.game.goals];
     const goal = goals[goal_idx];
     const status = goal.status;

@@ -1,5 +1,7 @@
-abstract class AgentBase {
-  static check(player, game) {}
+export abstract class AgentBase {
+  static check(player, game): boolean {
+    return false;
+  }
 
   static get(game) {
     return game.current;

@@ -3,8 +3,8 @@ import { SUIT_TRUMP } from "../game";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
-export class Play extends Move {
-  async validateParams(card_idx: number) {
+export class Play extends Move<[number]> {
+  async validateParams(card_idx: number): Promise<string | void> {
     // invalid card index
     const xCardIdx =
       card_idx < 0 ||
@@ -32,7 +32,11 @@ export class Play extends Move {
       (this.game.players[this.state.player].communication.card ||
         card.suite === SUIT_TRUMP);
 
-    return !xCardIdx && !xPlay && !xSuite && !xCommunication;
+    if (!xCardIdx && !xPlay && !xSuite && !xCommunication) {
+      return;
+    } else {
+      return "Invalid card";
+    }
   }
 
   updateGame(card_idx: number) {

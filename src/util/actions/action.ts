@@ -1,34 +1,47 @@
-export abstract class Action {
-  state;
-  setState;
+import { ToastStyle } from "../enums";
+import { CrewStateType } from "../types";
 
-  constructor(state, setState) {
+export abstract class Action<T extends any[]> {
+  constructor(
+    public state: CrewStateType,
+    public setState: React.Dispatch<React.SetStateAction<CrewStateType>>
+  ) {
     this.state = state;
     this.setState = setState;
   }
 
-  async validateParams(...params) {
-    return true;
+  async validateParams(...params): Promise<string | void> {
+    return;
   }
 
-  commitState(updates) {
+  commitState(updates): void {
     return this.setState({
       ...this.state,
       ...updates,
     });
   }
 
-  updateState(...params) {
-    return this.state;
+  updateState(...params: T): Partial<CrewStateType> {
+    return {};
   }
 
-  async postRun(...params) {}
+  async postRun(...params: T): Promise<void> {}
 
-  async run(...params) {
-    if (!(await this.validateParams(...params))) {
+  async run(...params: T): Promise<void> {
+    const paramsError = await this.validateParams(...params);
+    if (paramsError) {
+      this.commitState({
+        toast: {
+          show: true,
+          style: ToastStyle.Error,
+          message: paramsError,
+        },
+      });
       return;
     }
-    this.commitState(this.updateState(...params));
+
+    const stateUpdates = this.updateState(...params);
+    this.commitState(stateUpdates);
     this.postRun(...params);
   }
 }

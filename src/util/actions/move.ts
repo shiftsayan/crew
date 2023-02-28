@@ -4,46 +4,36 @@ import { database } from "../../services/firebase";
 import { Action } from "./action";
 import { mergeUpdates } from "../random";
 import { mapPhaseNameToPhase } from "../mechanics/phase";
+import { ToastStyle } from "../enums";
+import { CrewGameType, CrewStateType } from "../types";
 
-export abstract class Move extends Action {
-  game;
-  setGame;
-
-  constructor(state, setState, game, setGame) {
+export abstract class Move<T extends any[]> extends Action<T> {
+  constructor(
+    public state: CrewStateType,
+    public setState: React.Dispatch<React.SetStateAction<CrewStateType>>,
+    public game: CrewGameType,
+    public setGame: React.Dispatch<React.SetStateAction<CrewGameType>>
+  ) {
     super(state, setState);
     this.game = game;
     this.setGame = setGame;
   }
 
-  async validateAgency(...params) {
+  async validateAgency(...params: T): Promise<string | void> {
     const phase = mapPhaseNameToPhase[this.game.phase];
+    console.log(phase);
     const agent = phase.agency[this.constructor.name];
-    return agent && agent.check(this.state.player, this.game);
+    console.log(agent);
+    if (!agent || !agent.check(this.state.player, this.game)) {
+      return "Invalid Move";
+    }
   }
 
-  commitGame(updates) {
-    // Make changes to this.game
-    mergeUpdates(this.game, updates);
-    // Make changes to Firebase
-    const firebase_updates = toFirebaseNotation(updates, [
-      `crews/${this.state.crew}`,
-    ]);
-    return update(ref(database), firebase_updates);
-  }
-
-  commitPhase(updates) {
-    // Make changes to Firebase
-    const firebase_updates = toFirebaseNotation(updates, [
-      `crews/${this.state.crew}`,
-    ]);
-    return update(ref(database), firebase_updates);
-  }
-
-  updateGame(...params) {
+  updateGame(...params: T): Partial<CrewGameType> {
     return {};
   }
 
-  updatePhase(...params) {
+  updatePhase(...params: T): Partial<CrewGameType> {
     let phase = mapPhaseNameToPhase[this.game.phase];
 
     const updates: any = {
@@ -68,21 +58,55 @@ export abstract class Move extends Action {
     return updates;
   }
 
-  async run(...params) {
-    if (
-      !(await this.validateAgency(...params)) ||
-      !(await this.validateParams(...params))
-    ) {
-      console.log("invalid move");
+  commitGame(updates: Partial<CrewGameType>): Promise<void> {
+    // Make changes to this.game
+    mergeUpdates(this.game, updates);
+    // Make changes to Firebase
+    const firebase_updates = toFirebaseNotation(updates, [
+      `crews/${this.state.crew}`,
+    ]);
+    return update(ref(database), firebase_updates);
+  }
+
+  commitPhase(updates: Partial<CrewGameType>): Promise<void> {
+    // Make changes to Firebase
+    const firebase_updates = toFirebaseNotation(updates, [
+      `crews/${this.state.crew}`,
+    ]);
+    return update(ref(database), firebase_updates);
+  }
+
+  async run(...params: T) {
+    const agencyError = await this.validateAgency(...params);
+    if (agencyError) {
+      this.commitState({
+        toast: {
+          show: true,
+          style: ToastStyle.Error,
+          message: agencyError,
+        },
+      });
       return;
     }
 
-    const state_updates = this.updateState(...params);
-    this.commitState(state_updates);
-    const game_updates = await this.updateGame(...params);
-    this.commitGame(game_updates);
-    const phase_updates = this.updatePhase(...params);
-    this.commitPhase(phase_updates);
+    const paramsError = await this.validateParams(...params);
+    if (paramsError) {
+      this.commitState({
+        toast: {
+          show: true,
+          style: ToastStyle.Error,
+          message: paramsError,
+        },
+      });
+      return;
+    }
+
+    const stateUpdates = this.updateState(...params);
+    this.commitState(stateUpdates);
+    const gameUpdates = await this.updateGame(...params);
+    this.commitGame(gameUpdates);
+    const phaseUpdates = this.updatePhase(...params);
+    this.commitPhase(phaseUpdates);
 
     this.postRun(...params);
   }

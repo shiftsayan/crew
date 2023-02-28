@@ -3,8 +3,8 @@ import { AgentAll, AgentCommander, AgentWinner } from "../mechanics/agent";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
-export class CTA extends Move {
-  async validateParams() {
+export class CTA extends Move<[]> {
+  async validateParams(): Promise<string | void> {
     // GoldenBorderDiscard
     const goldenBorderDiscard =
       this.game.phase === PhaseName.GoldenBorderDiscard &&
@@ -27,7 +27,11 @@ export class CTA extends Move {
       this.game.phase === PhaseName.EndGame &&
       AgentAll.check(this.state.player, this.game);
 
-    return goldenBorderDiscard || communicate || endGame;
+    if (goldenBorderDiscard || communicate || endGame) {
+      return;
+    } else {
+      return "Invalid CTA";
+    }
   }
 
   updateGame() {

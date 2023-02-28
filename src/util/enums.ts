@@ -15,7 +15,6 @@ export enum Decoration {
   Grayscale,
   Display,
   Shrink,
-  Invert,
 }
 
 export enum Communication {
@@ -48,17 +47,6 @@ export enum Agent {
   Next,
   Commander,
   Winner,
-}
-
-export enum Move {
-  None,
-  StartGame,
-  ToggleGoal,
-  SkipGoldenBorder,
-  CommunicateCard,
-  CommunicateValue,
-  PlayCard,
-  StartTrick,
 }
 
 export enum ViewName {

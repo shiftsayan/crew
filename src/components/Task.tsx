@@ -11,17 +11,30 @@ export function TaskText({ text }) {
   );
 }
 
-export function TaskHeader({ num, suite, header }) {
+export function TaskHeader({ header, card_or_text_list }) {
   return (
     <div className="h-full w-full py-1 flex flex-col justify-start">
       <div className="mx-auto text-xxs flex-none">{header}</div>
       <div className="grow flex justify-center">
-        <div className="my-auto">
-          <CrewPillMini
-            num={num}
-            suite={suite}
-            decorations={{ [Decoration.Invert]: suite === undefined }}
-          />
+        <div className="my-auto flex flex-wrap justify-center gap-x-1">
+          {card_or_text_list.map((card_or_text) => {
+            if (card_or_text.text) {
+              return (
+                <div className="text-xxs my-auto -mx-0.5">
+                  {card_or_text.text}
+                </div>
+              );
+            }
+            return (
+              <CrewPillMini
+                num={card_or_text.num}
+                suite={card_or_text.suite}
+                decorations={{
+                  [Decoration.Grayscale]: card_or_text.suite === undefined,
+                }}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -63,9 +76,7 @@ export function Task({ type, data }) {
   if (type === "text") {
     return <TaskText text={data.text} />;
   } else if (type === "header") {
-    return (
-      <TaskHeader num={data.num} suite={data.suite} header={data.header} />
-    );
+    return <TaskHeader card_or_text_list={data.cards} header={data.header} />;
   } else if (type === "cards") {
     return <TaskUpTo4Cards cards={data.cards} />;
   }

@@ -75,11 +75,6 @@ export const mapPlayersToGridsClass = {
   5: "grid-cols-5",
 };
 
-export const mapPlayersToViewSpacing = {
-  4: 2,
-  5: 4,
-};
-
 export const mapMissionVersionToEmoji = {
   planet_x: "🌕",
   deep_sea: "🌊",

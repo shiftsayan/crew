@@ -8,28 +8,27 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN USING",
-      num: 5,
+      cards: [{ num: 5 }],
     },
   },
   {
     id: 2,
     mission: "I will win exactly one Green and one Pink card",
     difficulty: [4, 4, 4],
-    type: "cards",
+    type: "header",
     data: {
-      cards: [
-        { num: "1ˣ", suite: Suite.Green },
-        { num: "1ˣ", suite: Suite.Red },
-      ],
+      header: "WIN =1x",
+      cards: [{ suite: Suite.Green }, { suite: Suite.Red }],
     },
   },
   {
     id: 3,
     mission: "I will win more Pink than Green cards",
     difficulty: [1, 1, 1],
-    type: "text",
+    type: "header",
     data: {
-      text: "Win more #Red than #Green",
+      header: "WIN MORE",
+      cards: [{ suite: Suite.Red }, { text: ">" }, { suite: Suite.Green }],
     },
   },
   {
@@ -48,7 +47,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN USING",
-      num: 2,
+      cards: [{ num: 2 }],
     },
   },
   {
@@ -58,7 +57,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =0x",
-      num: 5,
+      cards: [{ num: 5 }],
     },
   },
   {
@@ -68,7 +67,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN >2x",
-      num: 7,
+      cards: [{ num: 7 }],
     },
   },
   {
@@ -164,7 +163,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =3x",
-      num: 6,
+      cards: [{ num: 6 }],
     },
   },
   {
@@ -256,7 +255,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =1x",
-      suite: Suite.Red,
+      cards: [{ suite: Suite.Red }],
     },
   },
   {
@@ -278,7 +277,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN USING",
-      num: 6,
+      cards: [{ num: 6 }],
     },
   },
   {
@@ -306,7 +305,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN USING",
-      num: 3,
+      cards: [{ num: 3 }],
     },
   },
   {
@@ -363,7 +362,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =0x",
-      suite: Suite.Red,
+      cards: [{ suite: Suite.Red }],
     },
   },
   {
@@ -375,7 +374,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =3x",
-      suite: Suite.Black,
+      cards: [{ suite: Suite.Black }],
     },
   },
   {
@@ -441,25 +440,31 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN >2x",
-      num: 9,
+      cards: [{ num: 9 }],
     },
   },
   {
     id: 44,
     mission: "I will win the Pink 7 with a submarine",
     difficulty: [3, 3, 3],
-    type: "text",
+    type: "header",
     data: {
-      text: "Win Red 7 with Trump",
+      header: "WIN",
+      cards: [
+        { num: 7, suite: Suite.Red },
+        { text: "w" },
+        { suite: Suite.Black },
+      ],
     },
   },
   {
     id: 45,
     mission: "I will win no Pink or Blue cards",
     difficulty: [3, 3, 3],
-    type: "text",
+    type: "header",
     data: {
-      text: "Not win any Red or Blue cards",
+      header: "WIN =0x",
+      cards: [{ suite: Suite.Red }, { suite: Suite.Blue }],
     },
   },
   {
@@ -478,7 +483,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN >2x",
-      num: 5,
+      cards: [{ num: 5 }],
     },
   },
   {
@@ -488,7 +493,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =0x",
-      num: 1,
+      cards: [{ num: 1 }],
     },
   },
   {
@@ -537,9 +542,14 @@ export const DEEP_SEA_GOALS = [
     id: 53,
     mission: "I will win the Green 9 with a submarine",
     difficulty: [3, 3, 3],
-    type: "text",
+    type: "header",
     data: {
-      text: "Win Green 9 with Trump",
+      header: "WIN",
+      cards: [
+        { num: 9, suite: Suite.Green },
+        { text: "w" },
+        { suite: Suite.Black },
+      ],
     },
   },
   {
@@ -559,7 +569,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =2x",
-      suite: Suite.Blue,
+      cards: [{ suite: Suite.Blue }],
     },
   },
   {
@@ -615,7 +625,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =2x",
-      suite: Suite.Green,
+      cards: [{ suite: Suite.Green }],
     },
   },
   {
@@ -638,7 +648,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =2x",
-      suite: Suite.Black,
+      cards: [{ suite: Suite.Black }],
     },
   },
   {
@@ -646,18 +656,20 @@ export const DEEP_SEA_GOALS = [
     mission: "I will win more Yellow than Blue cards",
     difficulty: [1, 1, 1],
     footnote: "0 Blue cards is allowed",
-    type: "text",
+    type: "header",
     data: {
-      text: "Win more #Yellow than #Blue",
+      header: "WIN MORE",
+      cards: [{ suite: Suite.Yellow }, { text: ">" }, { suite: Suite.Blue }],
     },
   },
   {
     id: 65,
     mission: "I will win a 6 with another 6",
     difficulty: [2, 3, 4],
-    type: "text",
+    type: "header",
     data: {
-      text: "Win a 6 with another 6",
+      header: "WIN",
+      cards: [{ num: 6 }, { text: "w" }, { num: 6 }],
     },
   },
   {
@@ -686,16 +698,17 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN >6x",
-      suite: Suite.Yellow,
+      cards: [{ suite: Suite.Yellow }],
     },
   },
   {
     id: 69,
     mission: "I will win an 8 with a 4",
     difficulty: [3, 4, 5],
-    type: "text",
+    type: "header",
     data: {
-      text: "Win an 8 with a 4",
+      header: "WIN",
+      cards: [{ num: 8 }, { text: "w" }, { num: 4 }],
     },
   },
   {
@@ -711,9 +724,10 @@ export const DEEP_SEA_GOALS = [
     id: 71,
     mission: "I will win no 8s or 9s",
     difficulty: [3, 3, 2],
-    type: "text",
+    type: "header",
     data: {
-      text: "Not win any 8 or 9",
+      header: "WIN =0x",
+      cards: [{ num: 8 }, { num: 9 }],
     },
   },
   {
@@ -732,7 +746,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =0x",
-      suite: Suite.Green,
+      cards: [{ suite: Suite.Green }],
     },
   },
   {
@@ -763,7 +777,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN >4x",
-      suite: Suite.Red,
+      cards: [{ suite: Suite.Red }],
     },
   },
   {
@@ -779,9 +793,10 @@ export const DEEP_SEA_GOALS = [
     id: 78,
     mission: "I will win a 5 with a 7",
     difficulty: [1, 2, 2],
-    type: "text",
+    type: "header",
     data: {
-      text: "Win a 5 with a 7",
+      header: "WIN",
+      cards: [{ num: 5 }, { text: "w" }, { num: 7 }],
     },
   },
   {
@@ -801,7 +816,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =0x",
-      suite: Suite.Yellow,
+      cards: [{ suite: Suite.Yellow }],
     },
   },
   {
@@ -830,7 +845,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =0x",
-      num: 9,
+      cards: [{ num: 9 }],
     },
   },
   {
@@ -849,7 +864,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =2x",
-      num: 9,
+      cards: [{ num: 9 }],
     },
   },
   {
@@ -882,7 +897,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =1x",
-      suite: Suite.Black,
+      cards: [{ suite: Suite.Black }],
     },
   },
   {
@@ -901,7 +916,7 @@ export const DEEP_SEA_GOALS = [
     type: "header",
     data: {
       header: "WIN =0x",
-      suite: Suite.Black,
+      cards: [{ suite: Suite.Black }],
     },
   },
   {

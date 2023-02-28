@@ -1,5 +1,3 @@
-// import { Play } from "../actions/play";
-
 import { Communication, Condition, GoldenBorder, Status } from "../enums";
 import { CARDS, SUIT_TRUMP } from "../game";
 import { missions } from "../game/missions";
@@ -8,6 +6,7 @@ import { shuffle } from "../random";
 import {
   AgentAll,
   AgentAuto,
+  AgentBase,
   AgentCommander,
   AgentCurrent,
   AgentNone,
@@ -16,8 +15,6 @@ import {
 import { sortHand } from "./util";
 
 export enum PhaseName {
-  None = "",
-  Lobby = "Lobby",
   Preflight = "Preflight",
   DealCards = "DealCards",
   ChooseGoals = "ChooseGoals",
@@ -31,13 +28,15 @@ export enum PhaseName {
 
 export abstract class Phase {
   static starter;
-  static agency;
+  static agency: { [phase: string]: typeof AgentBase };
 
   static ended(state, game) {
     return false;
   }
 
-  static next(state, game) {}
+  static next(state, game): typeof Phase {
+    return Phase;
+  }
 
   static onStart(state, game) {
     return {};
@@ -206,7 +205,7 @@ export class DealGoals extends Phase {
 export class ChooseGoals extends Phase {
   static starter = AgentCommander;
   static agency = {
-    Toggle: AgentCurrent,
+    Choose: AgentCurrent,
     Join: AgentAll,
     Mark: AgentAll,
   };
@@ -223,7 +222,7 @@ export class ChooseGoals extends Phase {
 export class GoldenBorderDiscard extends Phase {
   static starter = AgentAll;
   static agency = {
-    Toggle: AgentAll,
+    Choose: AgentAll,
     CTA: AgentCommander,
     Join: AgentAll,
     Mark: AgentAll,
@@ -246,7 +245,7 @@ export class GoldenBorderDiscard extends Phase {
 export class GoldenBorderAccept extends Phase {
   static starter = AgentAll;
   static agency = {
-    Toggle: AgentAll,
+    Choose: AgentAll,
     Join: AgentAll,
     Mark: AgentAll,
   };
@@ -399,7 +398,7 @@ export class EndGame extends Phase {
   }
 }
 
-export const mapPhaseNameToPhase = {
+export const mapPhaseNameToPhase: Record<PhaseName, typeof Phase> = {
   [PhaseName.Preflight]: Preflight,
   [PhaseName.DealCards]: DealCards,
   [PhaseName.DealGoals]: DealGoals,

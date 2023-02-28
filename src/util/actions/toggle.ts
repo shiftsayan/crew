@@ -2,13 +2,22 @@ import { GoldenBorder } from "../enums";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
-export class Toggle extends Move {
-  async validateParams(goal_idx) {
+export class Choose extends Move<[number]> {
+  async validateParams(goal_idx: number) {
+    // Check goal_idx is valid
+    if (goal_idx < 0 || goal_idx >= this.game.goals.length) {
+      return "Invalid Goal";
+    }
+
     // Only allow discarding goals in GoldenBorderDiscard phase
-    return (
+    if (
       this.game.goals[goal_idx].player === undefined ||
       this.game.phase === PhaseName.GoldenBorderDiscard
-    );
+    ) {
+      return;
+    } else {
+      return "Invalid Toggle";
+    }
   }
 
   updateGame(goal_idx) {

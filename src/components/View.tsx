@@ -1,14 +1,12 @@
 import { CrewPill as Pill } from "./Pill";
 import { CrewGoalNew, CrewGoal } from "./Goal";
 
-import { mapMissionVersionToEmoji } from "../util/maps";
 import { Decoration, Order, ViewName } from "../util/enums";
 import { SUITES, SUIT_TRUMP } from "../util/game";
 import { PhaseName } from "../util/mechanics/phase";
-import { Toggle } from "../util/actions/toggle";
+import { Choose } from "../util/actions/toggle";
 
 export const GOAL_VIEW_PHASES = [
-  PhaseName.Lobby,
   PhaseName.Preflight,
   PhaseName.DealCards,
   PhaseName.DealGoals,
@@ -161,9 +159,9 @@ function GoalView({ state, setState, game, setGame }) {
   for (let i = 0; i < goals.length; i++) {
     row.push(
       <div
-        className="cursor-grab"
+        className="cursor-pointer"
         key={i}
-        onClick={() => new Toggle(state, setState, game, setGame).run(i)}
+        onClick={() => new Choose(state, setState, game, setGame).run(i)}
       >
         <CrewGoalNew
           key={i}

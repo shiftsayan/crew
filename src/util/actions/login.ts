@@ -6,24 +6,18 @@ import { Action } from "./action";
 
 const MS_IN_DAY = 60 * 60 * 24 * 1000;
 
-export class Login extends Action {
-  async validateParams(username) {
+export class Login extends Action<[string]> {
+  async validateParams(username: string): Promise<string | void> {
     const all_crews = (await get(child(ref(database), "crews"))).val();
     const auth = username && username in all_crews;
-    if (!auth) {
-      this.setState({
-        ...this.state,
-        toast: {
-          show: true,
-          style: "error",
-          message: "Invalid Username",
-        },
-      });
+    if (auth) {
+      return;
+    } else {
+      return "Invalid Username";
     }
-    return auth;
   }
 
-  updateState(username) {
+  updateState(username: string) {
     return {
       ...this.state,
       crew: username,
@@ -35,7 +29,7 @@ export class Login extends Action {
     };
   }
 
-  async postRun(username) {
+  async postRun(username: string) {
     // update seating
     const game = (await get(child(ref(database), `crews/${username}`))).val();
     const now = Date.now();

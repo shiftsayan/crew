@@ -1,11 +1,15 @@
 import { Move } from "./move";
 
-export class Join extends Move {
-  async validateParams(player) {
-    return (
+export class Join extends Move<[string]> {
+  async validateParams(player): Promise<string | void> {
+    if (
       !this.state.player && // player is not set
       !this.game.active[player] // player is not taken
-    );
+    ) {
+      return;
+    } else {
+      return "Invalid Join";
+    }
   }
 
   updateState(player) {

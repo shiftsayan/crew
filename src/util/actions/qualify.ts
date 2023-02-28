@@ -1,20 +1,21 @@
 import { Communication } from "../enums";
 import { Move } from "./move";
 
-export class Qualify extends Move {
-  async validateParams(qualifer: Communication, player: string) {
+export class Qualify extends Move<[Communication, string]> {
+  async validateParams(
+    qualifer: Communication,
+    player: string
+  ): Promise<string | void> {
     // TODO(Sayan): Add correctness check
-    console.log({
-      1: this.game.players[this.state.player].communication.qualifier,
-      2:
-        this.game.players[this.state.player].communication.qualifier ===
-        Communication.Communicating,
-    });
-    return (
-      player === this.state.player &&
+    if (
       this.game.players[this.state.player].communication.qualifier ===
-        Communication.Communicating
-    );
+        Communication.Communicating &&
+      player === this.state.player
+    ) {
+      return;
+    } else {
+      return "Invalid Qualify";
+    }
   }
 
   updateGame(qualifier: Communication, player: string) {
