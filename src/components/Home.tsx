@@ -13,9 +13,9 @@ export function Home({ state, setState }: HomeProps) {
   const [crewName, setCrewName] = useState("");
 
   return (
-    <div className="flex justify-center">
-      <div className="bg-gray-100 rounded-2xl p-12">
-        <form className="w-72 mx-auto flex flex-col space-y-4">
+    <div className="flex justify-center flex-col space-y-6">
+      <div className="w-96 bg-gray-100 rounded-2xl p-12 mx-auto">
+        <form className="flex flex-col space-y-4">
           <TextField
             label="Crew Name"
             value={crewName}
@@ -34,6 +34,18 @@ export function Home({ state, setState }: HomeProps) {
             </Button>
           </div>
         </form>
+      </div>
+      <div className="bg-gray-100 mx-auto px-4 py-2 rounded-full">
+        <span>
+          Fill{" "}
+          <a
+            href="https://forms.gle/pbkcejdFaiUE8W9S9"
+            className="text-indigo-700 hover:underline transition duration-200 after:content-['_↗']"
+          >
+            this form
+          </a>{" "}
+          to play with your friends!
+        </span>
       </div>
     </div>
   );
