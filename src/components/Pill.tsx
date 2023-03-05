@@ -46,13 +46,14 @@ export function CrewPillMini({ num, suite, decorations = {} }) {
       className={classnames({
         "font-display flex justify-center": true,
         "w-5 h-5 rounded-full": true,
-        [mapSuiteToBackgroundColor[suite]]: !decorations[Decoration.Grayscale],
-        "bg-gray-200": decorations[Decoration.Grayscale],
-        "text-white": !decorations[Decoration.Grayscale],
-        "text-black": decorations[Decoration.Grayscale],
-        // "text-gray-600": decorations[Decoration.Grayscale],
+        [mapSuiteToBackgroundColor[suite]]: !decorations[Decoration.Rainbow],
+        "bg-[url('/public/rainbow.png')] bg-cover":
+          decorations[Decoration.Rainbow],
+        "text-white": true,
+        "text-black": decorations[Decoration.Rainbow],
       })}
     >
+      <div></div>
       <div className="m-auto -my-0.5">{num}</div>
     </div>
   );

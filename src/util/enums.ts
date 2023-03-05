@@ -13,6 +13,7 @@ export enum Decoration {
   Pending,
   Desaturate,
   Grayscale,
+  Rainbow,
   Display,
   Shrink,
 }
