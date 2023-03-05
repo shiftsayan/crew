@@ -30,7 +30,7 @@ export function TaskHeader({ header, card_or_text_list }) {
                 num={card_or_text.num}
                 suite={card_or_text.suite}
                 decorations={{
-                  [Decoration.Grayscale]: card_or_text.suite === undefined,
+                  [Decoration.Rainbow]: card_or_text.suite === undefined,
                 }}
               />
             );
