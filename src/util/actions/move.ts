@@ -52,7 +52,8 @@ export abstract class Move<T extends any[]> extends Action<T> {
       mergeUpdates(updates, end_updates);
       mergeUpdates(this.game, end_updates);
       // get next phase
-      phase = phase.next(this.state, this.game);
+      const newPhaseName = phase.next(this.state, this.game);
+      phase = mapPhaseNameToPhase[newPhaseName];
       updates.phase = phase.name;
       updates.current = phase.starter.get(this.game);
       // start next phase

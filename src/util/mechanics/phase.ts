@@ -32,8 +32,8 @@ export abstract class Phase {
     return false;
   }
 
-  static next(state, game): typeof Phase {
-    return Phase;
+  static next(state, game): PhaseName {
+    return null;
   }
 
   static onStart(state, game) {
@@ -57,8 +57,8 @@ export class Preflight extends Phase {
     return names.reduce((res, key) => res && game.active[key], true);
   }
 
-  static next(state, game) {
-    return DealCards;
+  static next(state, game): PhaseName {
+    return PhaseName.DealCards;
   }
 
   static onEnd(state, game) {
@@ -100,8 +100,8 @@ export class DealCards extends Phase {
     return true;
   }
 
-  static next(state, game) {
-    return DealGoals;
+  static next(state, game): PhaseName {
+    return PhaseName.DealGoals;
   }
 
   static onStart(state, game) {
@@ -140,8 +140,8 @@ export class DealGoals extends Phase {
     return true;
   }
 
-  static next(state, game) {
-    return ChooseGoals;
+  static next(state, game): PhaseName {
+    return PhaseName.ChooseGoals;
   }
 
   static onStart(state, game) {
@@ -213,8 +213,8 @@ export class ChooseGoals extends Phase {
     };
   }
 
-  static next(state, game) {
-    return Communicate;
+  static next(state, game): PhaseName {
+    return PhaseName.Communicate;
   }
 }
 
@@ -239,8 +239,8 @@ export class Communicate extends Phase {
     };
   }
 
-  static next(state, game) {
-    return PlayTrick;
+  static next(state, game): PhaseName {
+    return PhaseName.PlayTrick;
   }
 }
 
@@ -260,9 +260,11 @@ export class PlayTrick extends Phase {
     );
   }
 
-  static next(state, game) {
-    if (game.tricks.length === game.max_tricks) return EndGame;
-    return game.condition === Condition.InProgress ? Communicate : EndGame;
+  static next(state, game): PhaseName {
+    if (game.tricks.length === game.max_tricks) return PhaseName.EndGame;
+    return game.condition === Condition.InProgress
+      ? PhaseName.Communicate
+      : PhaseName.EndGame;
   }
 
   static onEnd(state: any, game: any): {} {
@@ -339,8 +341,8 @@ export class EndGame extends Phase {
     }
   }
 
-  static next(state, game) {
-    return Preflight;
+  static next(state, game): PhaseName {
+    return PhaseName.Preflight;
   }
 }
 
