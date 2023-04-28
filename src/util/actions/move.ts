@@ -54,7 +54,7 @@ export abstract class Move<T extends any[]> extends Action<T> {
       // get next phase
       const newPhaseName = phase.next(this.state, this.game);
       phase = mapPhaseNameToPhase[newPhaseName];
-      updates.phase = phase.name;
+      updates.phase = newPhaseName;
       updates.current = phase.starter.get(this.game);
       // start next phase
       const start_updates = phase.onStart(this.state, this.game);
