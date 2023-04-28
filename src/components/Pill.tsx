@@ -3,7 +3,7 @@ import { FiMoreHorizontal } from "react-icons/fi";
 
 import { CrewLabelIcon, CrewLabelText } from "./Labels";
 
-import { mapSuiteToBackgroundColor, mapSuiteToTextColor } from "../util/maps";
+import { mapSuiteToBackgroundColor } from "../util/maps";
 import { Decoration } from "../util/enums";
 
 export function CrewPill({ num, suite, blank = false, decorations = {} }) {
