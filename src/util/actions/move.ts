@@ -21,11 +21,12 @@ export abstract class Move<T extends any[]> extends Action<T> {
   }
 
   async validateAgency(...params: T): Promise<string | void> {
+    console.log(this.game.phase);
     const phase = mapPhaseNameToPhase[this.game.phase];
     const agent = phase.agency[this.name];
     console.log({
       constructor: this.constructor.name,
-      move: this.constructor.name,
+      move: this.name,
       phase,
       agent,
     });
