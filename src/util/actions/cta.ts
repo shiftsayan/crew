@@ -4,6 +4,7 @@ import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
 export class CTA extends Move<[]> {
+  name = "CTA";
   async validateParams(): Promise<string | void> {
     // ChooseGoals
     if (this.game.phase === PhaseName.ChooseGoals) {

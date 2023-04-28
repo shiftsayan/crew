@@ -1,6 +1,7 @@
 import { Move } from "./move";
 
 export class Choose extends Move<[number]> {
+  name = "Choose";
   async validateParams(goal_idx: number) {
     // Check goal_idx is valid
     if (goal_idx < 0 || goal_idx >= this.game.goals.length) {

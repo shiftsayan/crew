@@ -7,6 +7,8 @@ import { database } from "../services/firebase";
 export function Reset() {
   const [crewName] = useState("thethecrewcrew");
 
+  console.log(process.env.NODE_ENV);
+
   useEffect(() => {
     if (crewName) {
       update(ref(database), {

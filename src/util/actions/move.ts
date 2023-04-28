@@ -8,6 +8,7 @@ import { ToastStyle } from "../enums";
 import { CrewGameType, CrewStateType } from "../types";
 
 export abstract class Move<T extends any[]> extends Action<T> {
+  name = "Move";
   constructor(
     public state: CrewStateType,
     public setState: React.Dispatch<React.SetStateAction<CrewStateType>>,
@@ -21,8 +22,10 @@ export abstract class Move<T extends any[]> extends Action<T> {
 
   async validateAgency(...params: T): Promise<string | void> {
     const phase = mapPhaseNameToPhase[this.game.phase];
-    const agent = phase.agency[this.constructor.name];
+    const agent = phase.agency[this.name];
     console.log({
+      constructor: this.constructor.name,
+      move: this.constructor.name,
       phase,
       agent,
     });
@@ -39,7 +42,7 @@ export abstract class Move<T extends any[]> extends Action<T> {
     let phase = mapPhaseNameToPhase[this.game.phase];
 
     const updates: any = {
-      current: phase.agency[this.constructor.name].next(this.game),
+      current: phase.agency[this.name].next(this.game),
     };
 
     while (phase.ended(this.state, this.game)) {

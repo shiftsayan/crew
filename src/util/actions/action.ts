@@ -2,6 +2,7 @@ import { ToastStyle } from "../enums";
 import { CrewStateType } from "../types";
 
 export abstract class Action<T extends any[]> {
+  name = "Action";
   constructor(
     public state: CrewStateType,
     public setState: React.Dispatch<React.SetStateAction<CrewStateType>>

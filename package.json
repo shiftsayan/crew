@@ -35,9 +35,6 @@
       "react-app/jest"
     ]
   },
-  "optimization": {
-    "minimize": false
-  },
   "browserslist": {
     "production": [
       ">0.2%",
