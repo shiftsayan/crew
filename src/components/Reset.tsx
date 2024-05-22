@@ -12,6 +12,11 @@ export function Reset() {
     async function resetCrew(crewName: string) {
       if (crewName) {
         await update(ref(database), {
+          [`crews/${crewName}/mission`]: {
+            num: 1,
+            attempt: 1,
+            version: "deep_sea",
+          },
           [`crews/${crewName}/phase`]: "Preflight",
           [`crews/${crewName}/players`]: {},
           [`crews/${crewName}/goals`]: [],

@@ -1,11 +1,11 @@
 import { ref, update } from "@firebase/database";
 
 import { database } from "../../services/firebase";
-import { Action } from "./action";
-import { mergeUpdates } from "../random";
-import { mapPhaseNameToPhase } from "../mechanics/phase";
 import { ToastStyle } from "../enums";
+import { mapPhaseNameToPhase } from "../mechanics/phase";
+import { mergeUpdates } from "../random";
 import { CrewGameType, CrewStateType } from "../types";
+import { Action } from "./action";
 
 export abstract class Move<T extends any[]> extends Action<T> {
   name = "Move";
@@ -21,15 +21,8 @@ export abstract class Move<T extends any[]> extends Action<T> {
   }
 
   async validateAgency(...params: T): Promise<string | void> {
-    console.log(this.game.phase);
     const phase = mapPhaseNameToPhase[this.game.phase];
     const agent = phase.agency[this.name];
-    console.log({
-      constructor: this.constructor.name,
-      move: this.name,
-      phase,
-      agent,
-    });
     if (!agent || !agent.check(this.state.player, this.game)) {
       return "Invalid Agency";
     }

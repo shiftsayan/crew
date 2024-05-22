@@ -1,7 +1,7 @@
 import { Communication, Condition, GoldenBorder, Status } from "../enums";
 import { CARDS, SUIT_TRUMP } from "../game";
-import { missions } from "../game/missions";
 import { DEEP_SEA_GOALS } from "../game/deep_sea_goals";
+import { missions } from "../game/missions";
 import { shuffle } from "../random";
 import {
   AgentAll,
@@ -197,7 +197,7 @@ export class DealGoals extends Phase {
 export class ChooseGoals extends Phase {
   static starter = AgentCommander;
   static agency = {
-    Choose: AgentAll,
+    Toggle: AgentAll,
     Join: AgentAll,
     Mark: AgentAll,
     CTA: AgentCommander,

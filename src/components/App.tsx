@@ -13,7 +13,7 @@ import { CrewGameType, CrewStateType } from "../util/types";
 export function App() {
   const [state, setState] = useState<CrewStateType>({
     player: "",
-    crew: "",
+    crew: "thethecrewcrew",
     view: ViewName.Table,
     toast: { show: false },
   });

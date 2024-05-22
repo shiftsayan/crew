@@ -124,7 +124,7 @@ function Button({ state, setState, game, setGame }) {
   const is_winner = AgentWinner.check(state.player, game);
   const is_commander = AgentCommander.check(state.player, game);
 
-  let button_data;
+  var button_data;
   switch (game.phase) {
     case PhaseName.ChooseGoals:
       if (is_commander) {
