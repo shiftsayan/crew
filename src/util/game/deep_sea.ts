@@ -20,7 +20,7 @@ const deep_sea_9 = new MissionDeepSea(7);
 
 const deep_sea_10 = new MissionDeepSea(4);
 
-const deep_sea_11 = new MissionDeepSea(12);
+const deep_sea_11 = new MissionDeepSea(8);
 
 export const deep_sea = {
   1: deep_sea_1,
