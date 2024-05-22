@@ -34,7 +34,7 @@ export class LoginAction extends Action<[string]> {
     // update seating
     const game = (await get(child(ref(database), `crews/${username}`))).val();
     const now = Date.now();
-    if (game.seatingTtl < now) {
+    if (!game.seatingTtl || game.seatingTtl < now) {
       update(ref(database), {
         [`crews/${username}/seating`]: shuffle(Object.keys(game.active)),
         [`crews/${username}/seatingTtl`]: now + MS_IN_DAY,

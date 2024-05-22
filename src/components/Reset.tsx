@@ -28,6 +28,7 @@ export function Reset() {
           [`crews/${crewName}/leading_suite`]: null,
           [`crews/${crewName}/leading_winner`]: null,
           [`crews/${crewName}/commander`]: null,
+          [`crews/${crewName}/num_players`]: 5,
         });
         setReset(true);
       }
