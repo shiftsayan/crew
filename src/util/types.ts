@@ -1,4 +1,11 @@
-import { Communication, Status, Suite, ToastStyle, ViewName } from "./enums";
+import {
+  Communication,
+  Condition,
+  Status,
+  Suite,
+  ToastStyle,
+  ViewName,
+} from "./enums";
 import { PhaseName } from "./mechanics/phase";
 
 export type CrewCardType = {
@@ -31,7 +38,7 @@ export type CrewGameType = {
   }[];
   maxTricks?: number;
   mission?: {
-    version?: number;
+    version?: string;
     num?: number;
     attempt?: number;
   };
@@ -48,8 +55,11 @@ export type CrewGameType = {
       goals?: number[];
     };
   };
+  tricks?: { [player: string]: CrewCardType }[];
   leadingTrick?: { [player: string]: CrewCardType };
   leadingSuite?: Suite | string;
+  leadingWinner?: string;
+  condition?: Condition;
   playedCards?: CrewCardType[];
   advancePhase?: boolean;
 };

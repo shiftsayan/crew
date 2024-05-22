@@ -3,6 +3,7 @@ import { CARDS, SUIT_TRUMP } from "../game";
 import { DEEP_SEA_GOALS } from "../game/deep_sea_goals";
 import { missions } from "../game/missions";
 import { shuffle } from "../random";
+import { CrewGameType, CrewStateType } from "../types";
 import {
   AgentAll,
   AgentAuto,
@@ -25,23 +26,29 @@ export enum PhaseName {
 }
 
 export abstract class Phase {
-  static starter;
+  static starter: typeof AgentBase;
   static agency: { [phase: string]: typeof AgentBase };
 
-  static ended(state, game) {
+  static onStart(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
+    return {};
+  }
+
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
     return false;
   }
 
-  static next(state, game): PhaseName {
+  static onEnd(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
+    return {};
+  }
+
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
     return null;
-  }
-
-  static onStart(state, game) {
-    return {};
-  }
-
-  static onEnd(state, game) {
-    return {};
   }
 }
 
@@ -51,17 +58,10 @@ export class Preflight extends Phase {
     Join: AgentAll,
   };
 
-  static ended(state, game) {
-    // all players are active
-    const names = Object.keys(game.active);
-    return names.reduce((res, key) => res && game.active[key], true);
-  }
-
-  static next(state, game): PhaseName {
-    return PhaseName.DealCards;
-  }
-
-  static onEnd(state, game) {
+  static onEnd(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
     const names = Object.keys(game.active);
 
     const players = {};
@@ -84,11 +84,21 @@ export class Preflight extends Phase {
       tricks: [],
       leadingTrick: {},
       leadingSuite: null,
-      leading_winner: null,
+      leadingWinner: null,
       commander: null,
       condition: Condition.InProgress,
       maxTricks: Math.floor(CARDS.length / names.length),
     };
+  }
+
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
+    // all players are active
+    const names = Object.keys(game.active);
+    return names.reduce((res, key) => res && game.active[key], true);
+  }
+
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
+    return PhaseName.DealCards;
   }
 }
 
@@ -96,23 +106,18 @@ export class DealCards extends Phase {
   static starter = AgentAuto;
   static agency = {};
 
-  static ended(state, game) {
-    return true;
-  }
-
-  static next(state, game): PhaseName {
-    return PhaseName.DealGoals;
-  }
-
-  static onStart(state, game) {
+  static onStart(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
     const names = Object.keys(game.active);
     const players = game.players;
 
-    const all_cards = shuffle([...CARDS]);
+    const allCards = shuffle([...CARDS]);
     let commander = null;
     let idx = 0;
-    while (all_cards.length !== 0) {
-      let card = all_cards.pop();
+    while (allCards.length !== 0) {
+      let card = allCards.pop();
       if (card.suite === SUIT_TRUMP && card.num === 4) {
         commander = game.seating.indexOf(names[idx]);
       }
@@ -130,21 +135,32 @@ export class DealCards extends Phase {
       commander: commander,
     };
   }
+
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
+    return true;
+  }
+
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
+    return PhaseName.DealGoals;
+  }
 }
 
 export class DealGoals extends Phase {
   static starter = AgentAuto;
   static agency = {};
 
-  static ended(state, game) {
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
     return true;
   }
 
-  static next(state, game): PhaseName {
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
     return PhaseName.ChooseGoals;
   }
 
-  static onStart(state, game) {
+  static onStart(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
     const mission_data = missions[game.mission.version][game.mission.num];
 
     const goals = [];
@@ -203,17 +219,20 @@ export class ChooseGoals extends Phase {
     CTA: AgentCommander,
   };
 
-  static ended(state, game) {
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
     return game.advancePhase;
   }
 
-  static onEnd(state: any, game: any): {} {
+  static onEnd(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
     return {
       advancePhase: false,
     };
   }
 
-  static next(state, game): PhaseName {
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
     return PhaseName.Communicate;
   }
 }
@@ -229,17 +248,20 @@ export class Communicate extends Phase {
     Mark: AgentAll,
   };
 
-  static ended(state: any, game: any): boolean {
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
     return game.advancePhase;
   }
 
-  static onEnd(state: any, game: any): {} {
+  static onEnd(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
     return {
       advancePhase: false,
     };
   }
 
-  static next(state, game): PhaseName {
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
     return PhaseName.PlayTrick;
   }
 }
@@ -252,19 +274,12 @@ export class PlayTrick extends Phase {
     Mark: AgentAll,
   };
 
-  static ended(state: any, game: any): boolean {
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
     const names = Object.keys(game.active);
     return (
       game.leadingTrick &&
       names.every((name) => game.leadingTrick[name] !== undefined)
     );
-  }
-
-  static next(state, game): PhaseName {
-    if (game.tricks.length === game.maxTricks) return PhaseName.EndGame;
-    return game.condition === Condition.InProgress
-      ? PhaseName.Communicate
-      : PhaseName.EndGame;
   }
 
   static onEnd(state: any, game: any): {} {
@@ -273,17 +288,17 @@ export class PlayTrick extends Phase {
 
     // Decide winner
     let winner = undefined;
-    let winner_num = Number.NEGATIVE_INFINITY;
-    let winner_suite = leadingSuite;
+    let winnerNum = Number.NEGATIVE_INFINITY;
+    let winnerSuite = leadingSuite;
     for (let player in game.leadingTrick) {
       const card = game.leadingTrick[player];
       if (
-        (card.suite === winner_suite && card.num > winner_num) ||
-        (card.suite !== winner_suite && card.suite === SUIT_TRUMP)
+        (card.suite === winnerSuite && card.num > winnerNum) ||
+        (card.suite !== winnerSuite && card.suite === SUIT_TRUMP)
       ) {
         winner = player;
-        winner_num = card.num;
-        winner_suite = card.suite;
+        winnerNum = card.num;
+        winnerSuite = card.suite;
       }
     }
 
@@ -298,7 +313,7 @@ export class PlayTrick extends Phase {
       goals,
       leadingTrick: [],
       leadingSuite: null,
-      leading_winner: winner,
+      leadingWinner: winner,
       tricks,
       condition: condition,
       players: {
@@ -307,6 +322,13 @@ export class PlayTrick extends Phase {
         },
       },
     };
+  }
+
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
+    if (game.tricks.length === game.maxTricks) return PhaseName.EndGame;
+    return game.condition === Condition.InProgress
+      ? PhaseName.Communicate
+      : PhaseName.EndGame;
   }
 }
 
@@ -318,11 +340,14 @@ export class EndGame extends Phase {
     Mark: AgentAll,
   };
 
-  static ended(state, game) {
+  static ended(state: CrewStateType, game: CrewGameType): boolean {
     return game.advancePhase;
   }
 
-  static onEnd(state, game) {
+  static onEnd(
+    state: CrewStateType,
+    game: CrewGameType
+  ): Partial<CrewGameType> {
     if (game.condition === Condition.Lost) {
       return {
         advancePhase: false,
@@ -341,7 +366,7 @@ export class EndGame extends Phase {
     }
   }
 
-  static next(state, game): PhaseName {
+  static next(state: CrewStateType, game: CrewGameType): PhaseName {
     return PhaseName.Preflight;
   }
 }
