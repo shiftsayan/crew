@@ -2,13 +2,13 @@ import classnames from "classnames";
 
 import { CrewLabelIcon, CrewLabelText } from "./Labels";
 
+import { QualifyMove } from "../util/actions/qualify";
 import { Communication } from "../util/enums";
 import {
-  mapSuiteToBackgroundColor,
   mapCommunicationToIcon,
+  mapSuiteToBackgroundColor,
 } from "../util/maps";
-import { Qualify } from "../util/actions/qualify";
-import { CrewGameType, CrewStateType, CrewCardType } from "../util/types";
+import { CrewCardType, CrewGameType, CrewStateType } from "../util/types";
 
 type CardProps = {
   state: CrewStateType;
@@ -44,7 +44,10 @@ export function Card({
         <div
           className="m-auto hover:text-indigo-700 transition cursor-pointer"
           onClick={() =>
-            new Qualify(state, setState, game, setGame).run(qualifier, player)
+            new QualifyMove(state, setState, game, setGame).run(
+              qualifier,
+              player
+            )
           }
           key={qualifier}
         >

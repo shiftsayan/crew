@@ -3,7 +3,7 @@ import { AgentAll, AgentCommander, AgentWinner } from "../mechanics/agent";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
-export class CTA extends Move<[]> {
+export class CTAMove extends Move<[]> {
   name = "CTA";
   async validateParams(): Promise<string | void> {
     // ChooseGoals

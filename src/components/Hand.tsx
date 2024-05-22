@@ -1,4 +1,4 @@
-import { Play } from "../util/actions/play";
+import { PlayMove } from "../util/actions/play";
 import { Card } from "./Card";
 
 export function Hand({ state, setState, game, setGame }) {
@@ -15,7 +15,7 @@ export function Hand({ state, setState, game, setGame }) {
     <div
       key={idx}
       onClick={() => {
-        new Play(state, setState, game, setGame).run(idx);
+        new PlayMove(state, setState, game, setGame).run(idx);
       }}
     >
       <Card

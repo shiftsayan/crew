@@ -2,11 +2,11 @@ import classnames from "classnames";
 
 import { CrewPill } from "./Pill";
 
-import { mapOrderToIcon, mapSuiteToBorderColor } from "../util/maps";
+import { FiCheck, FiLoader, FiPlus, FiX } from "react-icons/fi";
+import { MarkMove } from "../util/actions/mark";
 import { Decoration, Order, Status, Suite } from "../util/enums";
+import { mapOrderToIcon, mapSuiteToBorderColor } from "../util/maps";
 import { Task } from "./Task";
-import { FiLoader, FiCheck, FiPlus, FiX } from "react-icons/fi";
-import { Mark } from "../util/actions/mark";
 
 export function CrewGoal({
   goal = { num: 0, suite: Suite.None, order: Order.None },
@@ -108,7 +108,9 @@ export function CrewGoalNew({
             "bg-emerald-500": [Status.Success].includes(goal.status),
             "bg-red-600": [Status.Failure].includes(goal.status),
           })}
-          onClick={() => new Mark(state, setState, game, setGame).run(goal_idx)}
+          onClick={() =>
+            new MarkMove(state, setState, game, setGame).run(goal_idx)
+          }
         >
           {[Status.Chosen, Status.NotChosen].includes(goal.status) && (
             <FiLoader className="m-auto text-white text-sm animate-spin-slow" />

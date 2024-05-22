@@ -3,7 +3,7 @@ import { missions } from "../game/missions";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
-export class Mark extends Move<[number]> {
+export class MarkMove extends Move<[number]> {
   name = "Mark";
   async validateParams(goal_idx: number): Promise<string | void> {
     return;

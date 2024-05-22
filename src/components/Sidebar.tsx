@@ -1,19 +1,19 @@
 import classnames from "classnames";
 import { FiInfo } from "react-icons/fi";
 
-import { GOAL_VIEW_PHASES } from "./View";
 import { Button as XButton } from "./Button";
+import { GOAL_VIEW_PHASES } from "./View";
 
-import { Condition, Size, ViewName } from "../util/enums";
 import { Tooltip } from "@mui/material";
+import { CTAMove } from "../util/actions/cta";
+import { Condition, Size, ViewName } from "../util/enums";
 import { mapMissionVersionToName } from "../util/maps";
-import { PhaseName } from "../util/mechanics/phase";
 import {
   AgentCommander,
   AgentCurrent,
   AgentWinner,
 } from "../util/mechanics/agent";
-import { CTA } from "../util/actions/cta";
+import { PhaseName } from "../util/mechanics/phase";
 
 export function Sidebar({ state, setState, game, setGame }) {
   return (
@@ -131,7 +131,7 @@ function Button({ state, setState, game, setGame }) {
         button_data = {
           text: "START GAME",
           active: true,
-          onClick: () => new CTA(state, setState, game, setGame).run(),
+          onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       } else {
         button_data = {
@@ -147,7 +147,7 @@ function Button({ state, setState, game, setGame }) {
         button_data = {
           text: "START TRICK",
           active: true,
-          onClick: () => new CTA(state, setState, game, setGame).run(),
+          onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       } else {
         button_data = {
@@ -171,18 +171,18 @@ function Button({ state, setState, game, setGame }) {
       if (game.condition === Condition.Won)
         button_data = {
           text: "NEXT MISSION",
-          onClick: () => new CTA(state, setState, game, setGame).run(),
+          onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       else if (game.condition === Condition.Lost) {
         button_data = {
           text: "RETRY MISSION",
-          onClick: () => new CTA(state, setState, game, setGame).run(),
+          onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       } else {
         button_data = {
           text: "MARK GOALS",
           disabled: true,
-          onClick: () => new CTA(state, setState, game, setGame).run(),
+          onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       }
       break;

@@ -1,7 +1,7 @@
 import { Communication } from "../enums";
 import { Move } from "./move";
 
-export class Qualify extends Move<[Communication, string]> {
+export class QualifyMove extends Move<[Communication, string]> {
   name = "Qualify";
   async validateParams(
     qualifer: Communication,

@@ -5,9 +5,9 @@ import { CrewGoalNew } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
 
-import { Join } from "../util/actions/join";
-import { PhaseName } from "../util/mechanics/phase";
+import { JoinMove } from "../util/actions/join";
 import { Communication, Decoration, Size } from "../util/enums";
+import { PhaseName } from "../util/mechanics/phase";
 import { Button } from "./Button";
 
 export function Panel({ idx, state, setState, game, setGame }) {
@@ -116,7 +116,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
               ) : (
                 <Button
                   onClick={() =>
-                    new Join(state, setState, game, setGame).run(player)
+                    new JoinMove(state, setState, game, setGame).run(player)
                   }
                   size={Size.Small}
                 >

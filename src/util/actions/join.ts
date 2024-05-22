@@ -1,6 +1,6 @@
 import { Move } from "./move";
 
-export class Join extends Move<[string]> {
+export class JoinMove extends Move<[string]> {
   name = "Join";
   async validateParams(player): Promise<string | void> {
     if (

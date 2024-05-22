@@ -1,10 +1,10 @@
+import { CrewGoal, CrewGoalNew } from "./Goal";
 import { CrewPill as Pill } from "./Pill";
-import { CrewGoalNew, CrewGoal } from "./Goal";
 
+import { ToggleMove } from "../util/actions/toggle";
 import { Decoration, Order, ViewName } from "../util/enums";
 import { SUITES, SUIT_TRUMP } from "../util/game";
 import { PhaseName } from "../util/mechanics/phase";
-import { Choose } from "../util/actions/toggle";
 
 export const GOAL_VIEW_PHASES = [
   PhaseName.Preflight,
@@ -159,7 +159,7 @@ function GoalView({ state, setState, game, setGame }) {
       <div
         className="cursor-pointer"
         key={i}
-        onClick={() => new Choose(state, setState, game, setGame).run(i)}
+        onClick={() => new ToggleMove(state, setState, game, setGame).run(i)}
       >
         <CrewGoalNew
           key={i}

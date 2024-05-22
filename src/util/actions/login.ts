@@ -6,7 +6,7 @@ import { Action } from "./action";
 
 const MS_IN_DAY = 60 * 60 * 24 * 1000;
 
-export class Login extends Action<[string]> {
+export class LoginAction extends Action<[string]> {
   name = "Login";
   async validateParams(username: string): Promise<string | void> {
     const all_crews = (await get(child(ref(database), "crews"))).val();

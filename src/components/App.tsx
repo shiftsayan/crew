@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 
-import { ref, update, onValue } from "@firebase/database";
+import { onValue, ref, update } from "@firebase/database";
 
-import { Home } from "./Home";
 import { Board } from "./Board";
 import { Layout } from "./Layout";
+import { Login } from "./Login";
 
-import { ViewName } from "../util/enums";
 import { database } from "../services/firebase";
+import { ViewName } from "../util/enums";
 import { CrewGameType, CrewStateType } from "../util/types";
 
 export function App() {
@@ -59,7 +59,7 @@ export function App() {
           setGame={setGame}
         />
       ) : (
-        <Home state={state} setState={setState} />
+        <Login state={state} setState={setState} />
       )}
     </Layout>
   );
