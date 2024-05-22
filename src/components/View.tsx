@@ -56,7 +56,7 @@ function TrickView({ state, setState, game, setGame }) {
   const grid = [];
 
   var firstCol = [];
-  for (let j = 0; j < game.num_players; j++) {
+  for (let j = 0; j < game.numPlayers; j++) {
     firstCol.push(<Header text={game.seating[j]} />);
   }
   grid.push(
@@ -67,7 +67,7 @@ function TrickView({ state, setState, game, setGame }) {
 
   for (let trick of game.tricks ?? []) {
     const col = [];
-    for (let j = 0; j < game.num_players; j++) {
+    for (let j = 0; j < game.numPlayers; j++) {
       const player = game.seating[j];
       col.push(
         <Pill key={j} num={trick[player].num} suite={trick[player].suite} />
@@ -76,15 +76,15 @@ function TrickView({ state, setState, game, setGame }) {
     grid.push(<div className={col_classes}>{col}</div>);
   }
 
-  if (game.leading_trick) {
+  if (game.leadingTrick) {
     var last_col = [];
-    for (let j = 0; j < game.num_players; j++) {
+    for (let j = 0; j < game.numPlayers; j++) {
       const player = game.seating[j];
       last_col.push(
         <Pill
           key={j}
-          num={game.leading_trick[player]?.num}
-          suite={game.leading_trick[player]?.suite}
+          num={game.leadingTrick[player]?.num}
+          suite={game.leadingTrick[player]?.suite}
         />
       );
     }
@@ -105,10 +105,8 @@ function TableView({ state, setState, game, setGame }) {
     var row = [<Header key={suite} text={suite} />];
     for (let i = 1; i <= (suite === SUIT_TRUMP ? 4 : 9); i++) {
       let played =
-        game.played_cards &&
-        game.played_cards.some(
-          (card) => card.num === i && card.suite === suite
-        );
+        game.playedCards &&
+        game.playedCards.some((card) => card.num === i && card.suite === suite);
       row.push(
         <CrewGoal
           key={i}

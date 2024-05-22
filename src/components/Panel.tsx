@@ -15,7 +15,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
   const player_data = (game.players && game.players[player]) || {};
   const active = game.active[player];
 
-  const card = game.leading_trick ? game.leading_trick[player] : {};
+  const card = game.leadingTrick ? game.leadingTrick[player] : {};
 
   const communicationCard = player_data?.communication?.card ?? {};
   const communicationQualifier =

@@ -100,7 +100,7 @@ export class MissionPlanetX extends Mission {
     //         ok = ok && goals.every((goal) => goal.status === Status.Success);
     //         break;
     //       case Order.LastTrick:
-    //         ok = ok && tricks.length === max_tricks;
+    //         ok = ok && tricks.length === maxTricks;
     //         break;
     //     }
     //   }

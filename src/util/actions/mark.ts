@@ -1,4 +1,4 @@
-import { Condition, GoldenBorder, Status } from "../enums";
+import { Condition, Status } from "../enums";
 import { missions } from "../game/missions";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";

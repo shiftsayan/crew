@@ -14,7 +14,7 @@ type PanelsProps = {
 
 export function Panels({ state, setState, game, setGame }: PanelsProps) {
   const panels = [];
-  for (let i = 0; i < game.num_players; i++) {
+  for (let i = 0; i < game.numPlayers; i++) {
     panels.push(
       <Panel
         key={i}
@@ -32,7 +32,7 @@ export function Panels({ state, setState, game, setGame }: PanelsProps) {
       <div
         className={classnames(
           "grid divide-x-2 divide-gray-200",
-          mapPlayersToGridsClass[game.num_players]
+          mapPlayersToGridsClass[game.numPlayers]
         )}
       >
         {panels}

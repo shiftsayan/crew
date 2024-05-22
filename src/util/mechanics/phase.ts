@@ -80,14 +80,14 @@ export class Preflight extends Phase {
     return {
       players: players,
       goals: [],
-      played_cards: [],
+      playedCards: [],
       tricks: [],
-      leading_trick: {},
-      leading_suite: null,
+      leadingTrick: {},
+      leadingSuite: null,
       leading_winner: null,
       commander: null,
       condition: Condition.InProgress,
-      max_tricks: Math.floor(CARDS.length / names.length),
+      maxTricks: Math.floor(CARDS.length / names.length),
     };
   }
 }
@@ -204,12 +204,12 @@ export class ChooseGoals extends Phase {
   };
 
   static ended(state, game) {
-    return game.advance_phase;
+    return game.advancePhase;
   }
 
   static onEnd(state: any, game: any): {} {
     return {
-      advance_phase: false,
+      advancePhase: false,
     };
   }
 
@@ -230,12 +230,12 @@ export class Communicate extends Phase {
   };
 
   static ended(state: any, game: any): boolean {
-    return game.advance_phase;
+    return game.advancePhase;
   }
 
   static onEnd(state: any, game: any): {} {
     return {
-      advance_phase: false,
+      advancePhase: false,
     };
   }
 
@@ -255,28 +255,28 @@ export class PlayTrick extends Phase {
   static ended(state: any, game: any): boolean {
     const names = Object.keys(game.active);
     return (
-      game.leading_trick &&
-      names.every((name) => game.leading_trick[name] !== undefined)
+      game.leadingTrick &&
+      names.every((name) => game.leadingTrick[name] !== undefined)
     );
   }
 
   static next(state, game): PhaseName {
-    if (game.tricks.length === game.max_tricks) return PhaseName.EndGame;
+    if (game.tricks.length === game.maxTricks) return PhaseName.EndGame;
     return game.condition === Condition.InProgress
       ? PhaseName.Communicate
       : PhaseName.EndGame;
   }
 
   static onEnd(state: any, game: any): {} {
-    const leading_trick = { ...game.leading_trick };
-    const leading_suite = game.leading_suite;
+    const leadingTrick = { ...game.leadingTrick };
+    const leadingSuite = game.leadingSuite;
 
     // Decide winner
     let winner = undefined;
     let winner_num = Number.NEGATIVE_INFINITY;
-    let winner_suite = leading_suite;
-    for (let player in game.leading_trick) {
-      const card = game.leading_trick[player];
+    let winner_suite = leadingSuite;
+    for (let player in game.leadingTrick) {
+      const card = game.leadingTrick[player];
       if (
         (card.suite === winner_suite && card.num > winner_num) ||
         (card.suite !== winner_suite && card.suite === SUIT_TRUMP)
@@ -288,7 +288,7 @@ export class PlayTrick extends Phase {
     }
 
     const tricks = game.tricks ?? [];
-    tricks.push(leading_trick);
+    tricks.push(leadingTrick);
 
     const goals = [...game.goals];
     const mission_data = missions[game.mission.version][game.mission.num];
@@ -296,8 +296,8 @@ export class PlayTrick extends Phase {
 
     return {
       goals,
-      leading_trick: [],
-      leading_suite: null,
+      leadingTrick: [],
+      leadingSuite: null,
       leading_winner: winner,
       tricks,
       condition: condition,
@@ -319,20 +319,20 @@ export class EndGame extends Phase {
   };
 
   static ended(state, game) {
-    return game.advance_phase;
+    return game.advancePhase;
   }
 
   static onEnd(state, game) {
     if (game.condition === Condition.Lost) {
       return {
-        advance_phase: false,
+        advancePhase: false,
         mission: {
           attempt: game.mission.attempt + 1,
         },
       };
     } else if (game.condition === Condition.Won) {
       return {
-        advance_phase: false,
+        advancePhase: false,
         mission: {
           num: game.mission.num + 1,
           attempt: 1,

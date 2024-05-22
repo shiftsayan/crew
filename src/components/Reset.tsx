@@ -27,7 +27,7 @@ export function Reset() {
               Steven: false,
               mewtwo: false,
             },
-            num_players: 5,
+            numPlayers: 5,
             seating: shuffle(players),
             seatingTtl: Date.now() + 60 * 60 * 24 * 1000,
           },

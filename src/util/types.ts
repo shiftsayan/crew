@@ -1,11 +1,4 @@
-import {
-  Communication,
-  GoldenBorder,
-  Status,
-  Suite,
-  ToastStyle,
-  ViewName,
-} from "./enums";
+import { Communication, Status, Suite, ToastStyle, ViewName } from "./enums";
 import { PhaseName } from "./mechanics/phase";
 
 export type CrewCardType = {
@@ -36,13 +29,13 @@ export type CrewGameType = {
     player?: string;
     status: Status;
   }[];
-  max_tricks?: number;
+  maxTricks?: number;
   mission?: {
     version?: number;
     num?: number;
     attempt?: number;
   };
-  num_players?: number;
+  numPlayers?: number;
   phase?: PhaseName;
   players?: {
     [player: string]: {
@@ -55,8 +48,8 @@ export type CrewGameType = {
       goals?: number[];
     };
   };
-  leading_trick?: { [player: string]: CrewCardType };
-  leading_suite?: Suite | string;
-  played_cards?: CrewCardType[];
-  advance_phase?: boolean;
+  leadingTrick?: { [player: string]: CrewCardType };
+  leadingSuite?: Suite | string;
+  playedCards?: CrewCardType[];
+  advancePhase?: boolean;
 };

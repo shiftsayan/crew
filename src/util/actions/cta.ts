@@ -1,5 +1,5 @@
 import { Communication } from "../enums";
-import { AgentAll, AgentCommander, AgentWinner } from "../mechanics/agent";
+import { AgentAll } from "../mechanics/agent";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
@@ -27,7 +27,7 @@ export class CTAMove extends Move<[]> {
           Communication.Communicating
       );
       if (someoneCommunicating) {
-        return "Wait For All Players To Finish Communicating";
+        return "Wait For all players to finish communicating";
       }
       return;
     }
@@ -46,7 +46,7 @@ export class CTAMove extends Move<[]> {
 
   updateGame() {
     return {
-      advance_phase: true,
+      advancePhase: true,
     };
   }
 }

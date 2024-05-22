@@ -36,7 +36,7 @@ export class AgentCurrent extends AgentBase {
   }
 
   static next(game) {
-    return (game.current + 1) % game.num_players;
+    return (game.current + 1) % game.numPlayers;
   }
 }
 

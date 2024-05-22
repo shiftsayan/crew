@@ -22,7 +22,7 @@ export abstract class Move<T extends any[]> {
     this.setGame = setGame;
   }
 
-  async validateParams(...params): Promise<string | void> {
+  async validateParams(...params: T): Promise<string | void> {
     return;
   }
 
@@ -79,14 +79,14 @@ export abstract class Move<T extends any[]> {
     // Make changes to this.game
     mergeUpdates(this.game, updates);
     // Make changes to Firebase
-    const firebase_updates = toFirebaseNotation(updates, [crewName]);
-    return update(ref(database), firebase_updates);
+    const firebaseUpdates = toFirebaseNotation(updates, [crewName]);
+    return update(ref(database), firebaseUpdates);
   }
 
   commitPhase(updates: Partial<CrewGameType>): Promise<void> {
     // Make changes to Firebase
-    const firebase_updates = toFirebaseNotation(updates, [crewName]);
-    return update(ref(database), firebase_updates);
+    const firebaseUpdates = toFirebaseNotation(updates, [crewName]);
+    return update(ref(database), firebaseUpdates);
   }
 
   async postRun(...params: T): Promise<void> {}

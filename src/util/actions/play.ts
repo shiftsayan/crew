@@ -16,16 +16,16 @@ export class PlayMove extends Move<[number]> {
     // invalid card during `PlayTrick` phase
     const xPlay =
       this.game.phase === PhaseName.PlayTrick &&
-      this.game.leading_trick &&
-      this.game.leading_trick[this.state.player];
+      this.game.leadingTrick &&
+      this.game.leadingTrick[this.state.player];
 
     // invalid card suite during `PlayTrick` phase
     const xSuite =
       this.game.phase === PhaseName.PlayTrick &&
-      this.game.leading_trick && // if this trick has been started
-      card.suite !== this.game.leading_suite && // and card's suite does not match leading suite
+      this.game.leadingTrick && // if this trick has been started
+      card.suite !== this.game.leadingSuite && // and card's suite does not match leading suite
       this.game.players[this.state.player].hand.some(
-        (_card) => _card.suite === this.game.leading_suite // then the player must not have a card of the leading suite.
+        (_card) => _card.suite === this.game.leadingSuite // then the player must not have a card of the leading suite.
       );
 
     // invalid card during `Communicate` phase
@@ -48,8 +48,8 @@ export class PlayMove extends Move<[number]> {
       (_, idx) => idx !== card_idx
     );
 
-    const played_cards = this.game.played_cards ?? [];
-    played_cards.push(card);
+    const playedCards = this.game.playedCards ?? [];
+    playedCards.push(card);
 
     if (this.game.phase === PhaseName.Communicate) {
       return {
@@ -69,11 +69,11 @@ export class PlayMove extends Move<[number]> {
             hand: new_hand,
           },
         },
-        played_cards: played_cards,
-        leading_trick: {
+        playedCards: playedCards,
+        leadingTrick: {
           [this.state.player]: card,
         },
-        leading_suite: this.game.leading_suite || card.suite,
+        leadingSuite: this.game.leadingSuite || card.suite,
       };
     }
   }
