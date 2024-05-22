@@ -4,8 +4,8 @@ import { onValue, ref, update } from "@firebase/database";
 
 import { Board } from "./Board";
 import { Layout } from "./Layout";
-import { Login } from "./Login";
 
+import { crewName } from "../constants";
 import { database } from "../services/firebase";
 import { ViewName } from "../util/enums";
 import { CrewGameType, CrewStateType } from "../util/types";
@@ -13,19 +13,18 @@ import { CrewGameType, CrewStateType } from "../util/types";
 export function App() {
   const [state, setState] = useState<CrewStateType>({
     player: "",
-    crew: "thethecrewcrew",
     view: ViewName.Table,
     toast: { show: false },
   });
   const [game, setGame] = useState<CrewGameType>({});
 
   useEffect(() => {
-    const gameRef = ref(database, `crews/thethecrewcrew`);
+    const gameRef = ref(database, crewName);
     onValue(gameRef, async (snapshot) => {
       const data = snapshot.val();
       setGame(data);
     });
-  }, [state.crew]);
+  }, []);
 
   const unloadAlert = (event: any) => {
     event.preventDefault();
@@ -33,9 +32,9 @@ export function App() {
   };
 
   const unload = () => {
-    if (state.crew && state.player) {
+    if (state.player) {
       update(ref(database), {
-        [`crews/${state.crew}/active/${state.player}`]: false,
+        [`${crewName}/active/${state.player}`]: false,
       });
     }
   };
@@ -51,16 +50,7 @@ export function App() {
 
   return (
     <Layout state={state} setState={setState}>
-      {state.crew ? (
-        <Board
-          state={state}
-          setState={setState}
-          game={game}
-          setGame={setGame}
-        />
-      ) : (
-        <Login state={state} setState={setState} />
-      )}
+      <Board state={state} setState={setState} game={game} setGame={setGame} />
     </Layout>
   );
 }

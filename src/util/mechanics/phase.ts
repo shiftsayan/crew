@@ -1,4 +1,4 @@
-import { Communication, Condition, GoldenBorder, Status } from "../enums";
+import { Communication, Condition, Status } from "../enums";
 import { CARDS, SUIT_TRUMP } from "../game";
 import { DEEP_SEA_GOALS } from "../game/deep_sea_goals";
 import { missions } from "../game/missions";

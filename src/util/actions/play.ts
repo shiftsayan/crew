@@ -5,6 +5,7 @@ import { Move } from "./move";
 
 export class PlayMove extends Move<[number]> {
   name = "Play";
+
   async validateParams(card_idx: number): Promise<string | void> {
     // invalid card index
     const xCardIdx =

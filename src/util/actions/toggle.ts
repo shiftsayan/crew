@@ -2,6 +2,7 @@ import { Move } from "./move";
 
 export class ToggleMove extends Move<[number]> {
   name = "Toggle";
+
   async validateParams(goal_idx: number) {
     // Check goal_idx is valid
     if (goal_idx < 0 || goal_idx >= this.game.goals.length) {
@@ -9,7 +10,7 @@ export class ToggleMove extends Move<[number]> {
     }
   }
 
-  updateGame(goal_idx) {
+  updateGame(goal_idx: number) {
     const previous_player = this.game.goals[goal_idx].player;
     const selection = previous_player === undefined;
 

@@ -15,7 +15,6 @@ export type CrewCardType = {
 
 export type CrewStateType = {
   player: string;
-  crew: string;
   view: ViewName;
   toast: {
     show: boolean;

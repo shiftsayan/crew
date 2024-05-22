@@ -2,7 +2,8 @@ import { Move } from "./move";
 
 export class JoinMove extends Move<[string]> {
   name = "Join";
-  async validateParams(player): Promise<string | void> {
+
+  async validateParams(player: string): Promise<string | void> {
     if (
       !this.state.player && // player is not set
       !this.game.active[player] // player is not taken
@@ -13,13 +14,13 @@ export class JoinMove extends Move<[string]> {
     }
   }
 
-  updateState(player) {
+  updateState(player: string) {
     return {
       player: player,
     };
   }
 
-  updateGame(player) {
+  updateGame(player: string) {
     return {
       active: {
         [player]: true,

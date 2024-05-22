@@ -3,6 +3,7 @@ import { Move } from "./move";
 
 export class QualifyMove extends Move<[Communication, string]> {
   name = "Qualify";
+
   async validateParams(
     qualifer: Communication,
     player: string

@@ -5,6 +5,7 @@ import { Move } from "./move";
 
 export class CTAMove extends Move<[]> {
   name = "CTA";
+
   async validateParams(): Promise<string | void> {
     // ChooseGoals
     if (this.game.phase === PhaseName.ChooseGoals) {

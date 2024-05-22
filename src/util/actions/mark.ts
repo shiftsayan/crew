@@ -5,6 +5,7 @@ import { Move } from "./move";
 
 export class MarkMove extends Move<[number]> {
   name = "Mark";
+
   async validateParams(goal_idx: number): Promise<string | void> {
     return;
   }
