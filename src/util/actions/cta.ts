@@ -13,7 +13,7 @@ export class CTAMove extends Move<[]> {
         (goal) => goal.player !== undefined
       );
       if (!allGoalsChosen) {
-        return "Wait For All Goals To Be Chosen";
+        return "Wait for all goals to be chosen";
       }
       return;
     }

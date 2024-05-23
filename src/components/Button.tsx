@@ -6,6 +6,7 @@ type ButtonProps = {
   onClick?: () => void;
   active?: boolean;
   disabled?: boolean;
+  info?: boolean;
   size?: Size;
 };
 
@@ -25,7 +26,7 @@ export function Button({
         "px-6 py-2 text-base font-medium": size === Size.Default,
         "px-4 py-2 text-sm font-medium": size === Size.Small,
         "bg-indigo-100 text-indigo-700": active,
-        "bg-gray-300 text-gray-700": !active,
+        "bg-gray-200 text-gray-700": !active,
         "cursor-auto": disabled,
         "hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500":
           !disabled,

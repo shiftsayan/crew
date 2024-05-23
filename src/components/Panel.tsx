@@ -1,7 +1,7 @@
 import classnames from "classnames";
 
 import { Card } from "./Card";
-import { CrewGoalNew } from "./Goal";
+import { CrewGoalSquare } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
 
@@ -25,7 +25,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
     player_data && player_data.goals
       ? player_data.goals.map((goal_idx) => {
           return (
-            <CrewGoalNew
+            <CrewGoalSquare
               key={goal_idx}
               goal_idx={goal_idx}
               state={state}
@@ -38,8 +38,8 @@ export function Panel({ idx, state, setState, game, setGame }) {
       : [];
   if ([PhaseName.ChooseGoals].includes(game.phase)) {
     goals.push(
-      <CrewGoalNew
-        key="blank"
+      <CrewGoalSquare
+        key="pending"
         decorations={{ [Decoration.Pending]: true }}
         state={state}
         setState={setState}

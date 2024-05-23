@@ -1,4 +1,4 @@
-import { CrewGoal, CrewGoalNew } from "./Goal";
+import { CrewGoal, CrewGoalSquare } from "./Goal";
 import { CrewPill as Pill } from "./Pill";
 
 import { ToggleMove } from "../util/actions/toggle";
@@ -14,7 +14,7 @@ export const GOAL_VIEW_PHASES = [
 ];
 
 export function View({ state, setState, game, setGame }) {
-  var view = undefined;
+  let view = undefined;
   if (GOAL_VIEW_PHASES.includes(game.phase)) {
     view = (
       <GoalView
@@ -55,7 +55,7 @@ function TrickView({ state, setState, game, setGame }) {
     "flex flex-col -my-5 p-3 justify-between rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out";
   const grid = [];
 
-  var firstCol = [];
+  let firstCol = [];
   for (let j = 0; j < game.numPlayers; j++) {
     firstCol.push(<Header text={game.seating[j]} />);
   }
@@ -77,7 +77,7 @@ function TrickView({ state, setState, game, setGame }) {
   }
 
   if (game.leadingTrick) {
-    var last_col = [];
+    let last_col = [];
     for (let j = 0; j < game.numPlayers; j++) {
       const player = game.seating[j];
       last_col.push(
@@ -102,7 +102,7 @@ function TableView({ state, setState, game, setGame }) {
   const grid = [];
 
   for (let suite of SUITES) {
-    var row = [<Header key={suite} text={suite} />];
+    let row = [<Header key={suite} text={suite} />];
     for (let i = 1; i <= (suite === SUIT_TRUMP ? 4 : 9); i++) {
       let played =
         game.playedCards &&
@@ -149,9 +149,9 @@ function GoalView({ state, setState, game, setGame }) {
   const breakpoint =
     goals.length >= 6 ? Math.ceil(goals.length / 2) : goals.length;
 
-  const goals_grid = [];
-  const row_classes = "flex justify-center space-x-20";
-  var row = [];
+  const goalsGrid = [];
+  const rowClassNames = "flex justify-center space-x-20";
+  let row = [];
   for (let i = 0; i < goals.length; i++) {
     row.push(
       <div
@@ -159,7 +159,7 @@ function GoalView({ state, setState, game, setGame }) {
         key={i}
         onClick={() => new ToggleMove(state, setState, game, setGame).run(i)}
       >
-        <CrewGoalNew
+        <CrewGoalSquare
           key={i}
           goal_idx={i}
           decorations={{
@@ -175,8 +175,8 @@ function GoalView({ state, setState, game, setGame }) {
       </div>
     );
     if (row.length === breakpoint) {
-      goals_grid.push(
-        <div className={row_classes} key={i}>
+      goalsGrid.push(
+        <div className={rowClassNames} key={i}>
           {row}
         </div>
       );
@@ -184,8 +184,8 @@ function GoalView({ state, setState, game, setGame }) {
     }
   }
   if (row.length > 0)
-    goals_grid.push(
-      <div className={row_classes} key="last">
+    goalsGrid.push(
+      <div className={rowClassNames} key="last">
         {row}
       </div>
     );
@@ -201,7 +201,7 @@ function GoalView({ state, setState, game, setGame }) {
         </div>
       </div> */}
       <div className="w-full flex flex-col h-full space-y-20 justify-center">
-        {goals_grid}
+        {goalsGrid}
       </div>
     </div>
   );

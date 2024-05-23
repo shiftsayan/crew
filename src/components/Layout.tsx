@@ -1,6 +1,6 @@
 import classnames from "classnames";
 
-import { Snackbar, Alert } from "@mui/material";
+import { Alert, Snackbar } from "@mui/material";
 import { CrewStateType } from "../util/types";
 
 type LayoutProps = {
@@ -22,7 +22,9 @@ export function Layout({ children, state, setState }: LayoutProps) {
           setState({ ...state, toast: { ...state.toast, show: false } })
         }
       >
-        <Alert severity={state.toast.style}>{state.toast.message}</Alert>
+        <Alert severity={state.toast.style} variant="filled">
+          {state.toast.message}
+        </Alert>
       </Snackbar>
     </div>
   );

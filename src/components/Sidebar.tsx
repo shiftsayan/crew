@@ -1,10 +1,8 @@
 import classnames from "classnames";
-import { FiInfo } from "react-icons/fi";
 
-import { Button as XButton } from "./Button";
+import { Button } from "./Button";
 import { GOAL_VIEW_PHASES } from "./View";
 
-import { Tooltip } from "@mui/material";
 import { CTAMove } from "../util/actions/cta";
 import { Condition, Size, ViewName } from "../util/enums";
 import { mapMissionVersionToName } from "../util/maps";
@@ -14,57 +12,55 @@ import {
   AgentWinner,
 } from "../util/mechanics/agent";
 import { PhaseName } from "../util/mechanics/phase";
+import { CrewComponentType } from "../util/types";
 
-export function Sidebar({ state, setState, game, setGame }) {
+export function Sidebar({ state, setState, game, setGame }: CrewComponentType) {
   return (
-    <div className="w-64 flex flex-col space-y-4 justify-center bg-white rounded-2xl">
-      <div className="mx-auto flex justify-center space-x-2">
-        <div className="m-auto font-bold">The Crew</div>
+    <div className="w-64 flex flex-col bg-white rounded-2xl justify-between pt-6 pb-4">
+      <div className="flex flex-col space-y-4 justify-center items-center">
+        <div className="flex flex-col justify-center items-center text-center space-y-1">
+          <div className="font-bold">🧑‍🚀 The Crew</div>
+          <div>
+            {game.mission && mapMissionVersionToName[game.mission.version]}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4">
+          {game.mission && <Counter label="Mission" value={game.mission.num} />}
+          {game.mission && (
+            <Counter label="Attempt" value={game.mission.attempt} />
+          )}
+        </div>
+        <Toggle
+          state={state}
+          setState={setState}
+          game={game}
+          setGame={setGame}
+        />
       </div>
-      <div className="mx-auto grid grid-cols-2 gap-x-4">
-        {game.mission && (
-          <Counter
-            label="Mission"
-            value={game.mission.num}
-            icon={<FiInfo />}
-            tooltip={mapMissionVersionToName[game.mission.version]}
-          />
-        )}
-        {game.mission && (
-          <Counter label="Attempt" value={game.mission.attempt} />
-        )}
+      <div className="">
+        <ActionStack
+          state={state}
+          setState={setState}
+          game={game}
+          setGame={setGame}
+        />
       </div>
-      <Toggle state={state} setState={setState} game={game} setGame={setGame} />
-      <Button state={state} setState={setState} game={game} setGame={setGame} />
     </div>
   );
 }
 
-function Counter({ label, value, icon = null, tooltip = null }) {
+function Counter({ label, value }) {
   return (
     <div className="flex-col">
-      <div className="mx-auto uppercase text-sm">{label}</div>
+      <div className="mx-auto uppercase text-sm text-gray-600">{label}</div>
       <div className="m-auto flex justify-center pt-1 space-x-1">
         <div className="font-mono text-sm">{value}</div>
-        {icon && (
-          <div className="m-auto">
-            <Tooltip
-              title={tooltip}
-              placement="right"
-              PopperProps={{
-                modifiers: [{ name: "offset", options: { offset: [0, -10] } }],
-              }}
-            >
-              <div>{icon}</div>
-            </Tooltip>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-function Toggle({ state, setState, game, setGame }) {
+function Toggle({ state, setState, game, setGame }: CrewComponentType) {
   return (
     <div className="flex-col mx-auto">
       <div
@@ -119,38 +115,45 @@ function Toggle({ state, setState, game, setGame }) {
   );
 }
 
-function Button({ state, setState, game, setGame }) {
+function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
   const is_current = AgentCurrent.check(state.player, game);
   const is_winner = AgentWinner.check(state.player, game);
   const is_commander = AgentCommander.check(state.player, game);
 
-  var button_data;
+  let buttonData: {
+    text: string;
+    active?: boolean;
+    disabled?: boolean;
+    onClick?: () => void;
+    info?: boolean;
+  };
+  let infoData: {
+    text: string;
+  };
+
   switch (game.phase) {
     case PhaseName.ChooseGoals:
+      infoData = {
+        text: "ACTION: Choose Goals",
+      };
       if (is_commander) {
-        button_data = {
+        buttonData = {
           text: "START GAME",
           active: true,
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
-        };
-      } else {
-        button_data = {
-          text: "CHOOSE GOAL",
-          active: true,
-          disabled: true,
         };
       }
       break;
 
     case PhaseName.Communicate:
       if (is_winner) {
-        button_data = {
+        buttonData = {
           text: "START TRICK",
           active: true,
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       } else {
-        button_data = {
+        buttonData = {
           text: "COMMUNICATE",
           disabled: true,
         };
@@ -159,7 +162,7 @@ function Button({ state, setState, game, setGame }) {
 
     case PhaseName.PlayTrick:
       if (is_current) {
-        button_data = {
+        buttonData = {
           text: "PLAY CARD",
           active: true,
           disabled: true,
@@ -169,17 +172,17 @@ function Button({ state, setState, game, setGame }) {
 
     case PhaseName.EndGame:
       if (game.condition === Condition.Won)
-        button_data = {
+        buttonData = {
           text: "NEXT MISSION",
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       else if (game.condition === Condition.Lost) {
-        button_data = {
+        buttonData = {
           text: "RETRY MISSION",
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       } else {
-        button_data = {
+        buttonData = {
           text: "MARK GOALS",
           disabled: true,
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
@@ -187,23 +190,28 @@ function Button({ state, setState, game, setGame }) {
       }
       break;
   }
-  button_data = button_data ?? {
-    text: "WAITING...",
+  buttonData = buttonData ?? {
+    text: "WAIT...",
     active: false,
     disabled: true,
   };
 
   return (
-    <div className="flex justify-around px-2">
-      <XButton
-        key={button_data.text}
-        size={Size.Small}
-        active={button_data.active}
-        disabled={button_data.disabled}
-        onClick={button_data.onClick}
-      >
-        {button_data.text}
-      </XButton>
+    <div className="flex flex-col space-y-2">
+      <div className="m-auto">
+        <Button
+          key={buttonData.text}
+          size={Size.Small}
+          active={buttonData.active}
+          disabled={buttonData.disabled}
+          onClick={buttonData.onClick}
+        >
+          {buttonData?.text}
+        </Button>
+      </div>
+      <div className="m-auto px-4 py-2 text-sm font-medium rounded-md bg-transparent hover:bg-gray-100 text-gray-700 underline underline-offset-2 cursor-help transition duration-200">
+        {infoData?.text}
+      </div>
     </div>
   );
 }

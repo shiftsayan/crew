@@ -1,15 +1,16 @@
 import {
-  FiCircle,
-  FiSquare,
-  FiX,
-  FiTriangle,
-  FiChevronsUp,
-  FiArrowUpCircle,
   FiAlertCircle,
   FiArrowDownCircle,
+  FiArrowUpCircle,
+  FiChevronsUp,
+  FiCircle,
   FiHelpCircle,
+  FiSquare,
+  FiTriangle,
+  FiX,
   FiXCircle,
 } from "react-icons/fi";
+import { TbRocket, TbSubmarine } from "react-icons/tb";
 
 import { Communication, Order, Suite } from "./enums";
 
@@ -81,8 +82,13 @@ export const mapMissionVersionToEmoji = {
 };
 
 export const mapMissionVersionToName = {
-  planet_x: "🌕 Planet X",
-  deep_sea: "🌊 Deep Sea",
+  planet_x: "The Quest for Planet X",
+  deep_sea: "Mission Deep Sea",
+};
+
+export const mapMissionVersionToIcon = {
+  planet_x: <TbRocket />,
+  deep_sea: <TbSubmarine />,
 };
 
 export const mapCommunicationToIcon = {

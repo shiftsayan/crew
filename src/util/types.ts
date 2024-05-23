@@ -63,3 +63,10 @@ export type CrewGameType = {
   playedCards?: CrewCardType[];
   advancePhase?: boolean;
 };
+
+export type CrewComponentType = {
+  state: CrewStateType;
+  setState: (state: CrewStateType) => void;
+  game: CrewGameType;
+  setGame: (game: CrewGameType) => void;
+};

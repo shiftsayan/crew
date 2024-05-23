@@ -14,6 +14,7 @@ export function Reset() {
       if (crewName) {
         await set(ref(database), {
           [`${crewName}`]: {
+            current: 0,
             mission: {
               num: 1,
               attempt: 1,

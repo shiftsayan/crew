@@ -2,7 +2,10 @@ import classnames from "classnames";
 
 import { CrewPill } from "./Pill";
 
-import { FiCheck, FiLoader, FiPlus, FiX } from "react-icons/fi";
+import { Box, Modal } from "@mui/material";
+import { useState } from "react";
+import { FiCheck, FiInfo, FiLoader, FiPlus, FiX } from "react-icons/fi";
+import { TbInfoHexagon, TbStars } from "react-icons/tb";
 import { MarkMove } from "../util/actions/mark";
 import { Decoration, Order, Status, Suite } from "../util/enums";
 import { mapOrderToIcon, mapSuiteToBorderColor } from "../util/maps";
@@ -17,7 +20,6 @@ export function CrewGoal({
     <div
       className={classnames({
         "scale-150 transition": decorations[Decoration.Display],
-        // "scale-150 transition": decorations[Decoration.Display],
         "scale-75": decorations[Decoration.Shrink],
         "saturate-50 transition": decorations[Decoration.Desaturate],
       })}
@@ -56,7 +58,19 @@ function CrewPendant({ icon, suite, decorations }) {
   );
 }
 
-export function CrewGoalNew({
+function CrewGoalModal({ open, setOpen, goal }) {
+  return (
+    <Modal open={open} onClose={() => setOpen(false)}>
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] bg-white p-4 rounded-md flex flex-col space-y-4">
+        <div className="font-bold text-xl">Goal Description</div>
+        <div>{goal.mission}</div>
+        {goal.footnote && <div>{goal.footnote}</div>}
+      </div>
+    </Modal>
+  );
+}
+
+export function CrewGoalSquare({
   goal_idx = undefined,
   state,
   setState,
@@ -64,26 +78,52 @@ export function CrewGoalNew({
   setGame,
   decorations = {},
 }) {
+  const [showModal, setShowModal] = useState(false);
   const goal = game.goals[goal_idx] ?? {};
 
   const main = (
     <div
       className={classnames({
-        "h-14 w-14 rounded-md": true,
-        relative: true,
-        "border-dashed border-3 border-gray-300": goal.id === undefined,
-        "bg-white": goal.id !== undefined,
+        "rounded-md": true,
+        "bg-slate-300": !decorations[Decoration.Pending],
       })}
     >
-      <div className="flex flex-col h-full w-full absolute justify-start">
-        {goal.id !== undefined ? (
-          <Task type={goal.type} data={goal.data} />
-        ) : (
-          <div className="flex h-full w-full justify-center">
-            <FiPlus className="m-auto text-gray-300 stroke-icon text-2xl" />
-          </div>
-        )}
+      <div
+        className={classnames({
+          "h-14 w-14 rounded-md relative": true,
+          "border-dashed border-3 border-gray-300": goal.id === undefined,
+          "bg-white": goal.id !== undefined,
+        })}
+      >
+        <div className="flex flex-col h-full w-full absolute justify-start select-none">
+          {goal.id !== undefined ? (
+            <Task type={goal.type} data={goal.data} />
+          ) : (
+            <div className="flex h-full w-full justify-center">
+              <FiPlus className="m-auto text-gray-300 stroke-icon text-2xl" />
+            </div>
+          )}
+        </div>
       </div>
+      {decorations[Decoration.Display] && (
+        <div
+          className="w-14 text-xs py-0.5 px-1 flex items-center justify-between"
+          onClick={(e) => {
+            setShowModal(true);
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          <div className="flex items-center space-x-0.5">
+            <TbStars />
+            <div>{goal.difficulty[2]}</div>
+          </div>
+          <div>
+            <TbInfoHexagon />
+          </div>
+        </div>
+      )}
+      <CrewGoalModal open={showModal} setOpen={setShowModal} goal={goal} />
     </div>
   );
 
@@ -94,7 +134,7 @@ export function CrewGoalNew({
         "scale-75": decorations[Decoration.Shrink],
       })}
     >
-      {/* only add the following div when decorations are not display or blank */}
+      {/* only add the following div when decorations are not display or pending */}
       {!(
         decorations[Decoration.Display] || decorations[Decoration.Pending]
       ) && (
