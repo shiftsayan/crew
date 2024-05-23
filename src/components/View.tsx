@@ -1,7 +1,6 @@
-import { CrewGoal, CrewGoalSquare } from "./Goal";
+import { CrewGoal, CrewGoalSquareDisplay } from "./Goal";
 import { CrewPill as Pill } from "./Pill";
 
-import { ToggleMove } from "../util/actions/toggle";
 import { Decoration, Order, ViewName } from "../util/enums";
 import { SUITES, SUIT_TRUMP } from "../util/game";
 import { PhaseName } from "../util/mechanics/phase";
@@ -154,18 +153,12 @@ function GoalView({ state, setState, game, setGame }) {
   let row = [];
   for (let i = 0; i < goals.length; i++) {
     row.push(
-      <div
-        className="cursor-pointer"
-        key={i}
-        onClick={() => new ToggleMove(state, setState, game, setGame).run(i)}
-      >
-        <CrewGoalSquare
-          key={i}
-          goal_idx={i}
+      <div className="cursor-pointer" key={i}>
+        <CrewGoalSquareDisplay
+          goalIdx={i}
           decorations={{
             [Decoration.Display]: true,
             [Decoration.Shrink]: Boolean(goals[i].player),
-            [Decoration.Desaturate]: Boolean(goals[i].player),
           }}
           state={state}
           setState={setState}

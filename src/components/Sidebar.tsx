@@ -209,9 +209,11 @@ function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
           {buttonData?.text}
         </Button>
       </div>
-      <div className="m-auto px-4 py-2 text-sm font-medium rounded-md bg-transparent hover:bg-gray-100 text-gray-700 underline underline-offset-2 cursor-help transition duration-200">
-        {infoData?.text}
-      </div>
+      {infoData && (
+        <div className="m-auto px-4 py-2 text-sm font-medium rounded-md bg-transparent hover:bg-gray-100 text-gray-700 underline underline-offset-2 cursor-help transition duration-200">
+          {infoData.text}
+        </div>
+      )}
     </div>
   );
 }

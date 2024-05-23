@@ -1,12 +1,12 @@
 import classnames from "classnames";
 
 import { Card } from "./Card";
-import { CrewGoalSquare } from "./Goal";
+import { CrewGoalSquarePending, CrewGoalSquareSelected } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
 
 import { JoinMove } from "../util/actions/join";
-import { Communication, Decoration, Size } from "../util/enums";
+import { Communication, Size } from "../util/enums";
 import { PhaseName } from "../util/mechanics/phase";
 import { Button } from "./Button";
 
@@ -25,9 +25,8 @@ export function Panel({ idx, state, setState, game, setGame }) {
     player_data && player_data.goals
       ? player_data.goals.map((goal_idx) => {
           return (
-            <CrewGoalSquare
-              key={goal_idx}
-              goal_idx={goal_idx}
+            <CrewGoalSquareSelected
+              goalIdx={goal_idx}
               state={state}
               setState={setState}
               game={game}
@@ -38,9 +37,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
       : [];
   if ([PhaseName.ChooseGoals].includes(game.phase)) {
     goals.push(
-      <CrewGoalSquare
-        key="pending"
-        decorations={{ [Decoration.Pending]: true }}
+      <CrewGoalSquarePending
         state={state}
         setState={setState}
         game={game}
