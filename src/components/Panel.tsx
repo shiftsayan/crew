@@ -26,6 +26,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
       ? playerData.goals.map((goalIdx) => {
           return (
             <CrewGoalSquareSelected
+              key={goalIdx}
               goalIdx={goalIdx}
               state={state}
               setState={setState}
@@ -38,6 +39,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
   if ([PhaseName.ChooseGoals].includes(game.phase)) {
     goals.push(
       <CrewGoalSquarePending
+        key="pending"
         state={state}
         setState={setState}
         game={game}
