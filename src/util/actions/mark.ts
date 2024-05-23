@@ -6,13 +6,13 @@ import { Move } from "./move";
 export class MarkMove extends Move<[number]> {
   name = "Mark";
 
-  async validateParams(goal_idx: number): Promise<string | void> {
+  async validateParams(goalIdx: number): Promise<string | void> {
     return;
   }
 
-  updateGame(goal_idx: number) {
+  updateGame(goalIdx: number) {
     const goals = [...this.game.goals];
-    const goal = goals[goal_idx];
+    const goal = goals[goalIdx];
     const status = goal.status;
     if (status === Status.Success) {
       goal.status = Status.Failure;
@@ -21,13 +21,13 @@ export class MarkMove extends Move<[number]> {
     } else {
       goal.status = Status.Success;
     }
-    goals[goal_idx] = goal;
+    goals[goalIdx] = goal;
 
     let condition = Condition.InProgress;
     if (this.game.phase === PhaseName.EndGame) {
-      const mission_data =
+      const missionData =
         missions[this.game.mission.version][this.game.mission.num];
-      condition = mission_data.check(this.state, this.game);
+      condition = missionData.check(this.state, this.game);
     }
 
     return {

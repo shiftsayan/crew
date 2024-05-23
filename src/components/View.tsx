@@ -1,11 +1,11 @@
 import { CrewGoal, CrewGoalSquareDisplay } from "./Goal";
-import { CrewPill as Pill } from "./Pill";
+import { CrewPill } from "./Pill";
 
 import { Decoration, Order, ViewName } from "../util/enums";
-import { SUITES, SUIT_TRUMP } from "../util/game";
+import { suitTrump, suites } from "../util/game";
 import { PhaseName } from "../util/mechanics/phase";
 
-export const GOAL_VIEW_PHASES = [
+export const goalViewPhases = [
   PhaseName.Preflight,
   PhaseName.DealCards,
   PhaseName.DealGoals,
@@ -14,7 +14,7 @@ export const GOAL_VIEW_PHASES = [
 
 export function View({ state, setState, game, setGame }) {
   let view = undefined;
-  if (GOAL_VIEW_PHASES.includes(game.phase)) {
+  if (goalViewPhases.includes(game.phase)) {
     view = (
       <GoalView
         state={state}
@@ -50,7 +50,7 @@ export function View({ state, setState, game, setGame }) {
 }
 
 function TrickView({ state, setState, game, setGame }) {
-  const col_classes =
+  const colClassNames =
     "flex flex-col -my-5 p-3 justify-between rounded-lg hover:bg-slate-200 transition duration-300 ease-in-out";
   const grid = [];
 
@@ -59,7 +59,7 @@ function TrickView({ state, setState, game, setGame }) {
     firstCol.push(<Header text={game.seating[j]} />);
   }
   grid.push(
-    <div className={col_classes} key="first">
+    <div className={colClassNames} key="first">
       {firstCol}
     </div>
   );
@@ -69,18 +69,18 @@ function TrickView({ state, setState, game, setGame }) {
     for (let j = 0; j < game.numPlayers; j++) {
       const player = game.seating[j];
       col.push(
-        <Pill key={j} num={trick[player].num} suite={trick[player].suite} />
+        <CrewPill key={j} num={trick[player].num} suite={trick[player].suite} />
       );
     }
-    grid.push(<div className={col_classes}>{col}</div>);
+    grid.push(<div className={colClassNames}>{col}</div>);
   }
 
   if (game.leadingTrick) {
-    let last_col = [];
+    let lastCol = [];
     for (let j = 0; j < game.numPlayers; j++) {
       const player = game.seating[j];
-      last_col.push(
-        <Pill
+      lastCol.push(
+        <CrewPill
           key={j}
           num={game.leadingTrick[player]?.num}
           suite={game.leadingTrick[player]?.suite}
@@ -88,8 +88,8 @@ function TrickView({ state, setState, game, setGame }) {
       );
     }
     grid.push(
-      <div className={col_classes} key="last">
-        {last_col}
+      <div className={colClassNames} key="last">
+        {lastCol}
       </div>
     );
   }
@@ -100,9 +100,9 @@ function TrickView({ state, setState, game, setGame }) {
 function TableView({ state, setState, game, setGame }) {
   const grid = [];
 
-  for (let suite of SUITES) {
+  for (let suite of suites) {
     let row = [<Header key={suite} text={suite} />];
-    for (let i = 1; i <= (suite === SUIT_TRUMP ? 4 : 9); i++) {
+    for (let i = 1; i <= (suite === suitTrump ? 4 : 9); i++) {
       let played =
         game.playedCards &&
         game.playedCards.some((card) => card.num === i && card.suite === suite);

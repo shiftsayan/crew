@@ -1,17 +1,17 @@
 import { Suite } from "./enums";
 
-export const SUITES = [
+export const suites = [
   Suite.Blue,
   Suite.Green,
   Suite.Red,
   Suite.Yellow,
   Suite.Black,
 ];
-export const SUIT_TRUMP = Suite.Black;
+export const suitTrump = Suite.Black;
 
-export const CARDS = [];
-for (let suite of SUITES) {
-  for (let num = 1; num <= (suite === SUIT_TRUMP ? 4 : 9); num++) {
-    CARDS.push({ num: num, suite: suite });
+export const cards = [];
+for (let suite of suites) {
+  for (let num = 1; num <= (suite === suitTrump ? 4 : 9); num++) {
+    cards.push({ num: num, suite: suite });
   }
 }

@@ -1,7 +1,7 @@
-import { planet_x } from "./planet_x";
-import { deep_sea } from "./deep_sea";
+import { deepSea } from "./deepSea";
+import { planetX } from "./planetX";
 
 export const missions = {
-  planet_x: planet_x,
-  deep_sea: deep_sea,
+  planetX: planetX,
+  deepSea: deepSea,
 };

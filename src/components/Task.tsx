@@ -11,26 +11,26 @@ export function TaskText({ text }) {
   );
 }
 
-export function TaskHeader({ header, card_or_text_list }) {
+export function TaskHeader({ header, cardsOrTexts }) {
   return (
     <div className="h-full w-full py-1 flex flex-col justify-start">
       <div className="mx-auto text-xxs flex-none">{header}</div>
       <div className="grow flex justify-center">
         <div className="my-auto flex flex-wrap justify-center gap-x-1">
-          {card_or_text_list.map((card_or_text) => {
-            if (card_or_text.text) {
+          {cardsOrTexts.map((cardOrText) => {
+            if (cardOrText.text) {
               return (
                 <div className="text-xxs my-auto -mx-0.5">
-                  {card_or_text.text}
+                  {cardOrText.text}
                 </div>
               );
             }
             return (
               <CrewPillMini
-                num={card_or_text.num}
-                suite={card_or_text.suite}
+                num={cardOrText.num}
+                suite={cardOrText.suite}
                 decorations={{
-                  [Decoration.Rainbow]: card_or_text.suite === undefined,
+                  [Decoration.Rainbow]: cardOrText.suite === undefined,
                 }}
               />
             );
@@ -76,7 +76,7 @@ export function Task({ type, data }) {
   if (type === "text") {
     return <TaskText text={data.text} />;
   } else if (type === "header") {
-    return <TaskHeader card_or_text_list={data.cards} header={data.header} />;
+    return <TaskHeader cardsOrTexts={data.cards} header={data.header} />;
   } else if (type === "cards") {
     return <TaskUpTo4Cards cards={data.cards} />;
   }

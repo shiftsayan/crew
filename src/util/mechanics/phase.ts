@@ -1,6 +1,6 @@
 import { Communication, Condition, Status } from "../enums";
-import { CARDS, SUIT_TRUMP } from "../game";
-import { DEEP_SEA_GOALS } from "../game/deep_sea_goals";
+import { cards, suitTrump } from "../game";
+import { deepSeaGoals } from "../game/deepSeaGoals";
 import { missions } from "../game/missions";
 import { shuffle } from "../random";
 import { CrewGameType, CrewStateType } from "../types";
@@ -73,7 +73,7 @@ export class Preflight extends Phase {
         },
         hand: [],
         goals: [],
-        tricks_won: 0,
+        tricksWon: 0,
       };
     }
 
@@ -87,7 +87,7 @@ export class Preflight extends Phase {
       leadingWinner: null,
       commander: null,
       condition: Condition.InProgress,
-      maxTricks: Math.floor(CARDS.length / names.length),
+      maxTricks: Math.floor(cards.length / names.length),
     };
   }
 
@@ -113,12 +113,12 @@ export class DealCards extends Phase {
     const names = Object.keys(game.active);
     const players = game.players;
 
-    const allCards = shuffle([...CARDS]);
+    const allCards = shuffle([...cards]);
     let commander = null;
     let idx = 0;
     while (allCards.length !== 0) {
       let card = allCards.pop();
-      if (card.suite === SUIT_TRUMP && card.num === 4) {
+      if (card.suite === suitTrump && card.num === 4) {
         commander = game.seating.indexOf(names[idx]);
       }
       players[names[idx]].hand.push(card);
@@ -161,43 +161,37 @@ export class DealGoals extends Phase {
     state: CrewStateType,
     game: CrewGameType
   ): Partial<CrewGameType> {
-    const mission_data = missions[game.mission.version][game.mission.num];
+    const missionData = missions[game.mission.version][game.mission.num];
 
     const goals = [];
-    if (game.mission.version === "planet_x") {
-      //   const all_goals = shuffle([...CARDS]);
+    if (game.mission.version === "planetX") {
+      //   const allGoals = shuffle([...cards]);
       //   let count = 0;
-      //   while (count !== mission_data.num_goals) {
-      //     let goal = all_goals.pop();
-      //     if (goal.suite !== SUIT_TRUMP) {
+      //   while (count !== missionData.numGoals) {
+      //     let goal = allGoals.pop();
+      //     if (goal.suite !== suitTrump) {
       //       goals.push({
       //         ...goal,
       //         order:
-      //           !mission_data.orders || count >= mission_data.orders.length
+      //           !missionData.orders || count >= missionData.orders.length
       //             ? Order.None
-      //             : mission_data.orders[count],
+      //             : missionData.orders[count],
       //         status: Status.NotChosen,
       //       });
       //       count++;
       //     }
       //   }
-    } else if (game.mission.version === "deep_sea") {
-      const all_goals = shuffle([...DEEP_SEA_GOALS]);
-      let total_difficulty = 0;
-      while (
-        all_goals.length &&
-        total_difficulty !== mission_data.max_difficulty
-      ) {
-        const goal = all_goals.pop();
-        if (
-          total_difficulty + goal.difficulty[2] <=
-          mission_data.max_difficulty
-        ) {
+    } else if (game.mission.version === "deepSea") {
+      const allGoals = shuffle([...deepSeaGoals]);
+      let totalDifficulty = 0;
+      while (allGoals.length && totalDifficulty !== missionData.maxDifficulty) {
+        const goal = allGoals.pop();
+        if (totalDifficulty + goal.difficulty[2] <= missionData.maxDifficulty) {
           goals.push({
             ...goal,
             status: Status.NotChosen,
           });
-          total_difficulty += goal.difficulty[2];
+          totalDifficulty += goal.difficulty[2];
         }
       }
     } else {
@@ -294,7 +288,7 @@ export class PlayTrick extends Phase {
       const card = game.leadingTrick[player];
       if (
         (card.suite === winnerSuite && card.num > winnerNum) ||
-        (card.suite !== winnerSuite && card.suite === SUIT_TRUMP)
+        (card.suite !== winnerSuite && card.suite === suitTrump)
       ) {
         winner = player;
         winnerNum = card.num;
@@ -306,8 +300,8 @@ export class PlayTrick extends Phase {
     tricks.push(leadingTrick);
 
     const goals = [...game.goals];
-    const mission_data = missions[game.mission.version][game.mission.num];
-    const condition = mission_data.check(state, game);
+    const missionData = missions[game.mission.version][game.mission.num];
+    const condition = missionData.check(state, game);
 
     return {
       goals,
@@ -318,7 +312,7 @@ export class PlayTrick extends Phase {
       condition: condition,
       players: {
         [winner]: {
-          tricks_won: game.players[winner].tricks_won + 1,
+          tricksWon: game.players[winner].tricksWon + 1,
         },
       },
     };

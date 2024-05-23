@@ -3,50 +3,50 @@ import { Move } from "./move";
 export class ToggleMove extends Move<[number]> {
   name = "Toggle";
 
-  async validateParams(goal_idx: number) {
-    // Check goal_idx is valid
-    if (goal_idx < 0 || goal_idx >= this.game.goals.length) {
-      return "Invalid Goal";
+  async validateParams(goalIdx: number) {
+    // Check goalIdx is valid
+    if (goalIdx < 0 || goalIdx >= this.game.goals.length) {
+      return "Invalid goal";
     }
   }
 
-  updateGame(goal_idx: number) {
-    const previous_player = this.game.goals[goal_idx].player;
-    const selection = previous_player === undefined;
+  updateGame(goalIdx: number) {
+    const previousPlayer = this.game.goals[goalIdx].player;
+    const selection = previousPlayer === undefined;
 
     if (selection) {
       const goals = [...this.game.goals];
       const goal = {
-        ...goals[goal_idx],
+        ...goals[goalIdx],
         player: this.state.player,
       };
-      goals[goal_idx] = goal;
+      goals[goalIdx] = goal;
 
-      const player_goals = (
+      const playerGoals = (
         this.game.players[this.state.player].goals ?? []
-      ).concat(goal_idx);
+      ).concat(goalIdx);
 
       return {
         goals: goals,
         players: {
           [this.state.player]: {
-            goals: player_goals,
+            goals: playerGoals,
           },
         },
       };
     } else {
       const goals = [...this.game.goals];
-      delete goals[goal_idx].player;
+      delete goals[goalIdx].player;
 
-      const player_goals = (
-        this.game.players[previous_player].goals ?? []
-      ).filter((_goal_idx) => !(goal_idx === _goal_idx));
+      const playerGoals = (
+        this.game.players[previousPlayer].goals ?? []
+      ).filter((iterGoalIdx) => !(goalIdx === iterGoalIdx));
 
       return {
         goals: goals,
         players: {
-          [previous_player]: {
-            goals: player_goals,
+          [previousPlayer]: {
+            goals: playerGoals,
           },
         },
       };

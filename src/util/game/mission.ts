@@ -113,10 +113,10 @@ export class MissionPlanetX extends Mission {
 }
 
 export class MissionDeepSea {
-  max_difficulty: number;
+  maxDifficulty: number;
 
-  constructor(max_difficulty: number) {
-    this.max_difficulty = max_difficulty;
+  constructor(maxDifficulty: number) {
+    this.maxDifficulty = maxDifficulty;
   }
 
   check(state, game): Condition {

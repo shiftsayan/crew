@@ -1,6 +1,6 @@
 import { Suite } from "../enums";
 
-export const DEEP_SEA_GOALS = [
+export const deepSeaGoals = [
   {
     id: 1,
     mission: "I will win a trick using a 5",

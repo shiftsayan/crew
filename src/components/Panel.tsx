@@ -12,21 +12,21 @@ import { Button } from "./Button";
 
 export function Panel({ idx, state, setState, game, setGame }) {
   const player = game.seating[idx];
-  const player_data = (game.players && game.players[player]) || {};
+  const playerData = (game.players && game.players[player]) || {};
   const active = game.active[player];
 
   const card = game.leadingTrick ? game.leadingTrick[player] : {};
 
-  const communicationCard = player_data?.communication?.card ?? {};
+  const communicationCard = playerData?.communication?.card ?? {};
   const communicationQualifier =
-    player_data?.communication?.qualifier ?? Communication.NotCommunicated;
+    playerData?.communication?.qualifier ?? Communication.NotCommunicated;
 
   const goals =
-    player_data && player_data.goals
-      ? player_data.goals.map((goal_idx) => {
+    playerData && playerData.goals
+      ? playerData.goals.map((goalIdx) => {
           return (
             <CrewGoalSquareSelected
-              goalIdx={goal_idx}
+              goalIdx={goalIdx}
               state={state}
               setState={setState}
               game={game}
@@ -58,10 +58,10 @@ export function Panel({ idx, state, setState, game, setGame }) {
         >
           <div className="my-auto">{player}</div>
         </div>
-        {player_data && (
+        {playerData && (
           <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
             {idx === game.commander && <Badge emoji="👑" />}
-            <Badge emoji={mapNumberToEmoji[player_data.tricks_won ?? 0]} />
+            <Badge emoji={mapNumberToEmoji[playerData.tricksWon ?? 0]} />
           </div>
         )}
       </div>
@@ -95,7 +95,7 @@ export function Panel({ idx, state, setState, game, setGame }) {
           <div
             className={classnames({
               "w-full h-14 mt-4 justify-left flex px-11 gap-4": true,
-              // "px-4": player_data.goals.length !== 4,
+              // "px-4": playerData.goals.length !== 4,
             })}
           >
             {goals}

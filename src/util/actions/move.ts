@@ -1,6 +1,6 @@
 import { ref, update } from "@firebase/database";
 
-import { crewName } from "../../constants";
+import { crewName } from "../../config";
 import { database } from "../../services/firebase";
 import { ToastStyle } from "../enums";
 import { mapPhaseNameToPhase } from "../mechanics/phase";
@@ -51,18 +51,18 @@ export abstract class Move<T extends any[]> {
 
     while (phase.ended(this.state, this.game)) {
       // end this phase
-      const end_updates = phase.onEnd(this.state, this.game);
-      mergeUpdates(updates, end_updates);
-      mergeUpdates(this.game, end_updates);
+      const endUpdates = phase.onEnd(this.state, this.game);
+      mergeUpdates(updates, endUpdates);
+      mergeUpdates(this.game, endUpdates);
       // get next phase
       const newPhaseName = phase.next(this.state, this.game);
       phase = mapPhaseNameToPhase[newPhaseName];
       updates.phase = newPhaseName;
       updates.current = phase.starter.get(this.game);
       // start next phase
-      const start_updates = phase.onStart(this.state, this.game);
-      mergeUpdates(updates, start_updates);
-      mergeUpdates(this.game, start_updates);
+      const startUpdates = phase.onStart(this.state, this.game);
+      mergeUpdates(updates, startUpdates);
+      mergeUpdates(this.game, startUpdates);
     }
 
     return updates;

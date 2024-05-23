@@ -1,7 +1,7 @@
 import classnames from "classnames";
 
 import { Button } from "./Button";
-import { GOAL_VIEW_PHASES } from "./View";
+import { goalViewPhases } from "./View";
 
 import { CTAMove } from "../util/actions/cta";
 import { Condition, Size, ViewName } from "../util/enums";
@@ -66,7 +66,7 @@ function Toggle({ state, setState, game, setGame }: CrewComponentType) {
       <div
         className={classnames({
           "mx-auto uppercase text-sm": true,
-          "text-gray-300": GOAL_VIEW_PHASES.includes(game.phase),
+          "text-gray-300": goalViewPhases.includes(game.phase),
         })}
       >
         {state.view === ViewName.Table ? "Table View" : "Trick View"}
@@ -75,8 +75,8 @@ function Toggle({ state, setState, game, setGame }: CrewComponentType) {
         <label
           className={classnames({
             flex: true,
-            "cursor-pointer": GOAL_VIEW_PHASES.includes(game.phase),
-            "cursor-not-allowed": GOAL_VIEW_PHASES.includes(game.phase),
+            "cursor-pointer": goalViewPhases.includes(game.phase),
+            "cursor-not-allowed": goalViewPhases.includes(game.phase),
           })}
         >
           <input
@@ -91,12 +91,12 @@ function Toggle({ state, setState, game, setGame }: CrewComponentType) {
                     : ViewName.Table,
               })
             }
-            disabled={GOAL_VIEW_PHASES.includes(game.phase)}
+            disabled={goalViewPhases.includes(game.phase)}
           />
           <div
             className={classnames({
               "w-14 h-8 rounded-full transition mx-auto relative": true,
-              "bg-gray-300": GOAL_VIEW_PHASES.includes(game.phase),
+              "bg-gray-300": goalViewPhases.includes(game.phase),
               "bg-gray-500": state.view === ViewName.Trick,
               "bg-blue-500": state.view === ViewName.Table,
             })}
@@ -116,9 +116,9 @@ function Toggle({ state, setState, game, setGame }: CrewComponentType) {
 }
 
 function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
-  const is_current = AgentCurrent.check(state.player, game);
-  const is_winner = AgentWinner.check(state.player, game);
-  const is_commander = AgentCommander.check(state.player, game);
+  const isCurrent = AgentCurrent.check(state.player, game);
+  const isWinner = AgentWinner.check(state.player, game);
+  const isCommander = AgentCommander.check(state.player, game);
 
   let buttonData: {
     text: string;
@@ -136,7 +136,7 @@ function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
       infoData = {
         text: "ACTION: Choose Goals",
       };
-      if (is_commander) {
+      if (isCommander) {
         buttonData = {
           text: "START GAME",
           active: true,
@@ -146,7 +146,7 @@ function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
       break;
 
     case PhaseName.Communicate:
-      if (is_winner) {
+      if (isWinner) {
         buttonData = {
           text: "START TRICK",
           active: true,
@@ -161,7 +161,7 @@ function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
       break;
 
     case PhaseName.PlayTrick:
-      if (is_current) {
+      if (isCurrent) {
         buttonData = {
           text: "PLAY CARD",
           active: true,

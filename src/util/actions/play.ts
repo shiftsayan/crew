@@ -1,17 +1,17 @@
 import { Communication } from "../enums";
-import { SUIT_TRUMP } from "../game";
+import { suitTrump } from "../game";
 import { PhaseName } from "../mechanics/phase";
 import { Move } from "./move";
 
 export class PlayMove extends Move<[number]> {
   name = "Play";
 
-  async validateParams(card_idx: number): Promise<string | void> {
+  async validateParams(cardIdx: number): Promise<string | void> {
     // invalid card index
     const xCardIdx =
-      card_idx < 0 ||
-      card_idx >= this.game.players[this.state.player].hand.length;
-    const card = this.game.players[this.state.player].hand[card_idx];
+      cardIdx < 0 ||
+      cardIdx >= this.game.players[this.state.player].hand.length;
+    const card = this.game.players[this.state.player].hand[cardIdx];
 
     // invalid card during `PlayTrick` phase
     const xPlay =
@@ -25,14 +25,14 @@ export class PlayMove extends Move<[number]> {
       this.game.leadingTrick && // if this trick has been started
       card.suite !== this.game.leadingSuite && // and card's suite does not match leading suite
       this.game.players[this.state.player].hand.some(
-        (_card) => _card.suite === this.game.leadingSuite // then the player must not have a card of the leading suite.
+        (iterCard) => iterCard.suite === this.game.leadingSuite // then the player must not have a card of the leading suite.
       );
 
     // invalid card during `Communicate` phase
     const xCommunication =
       this.game.phase === PhaseName.Communicate &&
       (this.game.players[this.state.player].communication.card ||
-        card.suite === SUIT_TRUMP);
+        card.suite === suitTrump);
 
     if (!xCardIdx && !xPlay && !xSuite && !xCommunication) {
       return;
@@ -41,11 +41,11 @@ export class PlayMove extends Move<[number]> {
     }
   }
 
-  updateGame(card_idx: number) {
-    const card = this.game.players[this.state.player].hand[card_idx];
+  updateGame(cardIdx: number) {
+    const card = this.game.players[this.state.player].hand[cardIdx];
 
-    const new_hand = this.game.players[this.state.player].hand.filter(
-      (_, idx) => idx !== card_idx
+    const newHand = this.game.players[this.state.player].hand.filter(
+      (_, iterIdx) => iterIdx !== cardIdx
     );
 
     const playedCards = this.game.playedCards ?? [];
@@ -66,7 +66,7 @@ export class PlayMove extends Move<[number]> {
       return {
         players: {
           [this.state.player]: {
-            hand: new_hand,
+            hand: newHand,
           },
         },
         playedCards: playedCards,

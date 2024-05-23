@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { ref, set } from "@firebase/database";
 
-import { crewName, players } from "../constants";
+import { crewName, players } from "../config";
 import { database } from "../services/firebase";
 import { shuffle } from "../util/random";
 
@@ -18,7 +18,7 @@ export function Reset() {
             mission: {
               num: 1,
               attempt: 1,
-              version: "deep_sea",
+              version: "deepSea",
             },
             phase: "Preflight",
             active: {
@@ -39,7 +39,7 @@ export function Reset() {
         // if (!game.seatingTtl || game.seatingTtl < now) {
         //   update(ref(database), {
         //     [`crews/${username}/seating`]: shuffle(Object.keys(game.active)),
-        //     [`crews/${username}/seatingTtl`]: now + MS_IN_DAY,
+        //     [`crews/${username}/seatingTtl`]: now + msInDay,
         //   });
         // }
 

@@ -51,7 +51,7 @@ export type CrewGameType = {
         qualifier: Communication;
       };
       hand?: CrewCardType[];
-      tricks_won?: number;
+      tricksWon?: number;
       goals?: number[];
     };
   };

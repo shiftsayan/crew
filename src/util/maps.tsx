@@ -77,18 +77,18 @@ export const mapPlayersToGridsClass = {
 };
 
 export const mapMissionVersionToEmoji = {
-  planet_x: "🌕",
-  deep_sea: "🌊",
+  planetX: "🌕",
+  deepSea: "🌊",
 };
 
 export const mapMissionVersionToName = {
-  planet_x: "The Quest for Planet X",
-  deep_sea: "Mission Deep Sea",
+  planetX: "The Quest for Planet X",
+  deepSea: "Mission Deep Sea",
 };
 
 export const mapMissionVersionToIcon = {
-  planet_x: <TbRocket />,
-  deep_sea: <TbSubmarine />,
+  planetX: <TbRocket />,
+  deepSea: <TbSubmarine />,
 };
 
 export const mapCommunicationToIcon = {

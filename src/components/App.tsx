@@ -5,7 +5,7 @@ import { onValue, ref, update } from "@firebase/database";
 import { Board } from "./Board";
 import { Layout } from "./Layout";
 
-import { crewName } from "../constants";
+import { crewName } from "../config";
 import { database } from "../services/firebase";
 import { ViewName } from "../util/enums";
 import { CrewGameType, CrewStateType } from "../util/types";
