@@ -28,16 +28,18 @@ export class PlayMove extends Move<[number]> {
         (iterCard) => iterCard.suite === this.game.leadingSuite // then the player must not have a card of the leading suite.
       );
 
+    if (xCardIdx || xPlay || xSuite) {
+      return "Invalid card for trick";
+    }
+
     // invalid card during `Communicate` phase
     const xCommunication =
       this.game.phase === PhaseName.Communicate &&
       (this.game.players[this.state.player].communication.card ||
         card.suite === suitTrump);
 
-    if (!xCardIdx && !xPlay && !xSuite && !xCommunication) {
-      return;
-    } else {
-      return "Invalid card";
+    if (xCommunication) {
+      return "Invalid card for communication";
     }
   }
 

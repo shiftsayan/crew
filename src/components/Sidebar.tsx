@@ -142,6 +142,12 @@ function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
           active: true,
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
+      } else {
+        buttonData = {
+          text: "WAIT...",
+          active: false,
+          disabled: true,
+        };
       }
       break;
 
@@ -152,19 +158,30 @@ function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
           active: true,
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
+        infoData = {
+          text: "ACTION: Comm or Start",
+        };
       } else {
-        buttonData = {
-          text: "COMMUNICATE",
-          disabled: true,
+        infoData = {
+          text: "ACTION: Comm",
         };
       }
       break;
 
     case PhaseName.PlayTrick:
       if (isCurrent) {
-        buttonData = {
-          text: "PLAY CARD",
-          active: true,
+        // buttonData = {
+        //   text: "PLAY CARD",
+        //   active: true,
+        //   disabled: true,
+        // };
+        infoData = {
+          text: "ACTION: Play Card",
+        };
+      } else {
+        buttonData = buttonData ?? {
+          text: "WAIT...",
+          active: false,
           disabled: true,
         };
       }
@@ -182,35 +199,35 @@ function ActionStack({ state, setState, game, setGame }: CrewComponentType) {
           onClick: () => new CTAMove(state, setState, game, setGame).run(),
         };
       } else {
-        buttonData = {
-          text: "MARK GOALS",
-          disabled: true,
-          onClick: () => new CTAMove(state, setState, game, setGame).run(),
+        infoData = {
+          text: "ACTION: Mark Goals",
         };
       }
       break;
   }
-  buttonData = buttonData ?? {
-    text: "WAIT...",
-    active: false,
-    disabled: true,
-  };
+  // buttonData = buttonData ?? {
+  //   text: "WAIT...",
+  //   active: false,
+  //   disabled: true,
+  // };
 
   return (
-    <div className="flex flex-col space-y-2">
-      <div className="m-auto">
-        <Button
-          key={buttonData.text}
-          size={Size.Small}
-          active={buttonData.active}
-          disabled={buttonData.disabled}
-          onClick={buttonData.onClick}
-        >
-          {buttonData?.text}
-        </Button>
-      </div>
+    <div className="flex flex-col space-y-2 items-center h-full">
+      {buttonData && (
+        <div className="">
+          <Button
+            key={buttonData.text}
+            size={Size.Small}
+            active={buttonData.active}
+            disabled={buttonData.disabled}
+            onClick={buttonData.onClick}
+          >
+            {buttonData?.text}
+          </Button>
+        </div>
+      )}
       {infoData && (
-        <div className="m-auto px-4 py-2 text-sm font-medium rounded-md bg-transparent hover:bg-gray-100 text-gray-700 underline underline-offset-2 cursor-help transition duration-200">
+        <div className="h-full py-2 px-3 text-sm font-medium rounded-md bg-transparent hover:bg-gray-100 text-gray-700 underline underline-offset-2 cursor-help transition duration-200 text-center line-clamp-1 break-all">
           {infoData.text}
         </div>
       )}

@@ -17,16 +17,17 @@ export function TaskHeader({ header, cardsOrTexts }) {
       <div className="mx-auto text-xxs flex-none">{header}</div>
       <div className="grow flex justify-center">
         <div className="my-auto flex flex-wrap justify-center gap-x-1">
-          {cardsOrTexts.map((cardOrText) => {
+          {cardsOrTexts.map((cardOrText, idx) => {
             if (cardOrText.text) {
               return (
-                <div className="text-xxs my-auto -mx-0.5">
+                <div className="text-xxs my-auto -mx-0.5" key={idx}>
                   {cardOrText.text}
                 </div>
               );
             }
             return (
               <CrewPillMini
+                key={idx}
                 num={cardOrText.num}
                 suite={cardOrText.suite}
                 decorations={{

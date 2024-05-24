@@ -3,8 +3,8 @@ import { FiMoreHorizontal } from "react-icons/fi";
 
 import { CrewLabelIcon, CrewLabelText } from "./Labels";
 
-import { mapSuiteToBackgroundColor } from "../util/maps";
 import { Decoration } from "../util/enums";
+import { mapSuiteToBackgroundColor } from "../util/maps";
 
 export function CrewPill({ num, suite, blank = false, decorations = {} }) {
   return (
@@ -41,15 +41,16 @@ export function CrewPill({ num, suite, blank = false, decorations = {} }) {
 }
 
 export function CrewPillMini({ num, suite, decorations = {} }) {
+  console.log("here", decorations);
   return (
     <div
       className={classnames({
         "font-display flex justify-center": true,
         "w-5 h-5 rounded-full": true,
         [mapSuiteToBackgroundColor[suite]]: !decorations[Decoration.Rainbow],
+        "text-white": !decorations[Decoration.Rainbow],
         "bg-[url('/public/rainbow.png')] bg-cover":
           decorations[Decoration.Rainbow],
-        "text-white": true,
         "text-black": decorations[Decoration.Rainbow],
       })}
     >

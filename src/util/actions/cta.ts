@@ -27,7 +27,7 @@ export class CTAMove extends Move<[]> {
           Communication.Communicating
       );
       if (someoneCommunicating) {
-        return "Wait For all players to finish communicating";
+        return "Wait for all players to finish communicating";
       }
       return;
     }
