@@ -5,6 +5,8 @@ import { CrewGoalSquarePending, CrewGoalSquareSelected } from "./Goal";
 
 import { mapNumberToEmoji } from "../util/maps";
 
+import { useEffect } from "react";
+import { BoopMove } from "../util/actions/boop";
 import { JoinMove } from "../util/actions/join";
 import { Communication, Size } from "../util/enums";
 import { PhaseName } from "../util/mechanics/phase";
@@ -63,6 +65,13 @@ export function Panel({ idx, state, setState, game, setGame }) {
         {playerData && (
           <div className="h-10 bg-white rounded-full my-auto flex justify-between px-2 space-x-1">
             {idx === game.commander && <Badge emoji="👑" />}
+            <BoopBadge
+              state={state}
+              setState={setState}
+              game={game}
+              setGame={setGame}
+              player={player}
+            />
             <Badge emoji={mapNumberToEmoji[playerData.tricksWon ?? 0]} />
           </div>
         )}
@@ -130,10 +139,33 @@ export function Panel({ idx, state, setState, game, setGame }) {
   );
 }
 
-function Badge({ emoji }) {
+function Badge({ emoji, onClick }: { emoji: string; onClick?: () => void }) {
   return (
-    <div className="my-auto h-7 w-7 flex justify-center rounded-full">
+    <div
+      className={classnames(
+        "my-auto h-7 w-7 flex justify-center rounded-full",
+        {
+          "cursor-pointer": onClick,
+        }
+      )}
+      onClick={onClick}
+    >
       <div className="z-10 m-auto">{emoji}</div>
     </div>
   );
+}
+
+function BoopBadge({ state, setState, game, setGame, player }) {
+  useEffect(() => {
+    if (game.players && game.players[state.player]?.boop) {
+      new BoopMove(state, setState, game, setGame).run(player, false);
+      new Audio("/boop.mp3").play();
+    }
+  }, [game, state, player]);
+
+  function boop() {
+    new BoopMove(state, setState, game, setGame).run(player, true);
+  }
+
+  return <Badge emoji="🔔" onClick={boop} />;
 }

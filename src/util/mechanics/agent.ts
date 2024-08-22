@@ -42,6 +42,12 @@ export class AgentCurrent extends AgentBase {
   }
 }
 
+export class AgentOther extends AgentBase {
+  static check(player: string, game: CrewGameType): boolean {
+    return game.seating && player !== game.seating[game.current];
+  }
+}
+
 export class AgentWinner extends AgentBase {
   static check(player: string, game: CrewGameType): boolean {
     return game.seating && player === game.seating[AgentWinner.get(game)];

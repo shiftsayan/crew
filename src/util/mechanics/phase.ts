@@ -11,6 +11,7 @@ import {
   AgentCommander,
   AgentCurrent,
   AgentNone,
+  AgentOther,
   AgentWinner,
 } from "./agent";
 import { sortHand } from "./util";
@@ -266,6 +267,7 @@ export class PlayTrick extends Phase {
     Play: AgentCurrent,
     Join: AgentAll,
     Mark: AgentAll,
+    Boop: AgentOther,
   };
 
   static ended(state: CrewStateType, game: CrewGameType): boolean {

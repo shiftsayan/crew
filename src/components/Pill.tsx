@@ -41,7 +41,6 @@ export function CrewPill({ num, suite, blank = false, decorations = {} }) {
 }
 
 export function CrewPillMini({ num, suite, decorations = {} }) {
-  console.log("here", decorations);
   return (
     <div
       className={classnames({

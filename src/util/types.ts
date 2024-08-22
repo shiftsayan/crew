@@ -53,6 +53,7 @@ export type CrewGameType = {
       hand?: CrewCardType[];
       tricksWon?: number;
       goals?: number[];
+      boop?: boolean;
     };
   };
   tricks?: { [player: string]: CrewCardType }[];
