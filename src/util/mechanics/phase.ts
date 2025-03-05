@@ -185,7 +185,7 @@ export class DealGoals extends Phase {
     } else if (game.mission.version === "deepSea") {
       const allGoals = shuffle([...deepSeaGoals]);
       let totalDifficulty = 0;
-      while (allGoals.length && totalDifficulty !== missionData.maxDifficulty) {
+      do while (allGoals.length && totalDifficulty !== missionData.maxDifficulty) {
         const goal = allGoals.pop();
         if (totalDifficulty + goal.difficulty[2] <= missionData.maxDifficulty) {
           goals.push({
