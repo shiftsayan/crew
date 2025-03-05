@@ -973,4 +973,13 @@ export const deepSeaGoals = [
       text: "Win a trick with only odd cards",
     },
   },
+  {
+    id: 1000,
+    mission: "Sayan can't code",
+    difficulty: [0, 0, 0],
+    type: "text",
+    data: {
+      text: "Sayan can't code",
+    },
+  },
 ];
