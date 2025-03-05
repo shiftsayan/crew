@@ -66,7 +66,7 @@ export const deepSeaGoals = [
     difficulty: [2, 2, 2],
     type: "header",
     data: {
-      header: "WIN >2x",
+      header: "WIN >1x",
       cards: [{ num: 7 }],
     },
   },
@@ -971,6 +971,15 @@ export const deepSeaGoals = [
     type: "text",
     data: {
       text: "Win a trick with only odd cards",
+    },
+  },
+  {
+    id: 1000,
+    mission: "Sayan can't code",
+    difficulty: [0, 0, 0],
+    type: "text",
+    data: {
+      text: "Sayan can't code",
     },
   },
 ];
