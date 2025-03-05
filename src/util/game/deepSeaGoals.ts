@@ -66,7 +66,7 @@ export const deepSeaGoals = [
     difficulty: [2, 2, 2],
     type: "header",
     data: {
-      header: "WIN >2x",
+      header: "WIN >1x",
       cards: [{ num: 7 }],
     },
   },
