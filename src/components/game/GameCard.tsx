@@ -5,11 +5,11 @@ const suitMeta: Record<
   Card["suit"],
   { label: string; symbol: string }
 > = {
-  pink: { label: "Pink", symbol: "●" },
-  blue: { label: "Blue", symbol: "◆" },
+  pink: { label: "Pink", symbol: "■" },
+  blue: { label: "Blue", symbol: "●" },
   green: { label: "Green", symbol: "▲" },
-  yellow: { label: "Yellow", symbol: "■" },
-  trump: { label: "Trump", symbol: "✦" },
+  yellow: { label: "Yellow", symbol: "×" },
+  trump: { label: "Trump", symbol: "⇈" },
 };
 
 type GameCardProps = {

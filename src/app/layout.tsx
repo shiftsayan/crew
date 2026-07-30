@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
+import "@fontsource/poppins/500.css";
+import "@fontsource/poppins/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,8 +14,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark light",
-  themeColor: "#211d56",
+  colorScheme: "light",
+  themeColor: "#4338ca",
   width: "device-width",
   initialScale: 1,
 };

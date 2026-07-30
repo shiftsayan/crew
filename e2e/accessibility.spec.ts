@@ -90,6 +90,37 @@ const activeProjection = {
   },
 };
 
+const assignmentProjection = {
+  ...baseProjection,
+  phase: "assigning-tasks",
+  self: {
+    ...baseProjection.self,
+    hand: [{ id: "pink-1", suit: "pink", value: 1 }],
+  },
+  players: baseProjection.players.map((player, index) => ({
+    ...player,
+    cardCount: index === 0 ? 1 : 0,
+  })),
+  tasks: [
+    {
+      id: "objective-1",
+      definitionId: "planet-nine-task",
+      difficulty: null,
+      cardId: "pink-1",
+      order: "first",
+      ownerPlayerId: null,
+      ownerDisplayName: null,
+      outcome: "pending",
+      title: "Win the Pink 1",
+      footnote: null,
+    },
+  ],
+  legalActions: {
+    ...baseProjection.legalActions,
+    claimableTaskIds: ["objective-1"],
+  },
+};
+
 const adminRoom = {
   id: "admin-room-e2e",
   name: "Europa",
@@ -356,6 +387,46 @@ test("active gameplay is accessible, responsive, and keyboard reachable at targe
     await expectNoAccessibilityViolations(page);
     await expectKeyboardReachable(page, "Play: Pink 1");
   }
+});
+
+test("mobile phase changes keep every game view and room exit reachable", async ({
+  page,
+}) => {
+  let projection: typeof activeProjection | typeof assignmentProjection =
+    activeProjection;
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.addInitScript(
+    ({ key, name }) => {
+      window.localStorage.setItem(
+        `crew:credentials:${name.toLowerCase()}`,
+        JSON.stringify({ roomName: name, key }),
+      );
+    },
+    { key: playerKey, name: roomName },
+  );
+  await page.route(`**/api/rooms/${roomName}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(projection),
+      status: 200,
+    });
+  });
+
+  await page.goto(`/rooms/${roomName}`);
+  await page.getByRole("button", { name: "Crew", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Crew" })).toBeVisible();
+
+  projection = assignmentProjection;
+  await expect(page.getByRole("heading", { name: "Objectives" })).toBeVisible({
+    timeout: 3_000,
+  });
+  await expect(page.getByRole("button", { name: "Table", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Crew", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tasks 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Forget this room" })).toBeVisible();
+  await expectNoHorizontalDocumentOverflow(page);
+  await expectNoAccessibilityViolations(page);
 });
 
 test("authenticated admin dashboard is accessible and responsive at target widths", async ({

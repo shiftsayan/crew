@@ -6,6 +6,7 @@
     "node": "22.x"
   },
   "dependencies": {
+    "@fontsource/poppins": "^5.3.0",
     "canvas-confetti": "^1.9.4",
     "next": "^16.0.0",
     "pg": "^8.16.0",

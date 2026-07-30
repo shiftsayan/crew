@@ -119,10 +119,10 @@ export function AdminApp() {
 
   if (authState === "checking") {
     return (
-      <main className="centered-state admin-loading" id="main-content">
-        <CrewMark size="large" />
+      <main className="centered-state admin-loading console-frame" id="main-content">
+        <CrewMark />
         <Spinner label="Checking admin session" />
-        <p>Checking mission control…</p>
+        <p>Checking admin session…</p>
       </main>
     );
   }
@@ -141,13 +141,13 @@ export function AdminApp() {
   }
 
   return (
-    <div className="admin-page">
-      <header className="admin-header">
+    <div className="admin-page console-frame">
+      <header className="admin-header console-header">
         <Link href="/" className="brand-link" aria-label="Crew home">
           <CrewMark />
         </Link>
-        <div>
-          <p className="eyebrow">Mission control</p>
+        <div className="admin-header__title">
+          <p className="eyebrow">Administration</p>
           <h1>Room admin</h1>
         </div>
         <button
@@ -164,10 +164,12 @@ export function AdminApp() {
       </header>
 
       <main className="admin-main" id="main-content">
-        <div className="admin-toolbar">
+        <section className="admin-toolbar console-toolbar" aria-labelledby="room-count-title">
           <div>
-            <p className="eyebrow">Rooms</p>
-            <h2>{rooms.length ? `${rooms.length} active` : "No rooms yet"}</h2>
+            <p className="eyebrow">Room list</p>
+            <h2 id="room-count-title">
+              {rooms.length ? `${rooms.length} active` : "No rooms yet"}
+            </h2>
           </div>
           <CreateRoom
             editions={editions}
@@ -177,13 +179,14 @@ export function AdminApp() {
                 method: "POST",
                 body: JSON.stringify(input),
               });
-              if (!created) return;
+              if (!created) return false;
               const room = "room" in created ? created.room : created;
               setMessage(`${room.name} is ready for players.`);
               await refreshAfterMutation(room.id);
+              return true;
             }}
           />
-        </div>
+        </section>
 
         {error ? (
           <Notice tone="error" live>
@@ -196,7 +199,11 @@ export function AdminApp() {
           </Notice>
         ) : null}
 
-        <div className={`admin-workspace ${selectedRoom ? "admin-workspace--detail" : ""}`}>
+        <div
+          className={`admin-workspace console-body ${
+            selectedRoom ? "admin-workspace--detail" : ""
+          }`}
+        >
           <RoomList
             rooms={rooms}
             selectedRoomId={selectedRoom?.id}
@@ -223,10 +230,9 @@ export function AdminApp() {
               }}
             />
           ) : (
-            <section className="surface admin-empty" aria-label="Room details">
-              <span aria-hidden="true">✦</span>
+            <section className="surface admin-empty console-panel" aria-label="Room details">
               <h2>Select a room</h2>
-              <p>Manage its roster, keys, mission, and current attempt here.</p>
+              <p>Select a room to manage its roster, keys, mission, and current attempt.</p>
             </section>
           )}
         </div>
@@ -269,14 +275,14 @@ function AdminLogin({
   }
 
   return (
-    <main className="admin-login-page" id="main-content">
-      <section className="admin-login-intro">
-        <CrewMark size="large" />
-        <p className="eyebrow">Private operations</p>
-        <h1>Mission control</h1>
+    <main className="admin-login-page console-frame" id="main-content">
+      <section className="admin-login-intro console-header">
+        <CrewMark />
+        <p className="eyebrow">Administration</p>
+        <h1>Room admin</h1>
         <p>Use the shared admin password to create rooms and manage players.</p>
       </section>
-      <form className="join-card admin-login-card" onSubmit={submit}>
+      <form className="join-card admin-login-card console-panel" onSubmit={submit}>
         <label htmlFor={inputId}>Admin password</label>
         <input
           id={inputId}
@@ -316,7 +322,11 @@ function CreateRoom({
 }: {
   editions: EditionOption[];
   disabled: boolean;
-  onCreate: (input: { name: string; editionKey: string; missionKey: string }) => Promise<void>;
+  onCreate: (input: {
+    name: string;
+    editionKey: string;
+    missionKey: string;
+  }) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -340,9 +350,15 @@ function CreateRoom({
       className="create-room-form"
       onSubmit={(event) => {
         event.preventDefault();
-        void onCreate({ name: name.trim(), editionKey, missionKey: selectedMissionKey }).then(() => {
-          setName("");
-          setOpen(false);
+        void onCreate({
+          name: name.trim(),
+          editionKey,
+          missionKey: selectedMissionKey,
+        }).then((created) => {
+          if (created) {
+            setName("");
+            setOpen(false);
+          }
         });
       }}
     >
@@ -415,7 +431,7 @@ function RoomList({
 }) {
   if (!rooms.length) {
     return (
-      <section className="surface room-list room-list--empty">
+      <section className="surface room-list room-list--empty console-panel">
         <h2>No rooms yet</h2>
         <p>Create one, then add three to five players before starting the mission.</p>
       </section>
@@ -423,7 +439,7 @@ function RoomList({
   }
 
   return (
-    <section className="surface room-list" aria-labelledby="room-list-title">
+    <section className="surface room-list console-panel" aria-labelledby="room-list-title">
       <h2 className="sr-only" id="room-list-title">
         Rooms
       </h2>
@@ -435,9 +451,7 @@ function RoomList({
               <th scope="col">Mission</th>
               <th scope="col">Phase</th>
               <th scope="col">Crew</th>
-              <th scope="col">
-                <span className="sr-only">Actions</span>
-              </th>
+              <th scope="col" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
@@ -548,8 +562,8 @@ function RoomEditor({
   }
 
   return (
-    <section className="surface room-editor" aria-labelledby="room-editor-title">
-      <div className="room-editor__header">
+    <section className="surface room-editor console-panel" aria-labelledby="room-editor-title">
+      <div className="room-editor__header console-panel__header">
         <div>
           <p className="eyebrow">Room details</p>
           <h2 id="room-editor-title">{room.name}</h2>
@@ -560,7 +574,7 @@ function RoomEditor({
         </button>
       </div>
 
-      <div className="admin-section">
+      <div className="admin-section console-section">
         <div className="admin-section__heading">
           <h3>Mission</h3>
           <span className={`phase-pill phase-pill--${room.phase}`}>{formatPhase(room.phase)}</span>
@@ -665,7 +679,7 @@ function RoomEditor({
         </div>
       </div>
 
-      <div className="admin-section">
+      <div className="admin-section console-section">
         <div className="admin-section__heading">
           <h3>Players</h3>
           <span>{room.players.length}/5 seats</span>
@@ -731,7 +745,7 @@ function RoomEditor({
         ) : null}
       </div>
 
-      <div className="admin-section admin-danger-zone">
+      <div className="admin-section admin-danger-zone console-section">
         <h3>Danger zone</h3>
         <p>Deleting a room permanently removes its current attempt and player keys.</p>
         <button
