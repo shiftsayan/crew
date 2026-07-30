@@ -279,10 +279,13 @@ async function openPlayerSessions(
       const context = await browser.newContext({ baseURL });
       await context.addInitScript(
         ({ key, name }) => {
-          window.localStorage.setItem(
-            `crew:credentials:${name.toLowerCase()}`,
-            JSON.stringify({ roomName: name, key }),
-          );
+          const storageKey = `crew:credentials:${name.toLowerCase()}`;
+          if (window.localStorage.getItem(storageKey) === null) {
+            window.localStorage.setItem(
+              storageKey,
+              JSON.stringify({ roomName: name, key }),
+            );
+          }
         },
         { key: player.loginKey, name: room.name },
       );
@@ -794,8 +797,12 @@ test.describe("database-backed browser gaps", () => {
       await page.getByRole("button", { name: "+ New room" }).click();
       const createForm = page.locator(".create-room-form");
       await createForm.getByLabel("Room name").fill(roomName);
-      await createForm.getByLabel("Edition").selectOption("planet-nine");
-      await createForm.getByLabel("Mission").selectOption("planet-nine:1");
+      await createForm
+        .getByRole("combobox", { name: "Edition", exact: true })
+        .selectOption("planet-nine");
+      await createForm
+        .getByRole("combobox", { name: "Mission", exact: true })
+        .selectOption("planet-nine:1");
 
       const createdResponse = page.waitForResponse(
         (response) =>
