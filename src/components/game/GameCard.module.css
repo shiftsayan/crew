@@ -1,0 +1,113 @@
+.card {
+  position: relative;
+  display: inline-flex;
+  width: clamp(3.65rem, 7vw, 5.4rem);
+  flex: 0 0 auto;
+  aspect-ratio: 0.69;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 850;
+  background: var(--indigo-600);
+  border: 0.28rem solid white;
+  border-radius: clamp(0.55rem, 1vw, 0.8rem);
+  box-shadow:
+    0 5px 14px rgb(23 19 63 / 18%),
+    0 0 0 1px rgb(23 19 63 / 12%);
+  isolation: isolate;
+  overflow: hidden;
+  user-select: none;
+}
+
+button.card {
+  min-height: 0;
+  padding: 0;
+  transition:
+    transform 130ms ease,
+    box-shadow 130ms ease,
+    filter 130ms ease;
+}
+
+button.card:not(:disabled):hover {
+  z-index: 2;
+  box-shadow:
+    0 12px 25px rgb(23 19 63 / 25%),
+    0 0 0 2px var(--indigo-600);
+  transform: translateY(-0.4rem);
+}
+
+button.card:disabled {
+  filter: saturate(0.25);
+  opacity: 0.55;
+}
+
+.selected {
+  box-shadow:
+    0 12px 25px rgb(23 19 63 / 25%),
+    0 0 0 3px #ffcf4d;
+  transform: translateY(-0.35rem);
+}
+
+.card::before {
+  position: absolute;
+  z-index: -1;
+  width: 130%;
+  height: 33%;
+  content: "";
+  background: rgb(255 255 255 / 13%);
+  transform: rotate(-28deg);
+}
+
+.pink {
+  background: var(--pink);
+}
+
+.blue {
+  background: var(--blue);
+}
+
+.green {
+  background: var(--green);
+}
+
+.yellow {
+  color: #3e300b;
+  background: #f2bf3a;
+}
+
+.trump {
+  background: #29273a;
+}
+
+.compact {
+  width: 3.15rem;
+  border-width: 0.2rem;
+  border-radius: 0.5rem;
+}
+
+.rank {
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1;
+}
+
+.compact .rank {
+  font-size: 1.1rem;
+}
+
+.symbol {
+  position: absolute;
+  right: 0.28rem;
+  bottom: 0.15rem;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+@media (max-width: 800px) {
+  .card {
+    width: clamp(3.8rem, 18vw, 4.7rem);
+  }
+
+  .compact {
+    width: 3.1rem;
+  }
+}

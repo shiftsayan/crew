@@ -1,0 +1,38 @@
+import { defineConfig } from "@playwright/test";
+
+const port = Number(process.env.CREW_E2E_PORT ?? 3100);
+const baseURL = `http://127.0.0.1:${port}`;
+
+export default defineConfig({
+  testDir: "./e2e",
+  outputDir: "test-results",
+  fullyParallel: true,
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 2 : 0,
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never" }]]
+    : [["list"]],
+  use: {
+    baseURL,
+    browserName: "chromium",
+    screenshot: "only-on-failure",
+    trace: "retain-on-failure",
+    video: "retain-on-failure",
+  },
+  webServer: {
+    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    env: {
+      ADMIN_PASSWORD:
+        process.env.ADMIN_PASSWORD ?? "crew-e2e-admin-password",
+      ADMIN_SESSION_SECRET:
+        process.env.ADMIN_SESSION_SECRET ??
+        "crew-e2e-session-secret-that-is-at-least-32-characters",
+      DATABASE_URL:
+        process.env.DATABASE_URL ??
+        "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+    },
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    url: baseURL,
+  },
+});
