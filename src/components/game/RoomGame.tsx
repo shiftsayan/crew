@@ -11,7 +11,20 @@ import { CrewBoard } from "./CrewBoard";
 import { forgetCredential, readCredential, type StoredCredential } from "./credentials";
 import { useRoomProjection } from "./useRoomProjection";
 
+const minimumRoomViewport =
+  "(min-width: 1024px) and (min-height: 640px)";
+
 export function RoomGame() {
+  const viewportAllowed = useRoomViewport();
+
+  if (viewportAllowed !== true) {
+    return <RoomViewportGate checking={viewportAllowed === null} />;
+  }
+
+  return <RoomGameContent />;
+}
+
+function RoomGameContent() {
   const params = useParams<{ name: string }>();
   const router = useRouter();
   const routeName = decodeURIComponent(params.name);
@@ -114,6 +127,25 @@ export function RoomGame() {
   );
 }
 
+function RoomViewportGate({ checking }: { checking: boolean }) {
+  return (
+    <div
+      className={`room-viewport-gate ${
+        checking ? "room-viewport-gate--checking" : ""
+      }`}
+      id="main-content"
+      role="alert"
+      aria-labelledby="room-viewport-title"
+    >
+      <section className="room-viewport-gate__panel">
+        <CrewMark size="large" />
+        <h1 id="room-viewport-title">Screen too small</h1>
+        <p>The game room requires a window at least 1024 × 640.</p>
+      </section>
+    </div>
+  );
+}
+
 function RoomState({ children }: { children: ReactNode }) {
   return (
     <main className="centered-state" id="main-content">
@@ -121,4 +153,19 @@ function RoomState({ children }: { children: ReactNode }) {
       <section className="state-panel">{children}</section>
     </main>
   );
+}
+
+function useRoomViewport() {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia(minimumRoomViewport);
+    const update = () => setAllowed(media.matches);
+
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return allowed;
 }

@@ -56,6 +56,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to join a room and
 [http://localhost:3000/admin](http://localhost:3000/admin) to administer one.
+The player room requires a browser viewport of at least 1024 × 640; the join
+and admin pages remain available on smaller screens.
 
 ## Verification
 

@@ -371,7 +371,7 @@ function TaskBoard({
                 action={
                   claimable ? (
                     <button
-                      className={styles.tileAction}
+                      className={`button button--small ${styles.tileAction}`}
                       type="button"
                       disabled={pending}
                       onClick={() => void sendCommand({ type: "claim-task", taskId: task.id })}
@@ -729,7 +729,7 @@ function HandDock({
         <span>{projection.self.hand.length} cards</span>
         {canCommunicate ? (
           <button
-            className={styles.communicationModeButton}
+            className={`button button--small ${styles.communicationModeButton}`}
             type="button"
             disabled={pending}
             aria-pressed={isCommunicationMode}
@@ -811,6 +811,7 @@ function HandDock({
           <span>Communicate as</span>
           {communicationOption.qualifiers.map((qualifier, index) => (
             <button
+              className="button button--small"
               ref={index === 0 ? firstQualifierRef : undefined}
               type="button"
               key={qualifier}
@@ -832,7 +833,11 @@ function HandDock({
               {qualifierCopy[qualifier]}
             </button>
           ))}
-          <button type="button" onClick={closeCommunicationPicker}>
+          <button
+            className="button button--small"
+            type="button"
+            onClick={closeCommunicationPicker}
+          >
             Cancel
           </button>
         </div>

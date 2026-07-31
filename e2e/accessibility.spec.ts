@@ -110,37 +110,6 @@ const activeProjection = {
   },
 };
 
-const assignmentProjection = {
-  ...baseProjection,
-  phase: "assigning-tasks",
-  self: {
-    ...baseProjection.self,
-    hand: [{ id: "pink-1", suit: "pink", value: 1 }],
-  },
-  players: baseProjection.players.map((player, index) => ({
-    ...player,
-    cardCount: index === 0 ? 1 : 0,
-  })),
-  tasks: [
-    {
-      id: "objective-1",
-      definitionId: "planet-nine-task",
-      difficulty: null,
-      cardId: "pink-1",
-      order: "first",
-      ownerPlayerId: null,
-      ownerDisplayName: null,
-      outcome: "pending",
-      title: "Win the Pink 1",
-      footnote: null,
-    },
-  ],
-  legalActions: {
-    ...baseProjection.legalActions,
-    claimableTaskIds: ["objective-1"],
-  },
-};
-
 const adminRoom = {
   id: "admin-room-e2e",
   name: "Europa",
@@ -297,13 +266,49 @@ for (const width of [320, 375, 768, 1440]) {
     for (const control of [
       page.getByLabel("Room name"),
       page.getByLabel("Your player key"),
-      page.getByRole("button", { name: "Join mission" }),
     ]) {
       const box = await control.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
     }
   });
 }
+
+test("shared buttons use the original Crew treatment", async ({ page }) => {
+  await page.goto("/");
+  const joinButton = page.getByRole("button", { name: "Join mission" });
+  const tokens = await joinButton.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      borderRadius: style.borderRadius,
+      color: style.color,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      height: style.height,
+      paddingLeft: style.paddingLeft,
+      paddingTop: style.paddingTop,
+    };
+  });
+
+  expect(tokens).toEqual({
+    backgroundColor: "rgb(224, 231, 255)",
+    borderRadius: "6px",
+    color: "rgb(67, 56, 202)",
+    fontSize: "16px",
+    fontWeight: "500",
+    height: "40px",
+    paddingLeft: "24px",
+    paddingTop: "8px",
+  });
+
+  await joinButton.hover();
+  await expect(joinButton).toHaveCSS("background-color", "rgb(199, 210, 254)");
+  await joinButton.focus();
+  await expect(joinButton).toHaveCSS(
+    "box-shadow",
+    "rgb(99, 102, 241) 0px 0px 0px 2px",
+  );
+});
 
 test("join is keyboard-operable and stores only the submitted player credential", async ({
   page,
@@ -420,8 +425,6 @@ test("active gameplay is accessible, viewport-bound, and keyboard reachable", as
   });
 
   for (const viewport of [
-    { width: 320, height: 740 },
-    { width: 375, height: 812 },
     { width: 1024, height: 640 },
     { width: 1366, height: 768 },
     { width: 1440, height: 900 },
@@ -436,26 +439,24 @@ test("active gameplay is accessible, viewport-bound, and keyboard reachable", as
     await expectNoDocumentScroll(page);
     await expectNoAccessibilityViolations(page);
     await expectKeyboardReachable(page, "Play: Pink 1");
-    if (viewport.width > 700) {
-      const station = page.getByRole("article", { name: "Ada station" });
-      const objective = station.getByRole("img", {
-        name: /Win the Pink 1.*Assigned to Ada/,
-      });
-      const [stationBox, objectiveBox] = await Promise.all([
-        station.boundingBox(),
-        objective.boundingBox(),
-      ]);
+    const station = page.getByRole("article", { name: "Ada station" });
+    const objective = station.getByRole("img", {
+      name: /Win the Pink 1.*Assigned to Ada/,
+    });
+    const [stationBox, objectiveBox] = await Promise.all([
+      station.boundingBox(),
+      objective.boundingBox(),
+    ]);
 
-      expect(stationBox).not.toBeNull();
-      expect(objectiveBox).not.toBeNull();
-      expect(objectiveBox!.y).toBeGreaterThanOrEqual(stationBox!.y);
-      expect(objectiveBox!.y + objectiveBox!.height).toBeLessThanOrEqual(
-        stationBox!.y + stationBox!.height,
-      );
-    }
+    expect(stationBox).not.toBeNull();
+    expect(objectiveBox).not.toBeNull();
+    expect(objectiveBox!.y).toBeGreaterThanOrEqual(stationBox!.y);
+    expect(objectiveBox!.y + objectiveBox!.height).toBeLessThanOrEqual(
+      stationBox!.y + stationBox!.height,
+    );
   }
 
-  await page.setViewportSize({ width: 375, height: 812 });
+  await page.setViewportSize({ width: 1024, height: 640 });
   await page.goto(`/rooms/${roomName}`);
   const modeButton = page.getByRole("button", { name: "Communicate a card" });
   await modeButton.click();
@@ -486,13 +487,11 @@ test("active gameplay is accessible, viewport-bound, and keyboard reachable", as
   await expect(page.getByRole("region", { name: "Your hand" })).toBeFocused();
 });
 
-test("mobile phase changes keep every game view and room exit reachable", async ({
+test("the game room is unavailable below the minimum laptop viewport", async ({
   page,
 }) => {
-  let projection: typeof activeProjection | typeof assignmentProjection =
-    activeProjection;
+  let roomRequests = 0;
 
-  await page.setViewportSize({ width: 375, height: 812 });
   await page.addInitScript(
     ({ key, name }) => {
       window.localStorage.setItem(
@@ -503,28 +502,48 @@ test("mobile phase changes keep every game view and room exit reachable", async 
     { key: playerKey, name: roomName },
   );
   await page.route(`**/api/rooms/${roomName}`, async (route) => {
+    roomRequests += 1;
     await route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify(projection),
+      body: JSON.stringify(activeProjection),
       status: 200,
     });
   });
 
-  await page.goto(`/rooms/${roomName}`);
-  await page.getByRole("button", { name: "Crew", exact: true }).click();
-  await expect(page.getByRole("region", { name: "Crew" })).toBeVisible();
+  for (const viewport of [
+    { width: 1023, height: 900 },
+    { width: 1440, height: 639 },
+    { width: 375, height: 812 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto(`/rooms/${roomName}`);
 
-  projection = assignmentProjection;
-  await expect(page.getByRole("heading", { name: "Objectives" })).toBeVisible({
-    timeout: 3_000,
-  });
-  await expect(page.getByRole("button", { name: "Table", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Crew", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Tasks 1" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Forget this room" })).toBeVisible();
-  await expectNoHorizontalDocumentOverflow(page);
-  await expectNoDocumentScroll(page);
-  await expectNoAccessibilityViolations(page);
+    await expect(
+      page.getByRole("heading", { name: "Screen too small" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("The game room requires a window at least 1024 × 640."),
+    ).toBeVisible();
+    await expect(page.getByRole("region", { name: "Game console" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Play: Pink 1" })).toHaveCount(0);
+    await expectNoHorizontalDocumentOverflow(page);
+    await expectNoDocumentScroll(page);
+    await expectNoAccessibilityViolations(page);
+  }
+
+  expect(roomRequests).toBe(0);
+
+  await page.setViewportSize({ width: 1024, height: 640 });
+  await expect(
+    page.getByRole("heading", { name: "Current trick" }),
+  ).toBeVisible();
+  expect(roomRequests).toBeGreaterThan(0);
+
+  await page.setViewportSize({ width: 1023, height: 640 });
+  await expect(
+    page.getByRole("heading", { name: "Screen too small" }),
+  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Game console" })).toHaveCount(0);
 });
 
 test("authenticated admin dashboard is accessible and responsive at target widths", async ({
