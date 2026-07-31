@@ -38,9 +38,9 @@ describe("Artwork", () => {
 
   test("masks dark sky while feathering characters into bright clouds", () => {
     expect(getArtworkVisibility(0.08)).toBe(0);
-    expect(getArtworkVisibility(0.12)).toBe(0);
-    expect(getArtworkVisibility(0.27)).toBeCloseTo(0.5, 5);
-    expect(getArtworkVisibility(0.42)).toBe(1);
+    expect(getArtworkVisibility(0.34)).toBe(0);
+    expect(getArtworkVisibility(0.44)).toBeCloseTo(0.5, 5);
+    expect(getArtworkVisibility(0.54)).toBe(1);
     expect(getArtworkVisibility(0.9)).toBe(1);
   });
 });
