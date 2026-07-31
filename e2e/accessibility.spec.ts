@@ -374,6 +374,12 @@ test("join and locked admin shells pass automated accessibility checks", async (
 
   await page.goto("/admin");
   await expect(page.getByLabel("Admin password")).toBeVisible();
+  await expect(page.getByTestId("admin-artwork")).toHaveCSS(
+    "background-image",
+    /crew-clouds\.jpg/,
+  );
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator('[data-slot="card"]')).toHaveCount(1);
   await expectNoHorizontalDocumentOverflow(page);
   await expectNoAccessibilityViolations(page);
 });
@@ -559,6 +565,11 @@ test("authenticated admin dashboard is accessible and responsive at target width
     });
     await page.goto("/admin");
     await expect(page.getByRole("heading", { name: "Room admin" })).toBeVisible();
+    await expect(page.getByTestId("admin-artwork")).toHaveCSS(
+      "background-image",
+      /crew-clouds\.jpg/,
+    );
+    await expect(page.locator("canvas")).toHaveCount(0);
     await page.getByRole("button", { name: `Manage ${adminRoom.name}` }).click();
     await expect(
       page.getByRole("heading", { name: adminRoom.name, exact: true }),
