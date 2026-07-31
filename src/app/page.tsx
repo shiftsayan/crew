@@ -1,5 +1,4 @@
 import { JoinForm } from "@/components/join/JoinForm";
-import { LandingBackdrop } from "@/components/join/LandingBackdrop";
 import { CrewMark } from "@/components/ui/CrewMark";
 
 export default function HomePage() {
@@ -15,7 +14,6 @@ export default function HomePage() {
         </header>
         <JoinForm />
       </section>
-      <LandingBackdrop />
     </main>
   );
 }

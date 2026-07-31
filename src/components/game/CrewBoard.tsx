@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import {
+  useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -79,7 +81,6 @@ export function CrewBoard({
     viewSelection.scope === viewScope
       ? viewSelection.view
       : preferredView(projection.phase);
-  const [communicatingCard, setCommunicatingCard] = useState<Card | null>(null);
   const currentPlayer = projection.players.find((player) => player.isCurrent);
   const won = projection.phase === "finished" && projection.result === "won";
   const showTaskView = mobileView === "tasks";
@@ -99,7 +100,12 @@ export function CrewBoard({
           </Notice>
         ) : null}
 
-        <section className={styles.console} aria-label="Game console">
+        <section
+          className={`${styles.console} ${
+            mobileView === "crew" ? styles.consoleCrewView : ""
+          }`}
+          aria-label="Game console"
+        >
           <div className={styles.hud}>
             <GameView
               projection={projection}
@@ -127,10 +133,9 @@ export function CrewBoard({
         </section>
 
         <HandDock
+          key={viewScope}
           projection={projection}
           pending={actionPending}
-          communicatingCard={communicatingCard}
-          setCommunicatingCard={setCommunicatingCard}
           sendCommand={sendCommand}
         />
       </main>
@@ -255,7 +260,11 @@ function TrickView({ projection }: { projection: ActorProjection }) {
         </span>
       </header>
 
-      <div className={styles.trick}>
+      <div
+        className={styles.trick}
+        aria-label="Cards in the current trick"
+        tabIndex={0}
+      >
         {projection.players.map((player) => {
           const play = trick?.plays.find((candidate) => candidate.playerId === player.id);
           const card = projectedCard(play?.cardId);
@@ -474,24 +483,22 @@ function MissionSidebar({
 
         <div className={styles.missionCopy}>
           <strong>{projection.mission.title}</strong>
-          <span>{phaseCopy[projection.phase]}</span>
-          {currentPlayerName ? <span>{currentPlayerName}&apos;s turn</span> : null}
-        </div>
-
-        <div className={styles.roomMeta}>
-          <span>{projection.room.name}</span>
-          <span className="player-identity">{projection.self.displayName}</span>
-          <span className={connection === "reconnecting" ? styles.offline : styles.online}>
-            {connection === "reconnecting" ? "Reconnecting" : "Live"}
+          <span>
+            {[
+              phaseCopy[projection.phase],
+              currentPlayerName ? `${currentPlayerName}'s turn` : "",
+              projection.mission.manualRule ? "Manual rule" : "",
+              projection.mission.deadSpot ? "No communication" : "",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </div>
 
-        {projection.mission.manualRule || projection.mission.deadSpot ? (
-          <div className={styles.ruleNotes}>
-            {projection.mission.manualRule ? <span>Manual rule</span> : null}
-            {projection.mission.deadSpot ? <span>No communication</span> : null}
-          </div>
-        ) : null}
+        <p className={styles.identity}>
+          {projection.room.name} · {projection.self.displayName} ·{" "}
+          {connection === "reconnecting" ? "Reconnecting" : "Live"}
+        </p>
 
         {projection.phase !== "setup" && projection.phase !== "finished" ? (
           <nav className={styles.mobileTabs} aria-label="Game views">
@@ -602,7 +609,11 @@ function CrewPanels({
         const tasks = projection.tasks.filter((task) => task.ownerPlayerId === player.id);
 
         return (
-          <article className={styles.playerPanel} key={player.id}>
+          <article
+            className={styles.playerPanel}
+            key={player.id}
+            aria-label={`${player.displayName} station`}
+          >
             <header className={styles.playerHeader}>
               <span className={player.id === projection.self.id ? styles.selfName : ""}>
                 {player.displayName}
@@ -627,30 +638,21 @@ function CrewPanels({
               />
             </div>
 
-            <div className={styles.playerTasks} aria-label={`${player.displayName}'s objectives`}>
-              {tasks.length ? (
-                tasks.map((task) => (
+            {tasks.length ? (
+              <div
+                className={styles.playerTasks}
+                aria-label={`${player.displayName}'s objectives`}
+              >
+                {tasks.map((task) => (
                   <TaskTile
                     key={task.id}
                     task={task}
                     card={projectedCard(task.cardId)}
                     ownerName={player.displayName}
                   />
-                ))
-              ) : (
-                <span
-                  className={styles.emptyTaskSlot}
-                  role="img"
-                  aria-label="No assigned objectives"
-                >
-                  +
-                </span>
-              )}
-            </div>
-
-            <p className={styles.playerCounts}>
-              {player.cardCount} cards · {player.tricksWon} tricks
-            </p>
+                ))}
+              </div>
+            ) : null}
           </article>
         );
       })}
@@ -671,7 +673,7 @@ function CardStation({
 }) {
   return (
     <span className={styles.cardStation}>
-      <small>{label}</small>
+      <small className="sr-only">{label}</small>
       {card ? (
         <span className={styles.communicatedCard}>
           <GameCard card={card} compact />
@@ -687,54 +689,64 @@ function CardStation({
 function HandDock({
   projection,
   pending,
-  communicatingCard,
-  setCommunicatingCard,
   sendCommand,
 }: {
   projection: ActorProjection;
   pending: boolean;
-  communicatingCard: Card | null;
-  setCommunicatingCard: (card: Card | null) => void;
   sendCommand: (command: PlayerCommand) => Promise<boolean>;
 }) {
+  const [communicationMode, setCommunicationMode] = useState(false);
+  const [communicatingCard, setCommunicatingCard] = useState<Card | null>(null);
+  const dockRef = useRef<HTMLElement>(null);
+  const firstQualifierRef = useRef<HTMLButtonElement>(null);
+  const communicationTriggerRef = useRef<HTMLButtonElement>(null);
+  const canCommunicate =
+    projection.legalActions.communicationOptions.length > 0;
+  const isCommunicationMode = communicationMode && canCommunicate;
   const communicationOption = projection.legalActions.communicationOptions.find(
     (option) => option.cardId === communicatingCard?.id,
   );
+  const communicatingCardId = communicatingCard?.id;
+
+  useEffect(() => {
+    if (communicatingCardId) firstQualifierRef.current?.focus();
+  }, [communicatingCardId]);
+
+  function closeCommunicationPicker() {
+    communicationTriggerRef.current?.focus();
+    setCommunicatingCard(null);
+  }
 
   return (
-    <section className={styles.dock} aria-labelledby="hand-title">
+    <section
+      ref={dockRef}
+      className={styles.dock}
+      aria-labelledby="hand-title"
+      tabIndex={-1}
+    >
       <header className={styles.dockHeading}>
         <h2 id="hand-title">Your hand</h2>
         <span>{projection.self.hand.length} cards</span>
-      </header>
-
-      {communicatingCard && communicationOption ? (
-        <div className={styles.communicationPicker} role="group" aria-label="Choose communication">
-          <GameCard card={communicatingCard} compact />
-          <span>Communicate as</span>
-          {communicationOption.qualifiers.map((qualifier) => (
-            <button
-              type="button"
-              key={qualifier}
-              disabled={pending}
-              onClick={() => {
-                void sendCommand({
-                  type: "communicate",
-                  cardId: communicatingCard.id,
-                  qualifier,
-                }).then((sent) => {
-                  if (sent) setCommunicatingCard(null);
-                });
-              }}
-            >
-              {qualifierCopy[qualifier]}
-            </button>
-          ))}
-          <button type="button" onClick={() => setCommunicatingCard(null)}>
-            Cancel
+        {canCommunicate ? (
+          <button
+            className={styles.communicationModeButton}
+            type="button"
+            disabled={pending}
+            aria-pressed={isCommunicationMode}
+            aria-label={
+              isCommunicationMode
+                ? "Cancel communication mode"
+                : "Communicate a card"
+            }
+            onClick={() => {
+              setCommunicationMode(!isCommunicationMode);
+              setCommunicatingCard(null);
+            }}
+          >
+            {isCommunicationMode ? "Cancel" : "Communicate"}
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </header>
 
       <div className={styles.hand}>
         {projection.self.hand.length ? (
@@ -743,7 +755,7 @@ function HandDock({
             const communicable = projection.legalActions.communicationOptions.some(
               (option) => option.cardId === card.id,
             );
-            const readableCard = `${capitalize(card.suit)} ${card.value}`;
+            const interactive = isCommunicationMode ? communicable : playable;
 
             return (
               <div className={styles.handCard} key={card.id}>
@@ -751,26 +763,32 @@ function HandDock({
                   card={card}
                   disabled={pending}
                   selected={communicatingCard?.id === card.id}
-                  labelPrefix={playable ? "Play" : communicable ? "Card" : "Unavailable"}
+                  buttonRef={
+                    communicatingCard?.id === card.id
+                      ? communicationTriggerRef
+                      : undefined
+                  }
+                  labelPrefix={
+                    isCommunicationMode
+                      ? communicable
+                        ? "Communicate"
+                        : "Unavailable"
+                      : playable
+                        ? "Play"
+                        : "Unavailable"
+                  }
                   onClick={
-                    playable
-                      ? () => void sendCommand({ type: "play-card", cardId: card.id })
+                    interactive
+                      ? isCommunicationMode
+                        ? () => setCommunicatingCard(card)
+                        : () =>
+                            void sendCommand({
+                              type: "play-card",
+                              cardId: card.id,
+                            })
                       : undefined
                   }
                 />
-                {communicable ? (
-                  <button
-                    className={styles.communicateButton}
-                    type="button"
-                    disabled={pending}
-                    aria-label={`Communicate ${readableCard}`}
-                    onClick={() => setCommunicatingCard(card)}
-                  >
-                    Communicate
-                  </button>
-                ) : playable ? (
-                  <span>Play</span>
-                ) : null}
               </div>
             );
           })
@@ -782,6 +800,43 @@ function HandDock({
           </p>
         )}
       </div>
+
+      {communicatingCard && communicationOption ? (
+        <div
+          className={styles.communicationPicker}
+          role="group"
+          aria-label="Choose communication"
+        >
+          <GameCard card={communicatingCard} compact />
+          <span>Communicate as</span>
+          {communicationOption.qualifiers.map((qualifier, index) => (
+            <button
+              ref={index === 0 ? firstQualifierRef : undefined}
+              type="button"
+              key={qualifier}
+              disabled={pending}
+              onClick={() => {
+                void sendCommand({
+                  type: "communicate",
+                  cardId: communicatingCard.id,
+                  qualifier,
+                }).then((sent) => {
+                  if (sent) {
+                    setCommunicationMode(false);
+                    setCommunicatingCard(null);
+                    requestAnimationFrame(() => dockRef.current?.focus());
+                  }
+                });
+              }}
+            >
+              {qualifierCopy[qualifier]}
+            </button>
+          ))}
+          <button type="button" onClick={closeCommunicationPicker}>
+            Cancel
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

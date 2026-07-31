@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  devIndicators: false,
   poweredByHeader: false,
   outputFileTracingIncludes: {
     "/*": ["./certs/supabase-ca-2021.crt"],

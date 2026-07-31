@@ -22,7 +22,6 @@
   background: white;
   border: 0;
   border-radius: var(--card-radius);
-  box-shadow: 0 1px 2px rgb(23 19 63 / 16%);
   isolation: isolate;
   overflow: hidden;
   user-select: none;

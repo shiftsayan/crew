@@ -1,33 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { LANDING_BACKGROUNDS } from "../src/components/join/landingBackgrounds";
-
 const roomName = "Europa";
 const playerKey = "6FJ9KP";
-const landingBackgroundSessionKey = "crew:landing-background";
-
-const landingImageFixture = `
-  <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800">
-    <rect width="1200" height="800" fill="#312e81"/>
-    <circle cx="260" cy="220" r="180" fill="#e0e7ff"/>
-    <circle cx="850" cy="510" r="260" fill="#818cf8"/>
-  </svg>
-`;
-
-test.beforeEach(async ({ page }) => {
-  await page.route("https://images.unsplash.com/**", async (route) => {
-    await route.fulfill({
-      body: landingImageFixture,
-      contentType: "image/svg+xml",
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "public, max-age=3600",
-      },
-      status: 200,
-    });
-  });
-});
 
 const players = [
   {
@@ -109,9 +84,29 @@ const activeProjection = {
     cardCount: index === 0 ? 1 : 0,
     isCurrent: index === 0,
   })),
+  tasks: [
+    {
+      id: "objective-1",
+      definitionId: "planet-nine-task",
+      difficulty: null,
+      cardId: "pink-1",
+      order: "first",
+      ownerPlayerId: "player-1",
+      ownerDisplayName: "Ada",
+      outcome: "pending",
+      title: "Win the Pink 1",
+      footnote: null,
+    },
+  ],
   legalActions: {
     ...baseProjection.legalActions,
     playableCardIds: ["pink-1"],
+    communicationOptions: [
+      {
+        cardId: "pink-1",
+        qualifiers: ["highest", "only", "lowest"],
+      },
+    ],
   },
 };
 
@@ -220,6 +215,21 @@ async function expectNoHorizontalDocumentOverflow(page: Page) {
   );
 }
 
+async function expectNoDocumentScroll(page: Page) {
+  const dimensions = await page.evaluate(() => ({
+    bodyHeight: document.body.scrollHeight,
+    documentHeight: document.documentElement.scrollHeight,
+    viewportHeight: document.documentElement.clientHeight,
+  }));
+
+  expect(dimensions.bodyHeight).toBeLessThanOrEqual(
+    dimensions.viewportHeight,
+  );
+  expect(dimensions.documentHeight).toBeLessThanOrEqual(
+    dimensions.viewportHeight,
+  );
+}
+
 async function expectKeyboardReachable(page: Page, label: string) {
   const control = page.getByRole("button", { name: label });
   await expect(control).toBeVisible();
@@ -282,6 +292,7 @@ for (const width of [320, 375, 768, 1440]) {
     ).toBeVisible();
     await expect(page.getByLabel("Join a room")).toBeVisible();
     await expectNoHorizontalDocumentOverflow(page);
+    await expectNoDocumentScroll(page);
 
     for (const control of [
       page.getByLabel("Room name"),
@@ -293,63 +304,6 @@ for (const width of [320, 375, 768, 1440]) {
     }
   });
 }
-
-for (const configuredBackground of LANDING_BACKGROUNDS) {
-  test(`join renders stable, attributed background ${configuredBackground.id}`, async ({
-    page,
-  }) => {
-    await page.addInitScript(
-      ({ key, value }) => window.sessionStorage.setItem(key, value),
-      {
-        key: landingBackgroundSessionKey,
-        value: configuredBackground.id,
-      },
-    );
-    await page.goto("/");
-
-    const background = page.locator("[data-landing-background]");
-    await expect(background).toHaveAttribute(
-      "data-landing-background-id",
-      configuredBackground.id,
-    );
-    await expect(background).toHaveAttribute(
-      "data-landing-background-status",
-      "ready",
-    );
-    await expect(background.locator("canvas")).toBeVisible();
-    await expect(
-      page.getByRole("link", {
-        name: configuredBackground.photographerName,
-      }),
-    ).toBeVisible();
-    await expect(page.getByRole("link", { name: "Unsplash" })).toBeVisible();
-
-    await page.reload();
-    await expect(background).toHaveAttribute(
-      "data-landing-background-id",
-      configuredBackground.id,
-    );
-  });
-}
-
-test("join remains usable when the configured image cannot load", async ({
-  page,
-}) => {
-  await page.unroute("https://images.unsplash.com/**");
-  await page.route("https://images.unsplash.com/**", (route) => route.abort());
-  await page.addInitScript(
-    ({ key, value }) => window.sessionStorage.setItem(key, value),
-    { key: landingBackgroundSessionKey, value: "maroon-stars" },
-  );
-  await page.goto("/");
-
-  await expect(page.locator("[data-landing-background]")).toHaveAttribute(
-    "data-landing-background-status",
-    "fallback",
-  );
-  await expect(page.getByLabel("Join a room")).toBeVisible();
-  await expectNoHorizontalDocumentOverflow(page);
-});
 
 test("join is keyboard-operable and stores only the submitted player credential", async ({
   page,
@@ -435,9 +389,11 @@ test("the admin authentication shell reports an incorrect password accessibly", 
   await expect(password).toBeEnabled();
 });
 
-test("active gameplay is accessible, responsive, and keyboard reachable at target widths", async ({
+test("active gameplay is accessible, viewport-bound, and keyboard reachable", async ({
   page,
 }) => {
+  let actionBody: unknown;
+
   await page.addInitScript(
     ({ key, name }) => {
       window.localStorage.setItem(
@@ -447,6 +403,14 @@ test("active gameplay is accessible, responsive, and keyboard reachable at targe
     },
     { key: playerKey, name: roomName },
   );
+  await page.route(`**/api/rooms/${roomName}/actions`, async (route) => {
+    actionBody = route.request().postDataJSON();
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(activeProjection),
+      status: 200,
+    });
+  });
   await page.route(`**/api/rooms/${roomName}`, async (route) => {
     await route.fulfill({
       contentType: "application/json",
@@ -455,20 +419,71 @@ test("active gameplay is accessible, responsive, and keyboard reachable at targe
     });
   });
 
-  for (const width of [320, 375, 768, 1440]) {
-    await page.setViewportSize({
-      width,
-      height: width <= 375 ? 740 : 900,
-    });
+  for (const viewport of [
+    { width: 320, height: 740 },
+    { width: 375, height: 812 },
+    { width: 1024, height: 640 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
     await page.goto(`/rooms/${roomName}`);
 
     await expect(
       page.getByRole("heading", { name: "Current trick" }),
     ).toBeVisible();
     await expectNoHorizontalDocumentOverflow(page);
+    await expectNoDocumentScroll(page);
     await expectNoAccessibilityViolations(page);
     await expectKeyboardReachable(page, "Play: Pink 1");
+    if (viewport.width > 700) {
+      const station = page.getByRole("article", { name: "Ada station" });
+      const objective = station.getByRole("img", {
+        name: /Win the Pink 1.*Assigned to Ada/,
+      });
+      const [stationBox, objectiveBox] = await Promise.all([
+        station.boundingBox(),
+        objective.boundingBox(),
+      ]);
+
+      expect(stationBox).not.toBeNull();
+      expect(objectiveBox).not.toBeNull();
+      expect(objectiveBox!.y).toBeGreaterThanOrEqual(stationBox!.y);
+      expect(objectiveBox!.y + objectiveBox!.height).toBeLessThanOrEqual(
+        stationBox!.y + stationBox!.height,
+      );
+    }
   }
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`/rooms/${roomName}`);
+  const modeButton = page.getByRole("button", { name: "Communicate a card" });
+  await modeButton.click();
+  await expect(
+    page.getByRole("button", { name: "Cancel communication mode" }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.keyboard.press("Tab");
+  const card = page.getByRole("button", { name: "Communicate: Pink 1" });
+  await expect(card).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  const highest = page.getByRole("button", { name: "Highest" });
+  await expect(highest).toBeFocused();
+  await expectNoDocumentScroll(page);
+
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(card).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(highest).toBeFocused();
+
+  await page.getByRole("button", { name: "Lowest" }).click();
+  expect(actionBody).toEqual({
+    type: "communicate",
+    cardId: "pink-1",
+    qualifier: "lowest",
+  });
+  await expect(page.getByRole("region", { name: "Your hand" })).toBeFocused();
 });
 
 test("mobile phase changes keep every game view and room exit reachable", async ({
@@ -508,6 +523,7 @@ test("mobile phase changes keep every game view and room exit reachable", async 
   await expect(page.getByRole("button", { name: "Tasks 1" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Forget this room" })).toBeVisible();
   await expectNoHorizontalDocumentOverflow(page);
+  await expectNoDocumentScroll(page);
   await expectNoAccessibilityViolations(page);
 });
 

@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+
 import type { Card } from "./types";
 import styles from "./GameCard.module.css";
 
@@ -19,6 +21,7 @@ type GameCardProps = {
   compact?: boolean;
   onClick?: () => void;
   labelPrefix?: string;
+  buttonRef?: Ref<HTMLButtonElement>;
 };
 
 export function GameCard({
@@ -28,6 +31,7 @@ export function GameCard({
   compact = false,
   onClick,
   labelPrefix,
+  buttonRef,
 }: GameCardProps) {
   const meta = suitMeta[card.suit] ?? { label: card.suit, symbol: "●" };
   const className = [
@@ -48,6 +52,7 @@ export function GameCard({
   if (onClick) {
     return (
       <button
+        ref={buttonRef}
         className={className}
         type="button"
         disabled={disabled}
