@@ -288,6 +288,16 @@ test("the homepage uses shadcn New York primitives", async ({ page }) => {
   await expect(joinButton).toHaveCSS("width", "144px");
   await expect(joinButton).toHaveCSS("align-self", "flex-end");
   await expect(joinButton).toHaveCSS("border-radius", "6px");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    "content",
+    "#ffffff",
+  );
+  await expect(page.locator("html")).toHaveCSS("overflow-x", "hidden");
+  await expect(page.locator("body")).toHaveCSS("overflow-x", "hidden");
+  await expect(page.locator("html")).toHaveCSS(
+    "overscroll-behavior-x",
+    "none",
+  );
   expect(await page.locator("main").getAttribute("data-color-theme")).toBeNull();
   await expect(page.locator("main")).toHaveCSS(
     "background-color",
