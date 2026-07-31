@@ -789,20 +789,22 @@ test.describe("database-backed browser gaps", () => {
     try {
       await page.goto("/admin");
       await page.getByLabel("Admin password").fill(adminPassword);
-      await page.getByRole("button", { name: "Enter mission control" }).click();
+      await page.getByRole("button", { name: "Enter room admin" }).click();
       await expect(
-        page.getByRole("heading", { name: "Room admin" }),
+        page.getByRole("heading", { name: "Admin", exact: true }),
       ).toBeVisible();
 
-      await page.getByRole("button", { name: "+ New room" }).click();
-      const createForm = page.locator(".create-room-form");
+      await page.getByRole("button", { name: "New room" }).click();
+      const createForm = page.getByRole("form", { name: "Create room" });
       await createForm.getByLabel("Room name").fill(roomName);
       await createForm
         .getByRole("combobox", { name: "Edition", exact: true })
-        .selectOption("planet-nine");
+        .click();
+      await page.getByRole("option", { name: /Planet Nine/ }).click();
       await createForm
         .getByRole("combobox", { name: "Mission", exact: true })
-        .selectOption("planet-nine:1");
+        .click();
+      await page.getByRole("option", { name: /^1 ·/ }).click();
 
       const createdResponse = page.waitForResponse(
         (response) =>
@@ -833,7 +835,7 @@ test.describe("database-backed browser gaps", () => {
       await expect(page.getByLabel(/^Seat for /)).toHaveCount(3);
       await expect(page.getByRole("button", { name: /^Remove / })).toHaveCount(3);
 
-      const firstPlayer = page.locator(".admin-player-row").first();
+      const firstPlayer = page.locator("[data-admin-player-row]").first();
       await firstPlayer.getByLabel("Display name for seat 1").fill("Ada Lovelace");
       await firstPlayer.getByRole("button", { name: "Save" }).click();
       await expect(
@@ -845,7 +847,7 @@ test.describe("database-backed browser gaps", () => {
         .textContent();
       page.once("dialog", (dialog) => dialog.accept());
       await page
-        .locator(".admin-player-row")
+        .locator("[data-admin-player-row]")
         .first()
         .getByRole("button", { name: "Rotate" })
         .click();

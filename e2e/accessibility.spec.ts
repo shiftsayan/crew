@@ -286,19 +286,16 @@ test("the homepage uses shadcn New York primitives", async ({ page }) => {
   await expect(joinButton).toHaveCSS("width", "144px");
   await expect(joinButton).toHaveCSS("align-self", "flex-end");
   await expect(joinButton).toHaveCSS("border-radius", "6px");
-  await expect(page.locator("main")).toHaveAttribute(
-    "data-color-theme",
-    "shadcn-default",
-  );
+  expect(await page.locator("main").getAttribute("data-color-theme")).toBeNull();
   await expect(page.locator("main")).toHaveCSS(
     "background-color",
     "rgba(0, 0, 0, 0)",
   );
   expect(
-    await page.locator("main").evaluate((element) =>
+    await page.locator("html").evaluate((element) =>
       getComputedStyle(element).getPropertyValue("--primary").trim(),
     ),
-  ).toMatch(/^lab\(7\./);
+  ).toMatch(/^(?:lab|oklch)\(/);
   await expect(page.getByText("Keys use six letters and numbers.")).toHaveCount(
     0,
   );
@@ -595,10 +592,23 @@ test("authenticated admin dashboard is accessible and responsive at target width
       /crew-clouds\.jpg/,
     );
     await expect(page.locator("canvas")).toHaveCount(0);
+    if (width === 879) {
+      await page.getByRole("button", { name: "New room" }).click();
+      const createRoomForm = page.getByRole("form", { name: "Create room" });
+      await expect(createRoomForm.locator('[data-slot="select-trigger"]')).toHaveCount(2);
+      await expect(
+        createRoomForm.getByRole("combobox", { name: "Edition", exact: true }),
+      ).toHaveAttribute("data-slot", "select-trigger");
+      await createRoomForm.getByRole("button", { name: "Cancel" }).click();
+    }
     await page.getByRole("button", { name: `Manage ${adminRoom.name}` }).click();
     await expect(
       page.getByRole("heading", { name: adminRoom.name, exact: true }),
     ).toBeVisible();
+    await expect(page.locator('[data-slot="select-trigger"]')).toHaveCount(5);
+    await expect(
+      page.getByRole("combobox", { name: "Edition", exact: true }),
+    ).toHaveAttribute("data-slot", "select-trigger");
 
     const detailScroll = page.getByTestId("admin-detail-scroll");
     await expect(detailScroll).toHaveCSS("overflow-y", "auto");

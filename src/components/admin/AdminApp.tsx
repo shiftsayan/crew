@@ -28,6 +28,13 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 import {
@@ -41,9 +48,6 @@ import {
 } from "./types";
 
 type AuthState = "checking" | "locked" | "authenticated";
-
-const selectClassName =
-  "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50";
 
 export function AdminApp() {
   const [authState, setAuthState] = useState<AuthState>("checking");
@@ -171,8 +175,7 @@ export function AdminApp() {
   if (authState === "checking") {
     return (
       <main
-        className="admin-artwork-bg shadcn-default-theme grid min-h-dvh place-items-center p-4"
-        data-color-theme="shadcn-default"
+        className="admin-artwork-bg grid min-h-dvh place-items-center p-4"
         data-testid="admin-artwork"
         id="main-content"
       >
@@ -202,8 +205,7 @@ export function AdminApp() {
 
   return (
     <div
-      className="admin-artwork-bg shadcn-default-theme min-h-dvh p-2 sm:p-4 lg:p-6"
-      data-color-theme="shadcn-default"
+      className="admin-artwork-bg min-h-dvh p-2 sm:p-4 lg:p-6"
       data-testid="admin-artwork"
     >
       <main
@@ -315,8 +317,7 @@ function AdminLogin({
 
   return (
     <main
-      className="admin-artwork-bg shadcn-default-theme grid min-h-dvh place-items-center p-4 sm:p-6"
-      data-color-theme="shadcn-default"
+      className="admin-artwork-bg grid min-h-dvh place-items-center p-4 sm:p-6"
       data-testid="admin-artwork"
       id="main-content"
     >
@@ -472,6 +473,7 @@ function CreateRoom({
 
   return (
     <form
+      aria-label="Create room"
       className="grid w-full min-w-0 gap-3 rounded-lg border bg-muted/30 p-3"
       onSubmit={(event) => {
         event.preventDefault();
@@ -503,39 +505,45 @@ function CreateRoom({
       </Field>
       <Field>
         <FieldLabel htmlFor="new-room-edition">Edition</FieldLabel>
-        <select
-          id="new-room-edition"
-          className={selectClassName}
+        <Select
           value={editionKey}
-          onChange={(event) => {
-            const nextEditionKey = event.target.value as EditionOption["key"];
+          onValueChange={(value) => {
+            const nextEditionKey = value as EditionOption["key"];
             const nextMissions =
               editions.find((edition) => edition.key === nextEditionKey)?.missions ?? [];
             setEditionKey(nextEditionKey);
             setMissionKey(nextMissions[0]?.key ?? "");
           }}
         >
-          {editions.map((edition) => (
-            <option key={edition.key} value={edition.key}>
-              {edition.title}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full" id="new-room-edition">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {editions.map((edition) => (
+              <SelectItem key={edition.key} value={edition.key}>
+                {edition.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Field>
       <Field>
         <FieldLabel htmlFor="new-room-mission">Mission</FieldLabel>
-        <select
-          id="new-room-mission"
-          className={selectClassName}
+        <Select
           value={selectedMissionKey}
-          onChange={(event) => setMissionKey(event.target.value)}
+          onValueChange={setMissionKey}
         >
-          {missions.map((mission) => (
-            <option key={mission.key} value={mission.key}>
-              {mission.number} · {mission.title}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full" id="new-room-mission">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {missions.map((mission) => (
+              <SelectItem key={mission.key} value={mission.key}>
+                {mission.number} · {mission.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Field>
       <div className="flex flex-wrap gap-2">
         <Button size="sm" disabled={disabled} type="submit">
@@ -753,39 +761,45 @@ function RoomEditor({
           </Field>
           <Field>
             <FieldLabel htmlFor={`room-edition-${room.id}`}>Edition</FieldLabel>
-            <select
-              id={`room-edition-${room.id}`}
-              className={selectClassName}
+            <Select
               value={editionKey}
-              onChange={(event) => {
-                const nextEditionKey = event.target.value as EditionOption["key"];
+              onValueChange={(value) => {
+                const nextEditionKey = value as EditionOption["key"];
                 const nextMissions =
                   editions.find((edition) => edition.key === nextEditionKey)?.missions ?? [];
                 setEditionKey(nextEditionKey);
                 setMissionKey(nextMissions[0]?.key ?? "");
               }}
             >
-              {editions.map((edition) => (
-                <option key={edition.key} value={edition.key}>
-                  {edition.title}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full" id={`room-edition-${room.id}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {editions.map((edition) => (
+                  <SelectItem key={edition.key} value={edition.key}>
+                    {edition.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor={`room-mission-${room.id}`}>Mission</FieldLabel>
-            <select
-              id={`room-mission-${room.id}`}
-              className={selectClassName}
+            <Select
               value={selectedMissionKey}
-              onChange={(event) => setMissionKey(event.target.value)}
+              onValueChange={setMissionKey}
             >
-              {missionOptions.map((mission) => (
-                <option value={mission.key} key={mission.key}>
-                  {mission.number} · {mission.title}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full" id={`room-mission-${room.id}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {missionOptions.map((mission) => (
+                  <SelectItem value={mission.key} key={mission.key}>
+                    {mission.number} · {mission.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Button variant="secondary" type="submit" disabled={disabled}>
             Save settings
@@ -978,7 +992,10 @@ function AdminPlayerRow({
   }
 
   return (
-    <li className="grid min-w-0 gap-3 rounded-lg border bg-background p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:items-center">
+    <li
+      className="grid min-w-0 gap-3 rounded-lg border bg-background p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:items-center"
+      data-admin-player-row
+    >
       <span
         className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
         aria-label={`Seat ${player.seat}`}
@@ -1006,23 +1023,29 @@ function AdminPlayerRow({
         ) : null}
       </form>
 
-      <label>
-        <span className="sr-only">Seat for {player.displayName}</span>
-        <select
-          className={cn(selectClassName, "w-auto min-w-24")}
-          value={player.seat}
+      <Field className="w-auto">
+        <FieldLabel className="sr-only" htmlFor={`player-seat-${player.id}`}>
+          Seat for {player.displayName}
+        </FieldLabel>
+        <Select
+          value={String(player.seat)}
           disabled={disabled}
-          onChange={(event) =>
-            void update({ seat: Number(event.target.value) }, `${player.displayName} reseated.`)
+          onValueChange={(value) =>
+            void update({ seat: Number(value) }, `${player.displayName} reseated.`)
           }
         >
-          {Array.from({ length: playerCount }).map((_, index) => (
-            <option key={index + 1} value={index + 1}>
-              Seat {index + 1}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger className="w-24" id={`player-seat-${player.id}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: playerCount }).map((_, index) => (
+              <SelectItem key={index + 1} value={String(index + 1)}>
+                Seat {index + 1}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
 
       <Button
         variant="ghost"
