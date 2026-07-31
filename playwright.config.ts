@@ -1,7 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
 const port = Number(process.env.CREW_E2E_PORT ?? 3100);
-const baseURL = `http://127.0.0.1:${port}`;
+const host = process.env.CREW_E2E_HOST ?? "127.0.0.1";
+const baseURL = `http://${host}:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -20,7 +21,7 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: `npm run dev -- --hostname ${host} --port ${port}`,
     env: {
       ADMIN_PASSWORD:
         process.env.ADMIN_PASSWORD ?? "crew-e2e-admin-password",

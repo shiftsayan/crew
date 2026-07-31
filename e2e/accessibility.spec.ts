@@ -310,12 +310,19 @@ test("shared buttons use the original Crew treatment", async ({ page }) => {
   );
 });
 
-test("the join screen uses the local cloud wallpaper", async ({ page }) => {
+test("the join screen animates a character overlay on the local artwork", async ({
+  page,
+}) => {
   await page.goto("/");
-  await expect(page.locator(".join-page")).toHaveCSS(
-    "background-image",
-    /crew-clouds\.jpg/,
-  );
+  const artwork = page.locator("[data-artwork-canvas]");
+  await expect(artwork).toBeVisible();
+  await expect
+    .poll(() => artwork.getAttribute("data-artwork-frame"))
+    .not.toBeNull();
+  const firstFrame = await artwork.getAttribute("data-artwork-frame");
+  await expect
+    .poll(() => artwork.getAttribute("data-artwork-frame"))
+    .not.toBe(firstFrame);
 
   const wallpaper = await page.request.get("/crew-clouds.jpg");
   expect(wallpaper.ok()).toBe(true);
@@ -582,6 +589,15 @@ test("authenticated admin dashboard is accessible and responsive at target width
 
 test.describe("reduced motion", () => {
   test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+  test("keeps the artwork character field still", async ({ page }) => {
+    await page.goto("/");
+    const artwork = page.locator("[data-artwork-canvas]");
+
+    await expect(artwork).toHaveAttribute("data-artwork-frame", "0");
+    await page.waitForTimeout(500);
+    await expect(artwork).toHaveAttribute("data-artwork-frame", "0");
+  });
 
   test("keeps the static winning result without a confetti canvas", async ({
     page,
