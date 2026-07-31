@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { PLAYER_KEY_PATTERN } from "@/server/player-keys";
+import {
+  PLAYER_KEY_PATTERN,
+  ROOM_KEY_PATTERN,
+} from "@/server/player-keys";
 
 export const RoomNameSchema = z
   .string()
@@ -66,8 +69,12 @@ export const AdminRoomActionSchema = z.strictObject({
 });
 
 export const PlayerLoginSchema = z.strictObject({
-  roomName: RoomNameSchema,
-  key: z
+  roomKey: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(ROOM_KEY_PATTERN, "Room keys contain six unambiguous characters."),
+  playerKey: z
     .string()
     .trim()
     .toUpperCase()
@@ -83,6 +90,7 @@ export type AdminRoomAction = z.infer<typeof AdminRoomActionSchema>["type"];
 export interface RoomRow {
   id: string;
   name: string;
+  roomKey: string;
   editionKey: string;
   missionKey: string;
   stateVersion: number;
@@ -95,7 +103,7 @@ export interface PlayerRow {
   id: string;
   roomId: string;
   displayName: string;
-  loginKey: string;
+  playerKey: string;
   seat: number;
   createdAt: Date;
 }
@@ -103,6 +111,7 @@ export interface PlayerRow {
 export interface AdminRoomSummary {
   id: string;
   name: string;
+  roomKey: string;
   editionKey: string;
   missionKey: string;
   missionNumber: number;
@@ -131,7 +140,7 @@ export interface AdminRoomDetail extends AdminRoomSummary {
   players: Array<{
     id: string;
     displayName: string;
-    loginKey: string;
+    playerKey: string;
     seat: number;
     createdAt: string;
   }>;

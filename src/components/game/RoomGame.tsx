@@ -61,13 +61,13 @@ function RoomGameContent() {
       <RoomState>
         <p className="state-label">Credentials needed</p>
         <h1>Join {routeName}</h1>
-        <p>This device does not have a valid player key for the room.</p>
+        <p>This device does not have valid room and player keys.</p>
         <Link className="button button--primary" href="/">
           Return to join
         </Link>
         {credential ? (
           <button className="button button--quiet" type="button" onClick={forgetRoom}>
-            Forget saved key
+            Forget saved keys
           </button>
         ) : null}
       </RoomState>
@@ -94,7 +94,7 @@ function RoomGameContent() {
         <h1>The game rules changed</h1>
         <p>
           {message ||
-            "Ask the room admin to restart this level. Your room and player key are safe."}
+            "Ask the room admin to restart this level. Your room and player keys are safe."}
         </p>
         <button className="button button--quiet" type="button" onClick={forgetRoom}>
           Return home

@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 const roomName = "Europa";
+const roomKey = "ABC2DE";
 const playerKey = "6FJ9KP";
 
 const players = [
@@ -113,6 +114,7 @@ const activeProjection = {
 const adminRoom = {
   id: "admin-room-e2e",
   name: "Europa",
+  roomKey: "BCD3EF",
   editionKey: "planet-nine",
   missionKey: "planet-nine:1",
   missionNumber: 1,
@@ -125,12 +127,12 @@ const adminRoom = {
 };
 
 const adminPlayers = [
-  { id: "admin-player-1", displayName: "Ada", loginKey: "2BCDEF", seat: 1 },
-  { id: "admin-player-2", displayName: "Grace", loginKey: "3BCDEF", seat: 2 },
+  { id: "admin-player-1", displayName: "Ada", playerKey: "2BCDEF", seat: 1 },
+  { id: "admin-player-2", displayName: "Grace", playerKey: "3BCDEF", seat: 2 },
   {
     id: "admin-player-3",
     displayName: "Katherine",
-    loginKey: "4BCDEF",
+    playerKey: "4BCDEF",
     seat: 3,
   },
 ];
@@ -264,8 +266,8 @@ for (const width of [320, 375, 768, 1440]) {
     await expectNoDocumentScroll(page);
 
     for (const control of [
-      page.getByLabel("Room name"),
-      page.getByLabel("Your player key"),
+      page.getByLabel("Room key"),
+      page.getByLabel("Player key"),
     ]) {
       const box = await control.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -323,7 +325,7 @@ test("the join screen animates a character overlay on the local artwork", async 
   expect(wallpaper.headers()["content-type"]).toBe("image/jpeg");
 });
 
-test("join is keyboard-operable and stores only the submitted player credential", async ({
+test("join is keyboard-operable and stores only the submitted room credentials", async ({
   page,
 }) => {
   let loginBody: unknown;
@@ -345,8 +347,8 @@ test("join is keyboard-operable and stores only the submitted player credential"
   });
 
   await page.goto("/");
-  const roomInput = page.getByLabel("Room name");
-  const keyInput = page.getByLabel("Your player key");
+  const roomInput = page.getByLabel("Room key");
+  const keyInput = page.getByLabel("Player key");
 
   await expect(roomInput).toBeFocused();
   await page.keyboard.press("Shift+Tab");
@@ -356,7 +358,10 @@ test("join is keyboard-operable and stores only the submitted player credential"
   await page.keyboard.press("Tab");
   await expect(roomInput).toBeFocused();
 
-  await page.keyboard.type(roomName);
+  await expect(roomInput).toHaveAttribute("placeholder", "Enter your room key...");
+  await expect(keyInput).toHaveAttribute("placeholder", "Enter your player key...");
+  await page.keyboard.type(roomKey.toLowerCase());
+  await expect(roomInput).toHaveValue(roomKey);
   await page.keyboard.press("Tab");
   await expect(keyInput).toBeFocused();
   await page.keyboard.type(playerKey.toLowerCase());
@@ -369,12 +374,12 @@ test("join is keyboard-operable and stores only the submitted player credential"
   await expect(
     page.getByRole("heading", { name: "Waiting for the room admin" }),
   ).toBeVisible();
-  expect(loginBody).toEqual({ roomName, key: playerKey });
+  expect(loginBody).toEqual({ roomKey, playerKey });
   await expect
     .poll(() =>
       page.evaluate(() => window.localStorage.getItem("crew:credentials:europa")),
     )
-    .toBe(JSON.stringify({ roomName, key: playerKey }));
+    .toBe(JSON.stringify({ roomName, roomKey, playerKey }));
 });
 
 test("join and locked admin shells pass automated accessibility checks", async ({
@@ -419,13 +424,17 @@ test("active gameplay is accessible, viewport-bound, and keyboard reachable", as
   let actionBody: unknown;
 
   await page.addInitScript(
-    ({ key, name }) => {
+    ({ name, playerKey: storedPlayerKey, roomKey: storedRoomKey }) => {
       window.localStorage.setItem(
         `crew:credentials:${name.toLowerCase()}`,
-        JSON.stringify({ roomName: name, key }),
+        JSON.stringify({
+          roomName: name,
+          roomKey: storedRoomKey,
+          playerKey: storedPlayerKey,
+        }),
       );
     },
-    { key: playerKey, name: roomName },
+    { name: roomName, playerKey, roomKey },
   );
   await page.route(`**/api/rooms/${roomName}/actions`, async (route) => {
     actionBody = route.request().postDataJSON();
@@ -513,13 +522,17 @@ test("the game room is unavailable below the minimum laptop viewport", async ({
   let roomRequests = 0;
 
   await page.addInitScript(
-    ({ key, name }) => {
+    ({ name, playerKey: storedPlayerKey, roomKey: storedRoomKey }) => {
       window.localStorage.setItem(
         `crew:credentials:${name.toLowerCase()}`,
-        JSON.stringify({ roomName: name, key }),
+        JSON.stringify({
+          roomName: name,
+          roomKey: storedRoomKey,
+          playerKey: storedPlayerKey,
+        }),
       );
     },
-    { key: playerKey, name: roomName },
+    { name: roomName, playerKey, roomKey },
   );
   await page.route(`**/api/rooms/${roomName}`, async (route) => {
     roomRequests += 1;
@@ -644,13 +657,17 @@ test.describe("reduced motion", () => {
     page,
   }) => {
     await page.addInitScript(
-      ({ key, name }) => {
+      ({ name, playerKey: storedPlayerKey, roomKey: storedRoomKey }) => {
         window.localStorage.setItem(
           `crew:credentials:${name.toLowerCase()}`,
-          JSON.stringify({ roomName: name, key }),
+          JSON.stringify({
+            roomName: name,
+            roomKey: storedRoomKey,
+            playerKey: storedPlayerKey,
+          }),
         );
       },
-      { key: playerKey, name: roomName },
+      { name: roomName, playerKey, roomKey },
     );
     await page.route(`**/api/rooms/${roomName}`, async (route) => {
       await route.fulfill({

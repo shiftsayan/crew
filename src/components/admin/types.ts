@@ -15,13 +15,14 @@ export type EditionOption = {
 export type AdminPlayer = {
   id: string;
   displayName: string;
-  loginKey: string;
+  playerKey: string;
   seat: number;
 };
 
 export type AdminRoom = {
   id: string;
   name: string;
+  roomKey: string;
   editionKey: EditionOption["key"];
   missionKey: string;
   missionNumber?: number;

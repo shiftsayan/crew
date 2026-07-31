@@ -102,6 +102,10 @@ function conflictMessage(constraint?: string): string {
     return "A room with that name already exists.";
   }
 
+  if (constraint === "rooms_room_key_key") {
+    return "That room key is already in use.";
+  }
+
   if (constraint === "room_players_display_name_case_insensitive_key") {
     return "That player name is already used in this room.";
   }
@@ -110,7 +114,7 @@ function conflictMessage(constraint?: string): string {
     return "That seat is already occupied.";
   }
 
-  if (constraint === "room_players_room_login_key_key") {
+  if (constraint === "room_players_room_player_key_key") {
     return "That player key is already used in this room.";
   }
 

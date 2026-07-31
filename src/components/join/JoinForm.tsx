@@ -28,14 +28,13 @@ import { Spinner } from "@/components/ui/Spinner";
 
 type LoginResponse = {
   room?: { name?: string };
-  roomName?: string;
 };
 
 export function JoinForm() {
   const router = useRouter();
-  const roomId = useId();
-  const keyId = useId();
-  const [roomName, setRoomName] = useState("");
+  const roomKeyId = useId();
+  const playerKeyId = useId();
+  const [roomKey, setRoomKey] = useState("");
   const [playerKey, setPlayerKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -49,8 +48,12 @@ export function JoinForm() {
           try {
             const parsed = JSON.parse(window.localStorage.getItem(key) ?? "{}") as {
               roomName?: string;
+              roomKey?: string;
+              playerKey?: string;
             };
-            return parsed.roomName ? [parsed.roomName] : [];
+            return parsed.roomName && parsed.roomKey && parsed.playerKey
+              ? [parsed.roomName]
+              : [];
           } catch {
             return [];
           }
@@ -62,8 +65,8 @@ export function JoinForm() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalizedRoom = roomName.trim();
-    const normalizedKey = playerKey.replace(/\s/g, "").toUpperCase();
+    const normalizedRoomKey = roomKey.replace(/\s/g, "").toUpperCase();
+    const normalizedPlayerKey = playerKey.replace(/\s/g, "").toUpperCase();
 
     setSubmitting(true);
     setError("");
@@ -72,7 +75,10 @@ export function JoinForm() {
       const response = await fetch("/api/rooms/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomName: normalizedRoom, key: normalizedKey }),
+        body: JSON.stringify({
+          roomKey: normalizedRoomKey,
+          playerKey: normalizedPlayerKey,
+        }),
       });
 
       const body = (await response.json().catch(() => ({}))) as
@@ -81,14 +87,21 @@ export function JoinForm() {
 
       if (!response.ok) {
         throw new Error(
-          apiErrorMessage(body, "That room or key was not recognized."),
+          apiErrorMessage(body, "Those room and player keys were not recognized."),
         );
       }
 
-      const canonicalRoomName = body.room?.name ?? body.roomName ?? normalizedRoom;
+      const canonicalRoomName = body.room?.name;
+      if (!canonicalRoomName) {
+        throw new Error("The room response was incomplete.");
+      }
       window.localStorage.setItem(
         credentialStorageKey(canonicalRoomName),
-        JSON.stringify({ roomName: canonicalRoomName, key: normalizedKey }),
+        JSON.stringify({
+          roomName: canonicalRoomName,
+          roomKey: normalizedRoomKey,
+          playerKey: normalizedPlayerKey,
+        }),
       );
       router.push(`/rooms/${encodeURIComponent(canonicalRoomName)}`);
     } catch (caught) {
@@ -114,36 +127,44 @@ export function JoinForm() {
           Ready, crew?
         </h1>
         <CardDescription className="text-base">
-          Enter your room name and player key.
+          Enter your room key and player key.
         </CardDescription>
       </CardHeader>
       <CardContent className="px-6 pt-6 pb-6 sm:px-8 sm:pb-8">
         <form onSubmit={submit}>
           <FieldGroup className="gap-5">
             <Field className="gap-2">
-              <FieldLabel htmlFor={roomId}>Room name</FieldLabel>
+              <FieldLabel htmlFor={roomKeyId}>Room key</FieldLabel>
               <Input
-                className="h-11 bg-background text-base"
-                id={roomId}
-                name="roomName"
+                className="h-11 bg-background font-[var(--font-display)] text-lg font-bold tracking-[0.2em] uppercase placeholder:font-sans placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:normal-case"
+                id={roomKeyId}
+                name="roomKey"
                 type="text"
-                autoComplete="off"
-                minLength={2}
-                maxLength={32}
-                pattern="[A-Za-z0-9 _-]{2,32}"
-                placeholder="Europa"
-                value={roomName}
-                onChange={(event) => setRoomName(event.target.value)}
+                autoComplete="one-time-code"
+                autoCapitalize="characters"
+                spellCheck={false}
+                minLength={6}
+                maxLength={6}
+                pattern="[A-HJ-NP-Za-hj-np-z2-9]{6}"
+                placeholder="Enter your room key..."
+                value={roomKey}
+                onChange={(event) =>
+                  setRoomKey(
+                    event.target.value
+                      .replace(/[^A-HJ-NP-Za-hj-np-z2-9]/g, "")
+                      .toUpperCase(),
+                  )
+                }
                 required
                 autoFocus
               />
             </Field>
 
             <Field className="gap-2">
-              <FieldLabel htmlFor={keyId}>Your player key</FieldLabel>
+              <FieldLabel htmlFor={playerKeyId}>Player key</FieldLabel>
               <Input
-                className="h-11 bg-background font-[var(--font-display)] text-lg font-bold tracking-[0.2em] uppercase"
-                id={keyId}
+                className="h-11 bg-background font-[var(--font-display)] text-lg font-bold tracking-[0.2em] uppercase placeholder:font-sans placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:normal-case"
+                id={playerKeyId}
                 name="playerKey"
                 type="text"
                 autoComplete="one-time-code"
@@ -152,7 +173,7 @@ export function JoinForm() {
                 minLength={6}
                 maxLength={6}
                 pattern="[A-HJ-NP-Za-hj-np-z2-9]{6}"
-                placeholder="6FJ9KP"
+                placeholder="Enter your player key..."
                 value={playerKey}
                 onChange={(event) =>
                   setPlayerKey(
@@ -207,10 +228,11 @@ export function JoinForm() {
                     try {
                       const stored = JSON.parse(raw) as {
                         roomName: string;
-                        key: string;
+                        roomKey: string;
+                        playerKey: string;
                       };
-                      setRoomName(stored.roomName);
-                      setPlayerKey(stored.key);
+                      setRoomKey(stored.roomKey);
+                      setPlayerKey(stored.playerKey);
                     } catch {
                       window.localStorage.removeItem(
                         credentialStorageKey(name),

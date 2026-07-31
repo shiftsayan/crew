@@ -17,6 +17,7 @@ export async function GET(
     const roomName = RoomNameSchema.parse((await context.params).name);
     const projection = await getPlayerRoom(
       roomName,
+      request.headers.get("x-crew-room-key"),
       request.headers.get("x-crew-player-key"),
     );
     return NextResponse.json(projection);

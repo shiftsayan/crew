@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { createSetupState } from "@/game";
 import { getPool } from "@/server/db";
 import { AppError } from "@/server/errors";
+import { generateRoomKey } from "@/server/player-keys";
 import {
   applyPlayerRoomCommand,
   getAdminRoom,
@@ -109,6 +110,7 @@ databaseDescribe("private database schema", () => {
       editionKey?: string;
       missionKey?: string;
       name?: string;
+      roomKey?: string;
       state?: unknown;
       stateVersion?: number;
     } = {},
@@ -117,16 +119,18 @@ databaseDescribe("private database schema", () => {
       `
         insert into private.rooms (
           name,
+          room_key,
           edition_key,
           mission_key,
           state_version,
           state
         )
-        values ($1, $2, $3, $4, $5::jsonb)
+        values ($1, $2, $3, $4, $5, $6::jsonb)
         returning id
       `,
       [
         overrides.name ?? uniqueRoomName("room"),
+        overrides.roomKey ?? generateRoomKey(),
         overrides.editionKey ?? "planet-nine",
         overrides.missionKey ?? "planet-nine:1",
         overrides.stateVersion ?? 1,
@@ -140,7 +144,7 @@ databaseDescribe("private database schema", () => {
 
   async function insertPlayer(input: {
     displayName: string;
-    loginKey: string;
+    playerKey: string;
     roomId: string;
     seat: number;
   }): Promise<string> {
@@ -149,13 +153,13 @@ databaseDescribe("private database schema", () => {
         insert into private.room_players (
           room_id,
           display_name,
-          login_key,
+          player_key,
           seat
         )
         values ($1, $2, $3, $4)
         returning id
       `,
-      [input.roomId, input.displayName, input.loginKey, input.seat],
+      [input.roomId, input.displayName, input.playerKey, input.seat],
     );
     return result.rows[0].id;
   }
@@ -176,12 +180,15 @@ databaseDescribe("private database schema", () => {
   ): Promise<{
     id: string;
     name: string;
+    roomKey: string;
     players: Array<{ id: string; key: string }>;
   }> {
     const name = uniqueRoomName("api-room");
+    const roomKey = generateRoomKey();
     const state = createSetupState(game);
     const id = await insertRoom({
       name,
+      roomKey,
       state,
       editionKey: game.editionKey,
       missionKey: game.missionKey,
@@ -198,7 +205,7 @@ databaseDescribe("private database schema", () => {
         id: await insertPlayer({
           roomId: id,
           displayName: fixture.displayName,
-          loginKey: fixture.key,
+          playerKey: fixture.key,
           seat: fixture.seat,
         }),
         key: fixture.key,
@@ -206,7 +213,7 @@ databaseDescribe("private database schema", () => {
     }
 
     await runAdminRoomAction(id, "start");
-    return { id, name, players };
+    return { id, name, roomKey, players };
   }
 
   async function expectSqlState(
@@ -285,12 +292,16 @@ databaseDescribe("private database schema", () => {
 
   it("enforces room format, catalog, state, and case-insensitive name constraints", async () => {
     const name = uniqueRoomName("case-room");
-    await insertRoom({ name });
+    const roomKey = generateRoomKey();
+    await insertRoom({ name, roomKey });
 
     await expectSqlState(
       insertRoom({ name: name.toUpperCase() }),
       "23505",
     );
+    await expectSqlState(insertRoom({ roomKey }), "23505");
+    await expectSqlState(insertRoom({ roomKey: "ABC1DE" }), "23514");
+    await expectSqlState(insertRoom({ roomKey: "abc2de" }), "23514");
     await expectSqlState(insertRoom({ name: " leading-space" }), "23514");
     await expectSqlState(insertRoom({ name: "x" }), "23514");
     await expectSqlState(
@@ -316,7 +327,7 @@ databaseDescribe("private database schema", () => {
     await insertPlayer({
       roomId: firstRoomId,
       displayName: "Alex",
-      loginKey: "ABC2DE",
+      playerKey: "ABC2DE",
       seat: 1,
     });
 
@@ -324,7 +335,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: "Blair",
-        loginKey: "ABC2DE",
+        playerKey: "ABC2DE",
         seat: 2,
       }),
       "23505",
@@ -333,7 +344,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: "alex",
-        loginKey: "FGH3JK",
+        playerKey: "FGH3JK",
         seat: 2,
       }),
       "23505",
@@ -342,7 +353,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: "Casey",
-        loginKey: "LMN4PQ",
+        playerKey: "LMN4PQ",
         seat: 1,
       }),
       "23505",
@@ -351,7 +362,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: "Drew",
-        loginKey: "ABC1DE",
+        playerKey: "ABC1DE",
         seat: 2,
       }),
       "23514",
@@ -360,7 +371,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: "Drew",
-        loginKey: "abc2de",
+        playerKey: "abc2de",
         seat: 2,
       }),
       "23514",
@@ -369,7 +380,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: " Drew ",
-        loginKey: "RST5UV",
+        playerKey: "RST5UV",
         seat: 2,
       }),
       "23514",
@@ -378,7 +389,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: "x".repeat(33),
-        loginKey: "RST5UV",
+        playerKey: "RST5UV",
         seat: 2,
       }),
       "23514",
@@ -387,7 +398,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: firstRoomId,
         displayName: "Emery",
-        loginKey: "RST5UV",
+        playerKey: "RST5UV",
         seat: 6,
       }),
       "23514",
@@ -396,7 +407,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: randomUUID(),
         displayName: "Finley",
-        loginKey: "WXY6Z2",
+        playerKey: "WXY6Z2",
         seat: 1,
       }),
       "23503",
@@ -406,7 +417,7 @@ databaseDescribe("private database schema", () => {
       insertPlayer({
         roomId: secondRoomId,
         displayName: "Alex",
-        loginKey: "ABC2DE",
+        playerKey: "ABC2DE",
         seat: 1,
       }),
     ).resolves.toMatch(/^[0-9a-f-]{36}$/);
@@ -417,13 +428,13 @@ databaseDescribe("private database schema", () => {
     await insertPlayer({
       roomId,
       displayName: "Alex",
-      loginKey: "ABC2DE",
+      playerKey: "ABC2DE",
       seat: 1,
     });
     await insertPlayer({
       roomId,
       displayName: "Blair",
-      loginKey: "FGH3JK",
+      playerKey: "FGH3JK",
       seat: 2,
     });
 
@@ -445,6 +456,7 @@ databaseDescribe("private database schema", () => {
     const room = await createPlayableRoom();
     const observerProjection = await getPlayerRoom(
       room.name,
+      room.roomKey,
       room.players[0].key,
     );
     const currentPlayerId = observerProjection.players.find(
@@ -459,11 +471,11 @@ databaseDescribe("private database schema", () => {
     expect(taskId).toBeDefined();
 
     const results = await Promise.allSettled([
-      applyPlayerRoomCommand(room.name, currentPlayer!.key, {
+      applyPlayerRoomCommand(room.name, room.roomKey, currentPlayer!.key, {
         type: "claim-task",
         taskId: taskId!,
       }),
-      applyPlayerRoomCommand(room.name, currentPlayer!.key, {
+      applyPlayerRoomCommand(room.name, room.roomKey, currentPlayer!.key, {
         type: "claim-task",
         taskId: taskId!,
       }),
@@ -481,7 +493,11 @@ databaseDescribe("private database schema", () => {
       status: 409,
     });
 
-    const latest = await getPlayerRoom(room.name, currentPlayer!.key);
+    const latest = await getPlayerRoom(
+      room.name,
+      room.roomKey,
+      currentPlayer!.key,
+    );
     expect(latest.phase).toBe("between-tricks");
     expect(latest.tasks).toEqual([
       expect.objectContaining({
@@ -496,14 +512,17 @@ databaseDescribe("private database schema", () => {
       editionKey: "deep-sea",
       missionKey: "deep-sea:1",
     });
-    const originalLogin = await loginPlayer(room.name, room.players[0].key);
+    const originalLogin = await loginPlayer(
+      room.roomKey,
+      room.players[0].key,
+    );
 
     await pool.query(
       `update private.rooms set state_version = 999 where id = $1`,
       [room.id],
     );
     await expect(
-      getPlayerRoom(room.name, room.players[0].key),
+      getPlayerRoom(room.name, room.roomKey, room.players[0].key),
     ).rejects.toMatchObject({
       code: "LEVEL_RESTART_REQUIRED",
       status: 409,
@@ -520,7 +539,7 @@ databaseDescribe("private database schema", () => {
       playerCount: 3,
     });
     await expect(
-      loginPlayer(room.name, room.players[0].key),
+      loginPlayer(room.roomKey, room.players[0].key),
     ).resolves.toEqual(originalLogin);
 
     const storedState = await pool.query<{
@@ -535,7 +554,7 @@ databaseDescribe("private database schema", () => {
       [room.id, JSON.stringify(semanticallyCorruptState)],
     );
     await expect(
-      getPlayerRoom(room.name, room.players[0].key),
+      getPlayerRoom(room.name, room.roomKey, room.players[0].key),
     ).rejects.toMatchObject({
       code: "LEVEL_RESTART_REQUIRED",
       status: 409,
@@ -554,7 +573,7 @@ databaseDescribe("private database schema", () => {
       [room.id, JSON.stringify({ phase: "setup" })],
     );
     await expect(
-      getPlayerRoom(room.name, room.players[0].key),
+      getPlayerRoom(room.name, room.roomKey, room.players[0].key),
     ).rejects.toMatchObject({
       code: "LEVEL_RESTART_REQUIRED",
       status: 409,
@@ -567,14 +586,14 @@ databaseDescribe("private database schema", () => {
       phase: "assigning-tasks",
       playerCount: 3,
     });
-    expect(afterCorruptRestart.players.map(({ id, loginKey, seat }) => ({
+    expect(afterCorruptRestart.players.map(({ id, playerKey, seat }) => ({
       id,
-      loginKey,
+      playerKey,
       seat,
     }))).toEqual(
       room.players.map((player, index) => ({
         id: player.id,
-        loginKey: player.key,
+        playerKey: player.key,
         seat: index + 1,
       })),
     );

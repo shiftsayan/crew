@@ -47,19 +47,25 @@ async function adminJson(path, method, input) {
   ).body;
 }
 
-async function playerProjection(roomName, key) {
+async function playerProjection(roomName, roomKey, playerKey) {
   return (
     await expectOk(`/api/rooms/${encodeURIComponent(roomName)}`, {
-      headers: { "X-Crew-Player-Key": key },
+      headers: {
+        "X-Crew-Room-Key": roomKey,
+        "X-Crew-Player-Key": playerKey,
+      },
     })
   ).body;
 }
 
-async function playerAction(roomName, key, command) {
+async function playerAction(roomName, roomKey, playerKey, command) {
   return (
     await expectOk(`/api/rooms/${encodeURIComponent(roomName)}/actions`, {
       method: "POST",
-      headers: { "X-Crew-Player-Key": key },
+      headers: {
+        "X-Crew-Room-Key": roomKey,
+        "X-Crew-Player-Key": playerKey,
+      },
       body: JSON.stringify(command),
     })
   ).body;
@@ -89,6 +95,9 @@ async function main() {
     })
   ).room;
   createdRoomIds.push(room.id);
+  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(room.roomKey)) {
+    throw new Error("The smoke room does not have a valid room key.");
+  }
   console.log("✓ Room created");
 
   for (const displayName of ["Ada", "Grace", "Katherine"]) {
@@ -113,31 +122,56 @@ async function main() {
   const rotated = room.players.find(
     (player) => player.id === rotatedPlayer.id,
   );
-  if (!rotated || rotated.loginKey === rotatedPlayer.loginKey) {
+  if (!rotated || rotated.playerKey === rotatedPlayer.playerKey) {
     throw new Error("Player key rotation did not replace the key.");
   }
   const oldLogin = await request("/api/rooms/login", {
     method: "POST",
     body: JSON.stringify({
-      roomName,
-      key: rotatedPlayer.loginKey,
+      roomKey: room.roomKey,
+      playerKey: rotatedPlayer.playerKey,
     }),
   });
   if (oldLogin.response.status !== 401) {
     throw new Error("A rotated player key still works.");
   }
-  console.log("✓ Key rotation invalidates the old key");
+  console.log("✓ Player key rotation invalidates the old key");
+
+  const oldRoomKey = room.roomKey;
+  room = (
+    await adminJson(
+      `/api/admin/rooms/${room.id}/rotate-key`,
+      "POST",
+    )
+  ).room;
+  if (room.roomKey === oldRoomKey) {
+    throw new Error("Room key rotation did not replace the key.");
+  }
+  const oldRoomLogin = await request("/api/rooms/login", {
+    method: "POST",
+    body: JSON.stringify({
+      roomKey: oldRoomKey,
+      playerKey: room.players[0].playerKey,
+    }),
+  });
+  if (oldRoomLogin.response.status !== 401) {
+    throw new Error("A rotated room key still works.");
+  }
+  console.log("✓ Room key rotation invalidates the old key");
 
   const credentials = new Map(
     room.players.map((player) => [
       player.id,
-      { key: player.loginKey, name: player.displayName },
+      { key: player.playerKey, name: player.displayName },
     ]),
   );
   for (const credential of credentials.values()) {
     await expectOk("/api/rooms/login", {
       method: "POST",
-      body: JSON.stringify({ roomName, key: credential.key }),
+      body: JSON.stringify({
+        roomKey: room.roomKey,
+        playerKey: credential.key,
+      }),
     });
   }
   console.log("✓ Three player logins");
@@ -150,15 +184,17 @@ async function main() {
 
   let projection = await playerProjection(
     roomName,
+    room.roomKey,
     credentials.values().next().value.key,
   );
   if (
     projection.players.some((player) =>
       Object.prototype.hasOwnProperty.call(player, "hand"),
     ) ||
-    JSON.stringify(projection).includes("loginKey")
+    JSON.stringify(projection).includes("playerKey") ||
+    JSON.stringify(projection).includes("roomKey")
   ) {
-    throw new Error("A player projection leaked another hand or login key.");
+    throw new Error("A player projection leaked another hand or access key.");
   }
   console.log("✓ Actor-specific projection privacy");
 
@@ -171,14 +207,14 @@ async function main() {
     if (!credential) {
       throw new Error("Could not resolve the current task selector.");
     }
-    projection = await playerProjection(roomName, credential.key);
+    projection = await playerProjection(roomName, room.roomKey, credential.key);
     projection =
       projection.legalActions.claimableTaskIds.length > 0
-        ? await playerAction(roomName, credential.key, {
+        ? await playerAction(roomName, room.roomKey, credential.key, {
             type: "claim-task",
             taskId: projection.legalActions.claimableTaskIds[0],
           })
-        : await playerAction(roomName, credential.key, {
+        : await playerAction(roomName, room.roomKey, credential.key, {
             type: "pass-task",
           });
   }
@@ -193,12 +229,12 @@ async function main() {
     if (!credential) {
       throw new Error("Could not resolve the current card player.");
     }
-    projection = await playerProjection(roomName, credential.key);
+    projection = await playerProjection(roomName, room.roomKey, credential.key);
     const cardId = projection.legalActions.playableCardIds[0];
     if (!cardId) {
       throw new Error("The current player has no legal card.");
     }
-    projection = await playerAction(roomName, credential.key, {
+    projection = await playerAction(roomName, room.roomKey, credential.key, {
       type: "play-card",
       cardId,
     });
@@ -206,8 +242,12 @@ async function main() {
   console.log("✓ One complete trick");
 
   const firstCredential = credentials.values().next().value;
-  projection = await playerProjection(roomName, firstCredential.key);
-  projection = await playerAction(roomName, firstCredential.key, {
+  projection = await playerProjection(
+    roomName,
+    room.roomKey,
+    firstCredential.key,
+  );
+  projection = await playerAction(roomName, room.roomKey, firstCredential.key, {
     type: "set-task-outcome",
     taskId: projection.tasks[0].id,
     outcome: "success",

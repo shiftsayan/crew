@@ -19,7 +19,7 @@ Updated: 2026-07-30
 - Existing Firebase runtime data is discarded without migration.
 - There is no host. One global password-protected admin interface manages
   rooms, players, keys, missions, starts, resets, advancement, and deletion.
-- Players log in with a room name and a distinct six-character plaintext key.
+- Players log in with distinct six-character plaintext room and player keys.
   This protects against accidental hand disclosure, not adversarial access.
 - There are no accounts, Supabase Auth sessions, impersonation, presence,
   chat, event log, revision history, replay system, or audit UI.
@@ -52,6 +52,7 @@ Use a private Postgres schema with exactly two runtime tables.
 
 - UUID primary key.
 - Case-insensitively unique room name.
+- Globally unique six-character uppercase plaintext room key.
 - Edition and mission string keys.
 - State compatibility version.
 - Whole current game state as JSONB.
@@ -61,7 +62,7 @@ Use a private Postgres schema with exactly two runtime tables.
 
 - UUID primary key and cascading room foreign key.
 - Display name.
-- Six-character uppercase plaintext login key using
+- Six-character uppercase plaintext player key using
   `[A-HJ-NP-Z2-9]{6}`.
 - Seat from one through five.
 - Unique room/key, room/seat, and case-insensitive room/name constraints.
@@ -75,9 +76,9 @@ the room, roster, and keys.
 
 ## Authentication and APIs
 
-Player keys are kept in local storage by normalized room name and sent in the
-`X-Crew-Player-Key` header. They never appear in URLs or another player's
-projection.
+Room and player keys are kept in local storage by normalized room name and sent
+in the `X-Crew-Room-Key` and `X-Crew-Player-Key` headers. They never appear in
+URLs or another player's projection.
 
 Admin authentication uses `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET`. A valid
 password creates an eight-hour signed, secure, HTTP-only, same-site cookie.
@@ -92,7 +93,7 @@ Player commands are explicit:
 - Set a manual mission outcome.
 
 Player projections contain the player's own hand, public room/game state, and
-server-derived legal actions. They never contain another hand or any login key.
+server-derived legal actions. They never contain another hand or any access key.
 
 Admin APIs provide:
 
@@ -163,7 +164,7 @@ stored in Postgres.
 
 ### Player
 
-- `/` — join with room name and player key.
+- `/` — join with room key and player key.
 - `/rooms/:name` — waiting, task assignment, play, adjudication, and result.
 - Poll once per second while visible, pause while hidden, refresh after actions,
   and back off after errors.

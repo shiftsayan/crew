@@ -13,13 +13,14 @@ type EditionKey = "planet-nine" | "deep-sea";
 type AdminPlayer = {
   id: string;
   displayName: string;
-  loginKey: string;
+  playerKey: string;
   seat: number;
 };
 
 type AdminRoom = {
   id: string;
   name: string;
+  roomKey: string;
   editionKey: EditionKey;
   missionKey: string;
   missionNumber: number;
@@ -86,6 +87,7 @@ type PlayerSession = {
   context: BrowserContext;
   page: Page;
   player: AdminPlayer;
+  roomKey: string;
 };
 
 type Scenario = {
@@ -240,7 +242,10 @@ async function getProjection(
 ): Promise<Projection> {
   return expectOk<Projection>(
     await session.context.request.get(roomApiPath(roomName), {
-      headers: { "X-Crew-Player-Key": session.player.loginKey },
+      headers: {
+        "X-Crew-Room-Key": session.roomKey,
+        "X-Crew-Player-Key": session.player.playerKey,
+      },
     }),
   );
 }
@@ -253,7 +258,10 @@ async function sendAction(
   return expectOk<Projection>(
     await session.context.request.post(`${roomApiPath(roomName)}/actions`, {
       data: command,
-      headers: { "X-Crew-Player-Key": session.player.loginKey },
+      headers: {
+        "X-Crew-Room-Key": session.roomKey,
+        "X-Crew-Player-Key": session.player.playerKey,
+      },
     }),
   );
 }
@@ -278,16 +286,16 @@ async function openPlayerSessions(
     room.players.map(async (player) => {
       const context = await browser.newContext({ baseURL });
       await context.addInitScript(
-        ({ key, name }) => {
+        ({ name, playerKey, roomKey }) => {
           const storageKey = `crew:credentials:${name.toLowerCase()}`;
           if (window.localStorage.getItem(storageKey) === null) {
             window.localStorage.setItem(
               storageKey,
-              JSON.stringify({ roomName: name, key }),
+              JSON.stringify({ roomName: name, roomKey, playerKey }),
             );
           }
         },
-        { key: player.loginKey, name: room.name },
+        { name: room.name, playerKey: player.playerKey, roomKey: room.roomKey },
       );
 
       const login = await expectOk<{
@@ -295,7 +303,7 @@ async function openPlayerSessions(
         room: { id: string };
       }>(
         await context.request.post("/api/rooms/login", {
-          data: { roomName: room.name, key: player.loginKey },
+          data: { roomKey: room.roomKey, playerKey: player.playerKey },
         }),
       );
       expect(login.player.id).toBe(player.id);
@@ -317,11 +325,12 @@ async function openPlayerSessions(
       expect(savedCredentials).toEqual({
         [`crew:credentials:${room.name.toLowerCase()}`]: JSON.stringify({
           roomName: room.name,
-          key: player.loginKey,
+          roomKey: room.roomKey,
+          playerKey: player.playerKey,
         }),
       });
 
-      return { context, page, player };
+      return { context, page, player, roomKey: room.roomKey };
     }),
   );
 }
@@ -492,13 +501,20 @@ async function assertWrongAndCrossRoomKeys(
   room: AdminRoom,
   cleanupRoomIds: string[],
 ) {
-  const wrongKey = room.players.some((player) => player.loginKey === "AAAAAA")
+  const wrongKey = room.players.some((player) => player.playerKey === "AAAAAA")
     ? "BBBBBB"
     : "AAAAAA";
   const wrongLogin = await request.post("/api/rooms/login", {
-    data: { roomName: room.name, key: wrongKey },
+    data: { roomKey: room.roomKey, playerKey: wrongKey },
   });
   expect(wrongLogin.status()).toBe(401);
+  const wrongRoomLogin = await request.post("/api/rooms/login", {
+    data: {
+      roomKey: room.roomKey === "CCCCCC" ? "DDDDDD" : "CCCCCC",
+      playerKey: room.players[0].playerKey,
+    },
+  });
+  expect(wrongRoomLogin.status()).toBe(401);
 
   const decoy = await createRoom(request, {
     name: `Cross-${Date.now().toString(36)}`,
@@ -509,11 +525,17 @@ async function assertWrongAndCrossRoomKeys(
   cleanupRoomIds.push(decoy.id);
 
   const firstCrossLogin = await request.post("/api/rooms/login", {
-    data: { roomName: decoy.name, key: room.players[0].loginKey },
+    data: {
+      roomKey: decoy.roomKey,
+      playerKey: room.players[0].playerKey,
+    },
   });
   expect(firstCrossLogin.status()).toBe(401);
   const secondCrossLogin = await request.post("/api/rooms/login", {
-    data: { roomName: room.name, key: decoy.players[0].loginKey },
+    data: {
+      roomKey: room.roomKey,
+      playerKey: decoy.players[0].playerKey,
+    },
   });
   expect(secondCrossLogin.status()).toBe(401);
 }
@@ -523,7 +545,7 @@ async function rotateKeyAndReconnect(
   room: AdminRoom,
   session: PlayerSession,
 ) {
-  const oldKey = session.player.loginKey;
+  const oldKey = session.player.playerKey;
   const updatedRoom = (
     await adminPost<{ room: AdminRoom }>(
       request,
@@ -535,10 +557,10 @@ async function rotateKeyAndReconnect(
     (player) => player.id === session.player.id,
   );
   expect(updatedPlayer).toBeTruthy();
-  expect(updatedPlayer?.loginKey).not.toBe(oldKey);
+  expect(updatedPlayer?.playerKey).not.toBe(oldKey);
 
   const oldLogin = await request.post("/api/rooms/login", {
-    data: { roomName: room.name, key: oldKey },
+    data: { roomKey: room.roomKey, playerKey: oldKey },
   });
   expect(oldLogin.status()).toBe(401);
 
@@ -547,15 +569,19 @@ async function rotateKeyAndReconnect(
     session.page.getByRole("heading", { name: `Join ${room.name}` }),
   ).toBeVisible();
 
-  session.player.loginKey = updatedPlayer!.loginKey;
+  session.player.playerKey = updatedPlayer!.playerKey;
   await session.page.evaluate(
-    ({ key, name }) => {
+    ({ name, playerKey, roomKey }) => {
       window.localStorage.setItem(
         `crew:credentials:${name.toLowerCase()}`,
-        JSON.stringify({ roomName: name, key }),
+        JSON.stringify({ roomName: name, roomKey, playerKey }),
       );
     },
-    { key: session.player.loginKey, name: room.name },
+    {
+      name: room.name,
+      playerKey: session.player.playerKey,
+      roomKey: room.roomKey,
+    },
   );
   await session.page.reload();
   await expect(session.page.locator(".player-identity")).toHaveText(
@@ -606,7 +632,8 @@ test.describe("database-backed multiplayer", () => {
         for (const session of sessions) {
           const projection = await getProjection(session, room.name);
           expect(projection.self.id).toBe(session.player.id);
-          expect(JSON.stringify(projection)).not.toContain("loginKey");
+          expect(JSON.stringify(projection)).not.toContain("playerKey");
+          expect(JSON.stringify(projection)).not.toContain("roomKey");
           expect(
             projection.players.every(
               (player) => !Object.hasOwn(player, "hand"),
@@ -822,12 +849,21 @@ test.describe("database-backed browser gaps", () => {
       ).toBeVisible();
       await expect(page.getByRole("button", { name: "Save settings" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Delete room" })).toBeVisible();
+      const roomKeyValue = page.getByLabel(`Room key for ${roomName}`);
+      await expect(roomKeyValue).toHaveText(/[A-HJ-NP-Z2-9]{6}/);
+      const oldRoomKey = await roomKeyValue.textContent();
+      page.once("dialog", (dialog) => dialog.accept());
+      await roomKeyValue
+        .locator("..")
+        .getByRole("button", { name: "Rotate" })
+        .click();
+      await expect(roomKeyValue).not.toHaveText(oldRoomKey ?? "");
 
       for (const playerName of ["Ada", "Grace", "Katherine"]) {
         await page.getByLabel("New player").fill(playerName);
         await page.getByRole("button", { name: "Add player" }).click();
         await expect(
-          page.getByLabel(`Login key for ${playerName}`),
+          page.getByLabel(`Player key for ${playerName}`),
         ).toHaveText(/[A-HJ-NP-Z2-9]{6}/);
       }
 
@@ -843,7 +879,7 @@ test.describe("database-backed browser gaps", () => {
       ).toHaveValue("Ada Lovelace");
 
       const oldKey = await page
-        .getByLabel("Login key for Ada Lovelace")
+        .getByLabel("Player key for Ada Lovelace")
         .textContent();
       page.once("dialog", (dialog) => dialog.accept());
       await page
@@ -851,7 +887,7 @@ test.describe("database-backed browser gaps", () => {
         .first()
         .getByRole("button", { name: "Rotate" })
         .click();
-      await expect(page.getByLabel("Login key for Ada Lovelace")).not.toHaveText(
+      await expect(page.getByLabel("Player key for Ada Lovelace")).not.toHaveText(
         oldKey ?? "",
       );
 

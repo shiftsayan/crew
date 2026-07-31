@@ -37,13 +37,17 @@ import {
 } from "@/server/game-runtime";
 import {
   PLAYER_KEY_PATTERN,
+  ROOM_KEY_PATTERN,
   generatePlayerKey,
+  generateRoomKey,
   normalizePlayerKey,
+  normalizeRoomKey,
 } from "@/server/player-keys";
 
 const roomColumns = `
   id,
   name,
+  room_key as "roomKey",
   edition_key as "editionKey",
   mission_key as "missionKey",
   state_version as "stateVersion",
@@ -56,7 +60,7 @@ const playerColumns = `
   id,
   room_id as "roomId",
   display_name as "displayName",
-  login_key as "loginKey",
+  player_key as "playerKey",
   seat,
   created_at as "createdAt"
 `;
@@ -67,6 +71,7 @@ export async function listAdminRooms(): Promise<AdminRoomSummary[]> {
       select
         rooms.id,
         rooms.name,
+        rooms.room_key as "roomKey",
         rooms.edition_key as "editionKey",
         rooms.mission_key as "missionKey",
         rooms.state_version as "stateVersion",
@@ -91,21 +96,24 @@ export async function createAdminRoom(
 ): Promise<AdminRoomDetail> {
   const mission = assertMission(input.editionKey, input.missionKey);
   const state = makeSetupState(mission.editionKey, mission.missionKey);
+  const roomKey = await uniqueRoomKey();
 
   const result = await query<RoomRow>(
     `
       insert into private.rooms (
         name,
+        room_key,
         edition_key,
         mission_key,
         state_version,
         state
       )
-      values ($1, $2, $3, $4, $5::jsonb)
+      values ($1, $2, $3, $4, $5, $6::jsonb)
       returning ${roomColumns}
     `,
     [
       input.name,
+      roomKey,
       mission.editionKey,
       mission.missionKey,
       CURRENT_STATE_VERSION,
@@ -222,7 +230,7 @@ export async function addAdminPlayer(
         insert into private.room_players (
           room_id,
           display_name,
-          login_key,
+          player_key,
           seat
         )
         values ($1, $2, $3, $4)
@@ -335,12 +343,31 @@ export async function rotateAdminPlayerKey(
     await client.query(
       `
         update private.room_players
-        set login_key = $3
+        set player_key = $3
         where room_id = $1 and id = $2
       `,
       [roomId, playerId, key],
     );
     await touchRoom(client, roomId);
+  });
+
+  return getAdminRoom(roomId);
+}
+
+export async function rotateAdminRoomKey(
+  roomId: string,
+): Promise<AdminRoomDetail> {
+  await withTransaction(async (client) => {
+    const room = await getRoomForUpdate(client, roomId);
+    const key = await uniqueRoomKey(client, room.roomKey);
+    await client.query(
+      `
+        update private.rooms
+        set room_key = $2, updated_at = now()
+        where id = $1
+      `,
+      [roomId, key],
+    );
   });
 
   return getAdminRoom(roomId);
@@ -426,13 +453,14 @@ export async function runAdminRoomAction(
 }
 
 export async function loginPlayer(
-  roomName: string,
-  key: string,
+  roomKey: string,
+  playerKey: string,
 ): Promise<{
   room: { id: string; name: string };
   player: { id: string; displayName: string; seat: number };
 }> {
-  const normalizedKey = normalizePlayerKey(key);
+  const normalizedRoomKey = normalizeRoomKey(roomKey);
+  const normalizedPlayerKey = normalizePlayerKey(playerKey);
   const result = await query<
     Pick<RoomRow, "id" | "name"> &
       Pick<PlayerRow, "displayName" | "seat"> & { playerId: string }
@@ -446,11 +474,11 @@ export async function loginPlayer(
         players.seat
       from private.rooms rooms
       join private.room_players players on players.room_id = rooms.id
-      where lower(rooms.name) = lower($1)
-        and players.login_key = $2
+      where rooms.room_key = $1
+        and players.player_key = $2
       limit 1
     `,
-    [roomName, normalizedKey],
+    [normalizedRoomKey, normalizedPlayerKey],
   );
   const match = result.rows[0];
   if (!match) {
@@ -469,15 +497,21 @@ export async function loginPlayer(
 
 export async function getPlayerRoom(
   roomName: string,
-  key: string | null,
+  roomKey: string | null,
+  playerKey: string | null,
 ): Promise<ActorProjection> {
-  if (!key || !PLAYER_KEY_PATTERN.test(normalizePlayerKey(key))) {
+  if (
+    !roomKey ||
+    !ROOM_KEY_PATTERN.test(normalizeRoomKey(roomKey)) ||
+    !playerKey ||
+    !PLAYER_KEY_PATTERN.test(normalizePlayerKey(playerKey))
+  ) {
     throw invalidPlayerCredentials();
   }
 
   return withTransaction(async (client) => {
-    const room = await getRoomByName(client, roomName, "share");
-    const player = await getPlayerByKey(client, room.id, key);
+    const room = await getRoomByCredentials(client, roomName, roomKey, "share");
+    const player = await getPlayerByKey(client, room.id, playerKey);
     const players = await getPlayersWithClient(client, room.id);
     const state = compatibleState(room, players);
 
@@ -495,16 +529,22 @@ export async function getPlayerRoom(
 
 export async function applyPlayerRoomCommand(
   roomName: string,
-  key: string | null,
+  roomKey: string | null,
+  playerKey: string | null,
   command: PlayerCommand,
 ): Promise<ActorProjection> {
-  if (!key || !PLAYER_KEY_PATTERN.test(normalizePlayerKey(key))) {
+  if (
+    !roomKey ||
+    !ROOM_KEY_PATTERN.test(normalizeRoomKey(roomKey)) ||
+    !playerKey ||
+    !PLAYER_KEY_PATTERN.test(normalizePlayerKey(playerKey))
+  ) {
     throw invalidPlayerCredentials();
   }
 
   return withTransaction(async (client) => {
-    const room = await getRoomByName(client, roomName, "update");
-    const player = await getPlayerByKey(client, room.id, key);
+    const room = await getRoomByCredentials(client, roomName, roomKey, "update");
+    const player = await getPlayerByKey(client, room.id, playerKey);
     const players = await getPlayersWithClient(client, room.id);
     const state = compatibleState(room, players);
     const nextState = runPlayerCommand(state, player.id, command);
@@ -550,9 +590,10 @@ async function getRoomForUpdate(
   return room;
 }
 
-async function getRoomByName(
+async function getRoomByCredentials(
   client: PoolClient,
   roomName: string,
+  roomKey: string,
   lock: "share" | "update",
 ): Promise<RoomRow> {
   const result = await client.query<RoomRow>(
@@ -560,13 +601,14 @@ async function getRoomByName(
       select ${roomColumns}
       from private.rooms
       where lower(name) = lower($1)
+        and room_key = $2
       ${lock === "update" ? "for update" : "for share"}
     `,
-    [roomName],
+    [roomName, normalizeRoomKey(roomKey)],
   );
   const room = result.rows[0];
   if (!room) {
-    throw new AppError("NOT_FOUND", "Room not found.", 404);
+    throw invalidPlayerCredentials();
   }
   return room;
 }
@@ -609,7 +651,7 @@ async function getPlayerByKey(
     `
       select ${playerColumns}
       from private.room_players
-      where room_id = $1 and login_key = $2
+      where room_id = $1 and player_key = $2
     `,
     [roomId, normalizePlayerKey(key)],
   );
@@ -966,7 +1008,7 @@ function firstAvailableSeat(players: PlayerRow[]): number {
 }
 
 function uniquePlayerKey(players: PlayerRow[]): string {
-  const keys = new Set(players.map((player) => player.loginKey));
+  const keys = new Set(players.map((player) => player.playerKey));
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const key = generatePlayerKey();
     if (!keys.has(key)) {
@@ -974,6 +1016,27 @@ function uniquePlayerKey(players: PlayerRow[]): string {
     }
   }
   throw new AppError("SERVER_ERROR", "Could not generate a player key.", 500);
+}
+
+async function uniqueRoomKey(
+  client?: PoolClient,
+  currentKey?: string,
+): Promise<string> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const key = generateRoomKey();
+    if (key === currentKey) continue;
+    const result = client
+      ? await client.query<{ exists: boolean }>(
+          `select exists(select 1 from private.rooms where room_key = $1)`,
+          [key],
+        )
+      : await query<{ exists: boolean }>(
+          `select exists(select 1 from private.rooms where room_key = $1)`,
+          [key],
+        );
+    if (!result.rows[0]?.exists) return key;
+  }
+  throw new AppError("SERVER_ERROR", "Could not generate a room key.", 500);
 }
 
 async function touchRoom(client: PoolClient, roomId: string): Promise<void> {
@@ -1034,6 +1097,7 @@ function adminSummary(
   return {
     id: room.id,
     name: room.name,
+    roomKey: room.roomKey,
     editionKey: room.editionKey,
     missionKey: room.missionKey,
     missionNumber: missionDefinition.number,
@@ -1071,7 +1135,7 @@ function adminDetail(room: RoomRow, players: PlayerRow[]): AdminRoomDetail {
     players: players.map((player) => ({
       id: player.id,
       displayName: player.displayName,
-      loginKey: player.loginKey,
+      playerKey: player.playerKey,
       seat: player.seat,
       createdAt: asIsoString(player.createdAt),
     })),
@@ -1085,7 +1149,7 @@ function asIsoString(value: Date | string): string {
 function invalidPlayerCredentials(): AppError {
   return new AppError(
     "INVALID_CREDENTIALS",
-    "The room name or player key is incorrect.",
+    "The room key or player key is incorrect.",
     401,
   );
 }

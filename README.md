@@ -1,8 +1,8 @@
 # Crew
 
 Crew is a server-authoritative web companion for **The Crew: The Quest for
-Planet Nine** and **The Crew: Mission Deep Sea**. Players join a named room
-with a six-character player key; a small password-protected admin interface
+Planet Nine** and **The Crew: Mission Deep Sea**. Players join with separate
+six-character room and player keys; a small password-protected admin interface
 manages rooms, rosters, missions, and resets.
 
 The application is a single Next.js service backed by a private Supabase
@@ -81,9 +81,9 @@ npm run build
 - `src/app/rooms` — player-specific game surface
 - `supabase/migrations` — the two-table private database schema
 
-The player access model is deliberately lightweight. Player keys are six
-characters and stored in plaintext. They keep players from accidentally seeing
-one another's hands; they are not strong authentication.
+The player access model is deliberately lightweight. Room and player keys are
+six characters and stored in plaintext. Together they keep players from
+accidentally seeing one another's hands; they are not strong authentication.
 
 ## Production
 

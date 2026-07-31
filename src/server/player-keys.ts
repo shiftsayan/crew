@@ -4,6 +4,7 @@ const PLAYER_KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const PLAYER_KEY_LENGTH = 6;
 
 export const PLAYER_KEY_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
+export const ROOM_KEY_PATTERN = PLAYER_KEY_PATTERN;
 
 export function normalizePlayerKey(key: string): string {
   return key.trim().toUpperCase();
@@ -16,3 +17,6 @@ export function generatePlayerKey(): string {
   }
   return key;
 }
+
+export const generateRoomKey = generatePlayerKey;
+export const normalizeRoomKey = normalizePlayerKey;

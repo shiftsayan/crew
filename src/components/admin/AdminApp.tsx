@@ -270,7 +270,7 @@ export function AdminApp() {
                   </div>
                   <h2 className="text-lg font-semibold">Select a room</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Choose a room to manage its roster, login keys, mission, and current attempt.
+                    Choose a room to manage its roster, access keys, mission, and current attempt.
                   </p>
                 </CardContent>
               </Card>
@@ -330,7 +330,7 @@ function AdminLogin({
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Room admin</h1>
             <CardDescription className="mt-2">
-              Create rooms, manage player keys, and control active missions.
+              Create rooms, manage room and player keys, and control active missions.
             </CardDescription>
           </div>
         </CardHeader>
@@ -737,16 +737,22 @@ function RoomEditor({
             </div>
             <PhaseBadge phase={room.phase} />
           </div>
-        <form
-          className="grid gap-3 rounded-lg border bg-muted/20 p-4 md:grid-cols-2 xl:grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(13rem,1.35fr)_auto] xl:items-end"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void patchRoom(
-              { name, editionKey, missionKey: selectedMissionKey },
-              "Room settings updated.",
-            );
-          }}
-        >
+          <RoomKeyControl
+            room={room}
+            disabled={disabled}
+            request={request}
+            afterMutation={afterMutation}
+          />
+          <form
+            className="grid gap-3 rounded-lg border bg-muted/20 p-4 md:grid-cols-2 xl:grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(13rem,1.35fr)_auto] xl:items-end"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void patchRoom(
+                { name, editionKey, missionKey: selectedMissionKey },
+                "Room settings updated.",
+              );
+            }}
+          >
           <Field>
             <FieldLabel htmlFor={`room-name-${room.id}`}>Room name</FieldLabel>
             <Input
@@ -804,7 +810,7 @@ function RoomEditor({
           <Button variant="secondary" type="submit" disabled={disabled}>
             Save settings
           </Button>
-        </form>
+          </form>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {room.restartRequired ? (
@@ -855,7 +861,7 @@ function RoomEditor({
                 Players
               </h3>
               <p className="text-sm text-muted-foreground">
-                Give each player their own six-character login key.
+                Give each player their own six-character player key.
               </p>
             </div>
             <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
@@ -954,6 +960,68 @@ function RoomEditor({
         </section>
       </CardContent>
     </Card>
+  );
+}
+
+function RoomKeyControl({
+  room,
+  disabled,
+  request,
+  afterMutation,
+}: {
+  room: AdminRoomDetail;
+  disabled: boolean;
+  request: AdminRequest;
+  afterMutation: (message: string) => Promise<void>;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div className="mb-3 flex min-w-0 flex-wrap items-center gap-2 rounded-lg border bg-muted/20 p-3">
+      <span className="text-xs font-medium text-muted-foreground">Room key</span>
+      <code
+        className="rounded-md bg-background px-2.5 py-1.5 font-mono text-sm font-semibold tracking-[0.16em]"
+        aria-label={`Room key for ${room.name}`}
+      >
+        {room.roomKey}
+      </code>
+      <Button
+        variant="outline"
+        size="sm"
+        type="button"
+        onClick={async () => {
+          await navigator.clipboard.writeText(room.roomKey);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1_500);
+        }}
+      >
+        {copied ? <Check /> : <Clipboard />}
+        {copied ? "Copied" : "Copy"}
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        type="button"
+        disabled={disabled}
+        onClick={async () => {
+          if (
+            !window.confirm(
+              "Rotate this room key? Every saved room login will stop working.",
+            )
+          ) {
+            return;
+          }
+          const result = await request(
+            `/api/admin/rooms/${room.id}/rotate-key`,
+            { method: "POST" },
+          );
+          if (result) await afterMutation("Room key rotated.");
+        }}
+      >
+        <RefreshCw />
+        Rotate
+      </Button>
+    </div>
   );
 }
 
@@ -1070,12 +1138,12 @@ function AdminPlayerRow({
       </Button>
 
       <div className="col-span-full flex min-w-0 flex-wrap items-center gap-2 border-t pt-3">
-        <span className="text-xs font-medium text-muted-foreground">Login key</span>
+        <span className="text-xs font-medium text-muted-foreground">Player key</span>
         <code
           className="rounded-md bg-muted px-2.5 py-1.5 font-mono text-sm font-semibold tracking-[0.16em]"
-          aria-label={`Login key for ${player.displayName}`}
+          aria-label={`Player key for ${player.displayName}`}
         >
-          {player.loginKey}
+          {player.playerKey}
         </code>
         <Button
           variant="outline"
@@ -1083,7 +1151,7 @@ function AdminPlayerRow({
           type="button"
           title={`Copy key for ${player.displayName}`}
           onClick={async () => {
-            await navigator.clipboard.writeText(player.loginKey);
+            await navigator.clipboard.writeText(player.playerKey);
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1_500);
           }}

@@ -20,6 +20,7 @@ export async function POST(
     const command = PlayerCommandSchema.parse(await readJson(request));
     const projection = await applyPlayerRoomCommand(
       roomName,
+      request.headers.get("x-crew-room-key"),
       request.headers.get("x-crew-player-key"),
       command,
     );

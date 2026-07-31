@@ -47,7 +47,10 @@ export function useRoomProjection(roomName: string, credential: StoredCredential
       const generation = actionGeneration.current;
       try {
         const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`, {
-          headers: { "X-Crew-Player-Key": credential.key },
+          headers: {
+            "X-Crew-Room-Key": credential.roomKey,
+            "X-Crew-Player-Key": credential.playerKey,
+          },
           cache: "no-store",
         });
         const body = (await response.json().catch(() => ({}))) as ApiErrorBody | ActorProjection;
@@ -150,7 +153,8 @@ export function useRoomProjection(roomName: string, credential: StoredCredential
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Crew-Player-Key": credential.key,
+            "X-Crew-Room-Key": credential.roomKey,
+            "X-Crew-Player-Key": credential.playerKey,
           },
           body: JSON.stringify(command),
         });
