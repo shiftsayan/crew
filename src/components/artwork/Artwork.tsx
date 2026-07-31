@@ -7,6 +7,8 @@ import styles from "./Artwork.module.css";
 const DEFAULT_CHARACTERS = "@#S08Xx+=-;:.";
 const GLYPH_ASPECT_RATIO = 1.45;
 const COVERAGE = 0.85;
+const DEFAULT_BRIGHTNESS_THRESHOLD = 0.12;
+const DEFAULT_BRIGHTNESS_FEATHER = 0.3;
 
 export type ArtworkProps = {
   src: string;
@@ -16,6 +18,8 @@ export type ArtworkProps = {
   cellSize?: number;
   intervalMs?: number;
   opacity?: number;
+  brightnessThreshold?: number;
+  brightnessFeather?: number;
 };
 
 type SourceRect = {
@@ -33,6 +37,8 @@ export function Artwork({
   cellSize = 11,
   intervalMs = 220,
   opacity = 0.48,
+  brightnessThreshold = DEFAULT_BRIGHTNESS_THRESHOLD,
+  brightnessFeather = DEFAULT_BRIGHTNESS_FEATHER,
 }: ArtworkProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -91,6 +97,13 @@ export function Artwork({
           const blue = pixels[pixelIndex + 2];
           const brightness =
             (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+          const visibility = getArtworkVisibility(
+            brightness,
+            brightnessThreshold,
+            brightnessFeather,
+          );
+          if (visibility <= 0.01) continue;
+
           const character = selectArtworkCharacter(
             characters,
             brightness,
@@ -99,7 +112,10 @@ export function Artwork({
             nextFrame,
           );
           const characterAlpha =
-            sourceAlpha * opacity * (0.38 + (1 - brightness) * 0.62);
+            sourceAlpha *
+            opacity *
+            visibility *
+            (0.55 + brightness * 0.45);
           const liftedRed = Math.min(255, red * 0.82 + 78);
           const liftedGreen = Math.min(255, green * 0.82 + 78);
           const liftedBlue = Math.min(255, blue * 0.82 + 88);
@@ -197,7 +213,15 @@ export function Artwork({
       artworkImage.removeEventListener("load", prepare);
       reducedMotion.removeEventListener("change", motionPreferenceChanged);
     };
-  }, [cellSize, characters, intervalMs, opacity, src]);
+  }, [
+    brightnessFeather,
+    brightnessThreshold,
+    cellSize,
+    characters,
+    intervalMs,
+    opacity,
+    src,
+  ]);
 
   return (
     <div
@@ -271,6 +295,19 @@ export function selectArtworkCharacter(
     Math.max(0, baseIndex + variation),
   );
   return characters[index];
+}
+
+export function getArtworkVisibility(
+  brightness: number,
+  threshold = DEFAULT_BRIGHTNESS_THRESHOLD,
+  feather = DEFAULT_BRIGHTNESS_FEATHER,
+) {
+  const value = Math.min(1, Math.max(0, brightness));
+  const start = Math.min(1, Math.max(0, threshold));
+  const width = Math.max(0.001, feather);
+  const progress = Math.min(1, Math.max(0, (value - start) / width));
+
+  return progress * progress * (3 - 2 * progress);
 }
 
 function hashCell(column: number, row: number, frame: number) {
