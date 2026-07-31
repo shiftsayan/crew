@@ -290,6 +290,10 @@ test("the homepage uses shadcn New York primitives", async ({ page }) => {
     "data-color-theme",
     "shadcn-default",
   );
+  await expect(page.locator("main")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
   expect(
     await page.locator("main").evaluate((element) =>
       getComputedStyle(element).getPropertyValue("--primary").trim(),
