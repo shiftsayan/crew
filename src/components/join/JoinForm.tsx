@@ -171,7 +171,7 @@ export function JoinForm() {
             ) : null}
 
             <Button
-              className="h-11 w-full"
+              className="h-11 self-end"
               type="submit"
               disabled={submitting}
             >

@@ -283,7 +283,18 @@ test("the homepage uses shadcn New York primitives", async ({ page }) => {
   await expect(joinButton).toHaveAttribute("data-variant", "default");
   await expect(joinButton).toHaveAttribute("data-size", "default");
   await expect(joinButton).toHaveCSS("height", "44px");
+  await expect(joinButton).toHaveCSS("width", "144px");
+  await expect(joinButton).toHaveCSS("align-self", "flex-end");
   await expect(joinButton).toHaveCSS("border-radius", "6px");
+  await expect(page.locator("main")).toHaveAttribute(
+    "data-color-theme",
+    "shadcn-default",
+  );
+  expect(
+    await page.locator("main").evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("--primary").trim(),
+    ),
+  ).toMatch(/^lab\(7\./);
   await expect(page.getByText("Keys use six letters and numbers.")).toHaveCount(
     0,
   );
@@ -466,6 +477,7 @@ test("active gameplay is accessible, viewport-bound, and keyboard reachable", as
   await page.setViewportSize({ width: 1024, height: 640 });
   await page.goto(`/rooms/${roomName}`);
   const modeButton = page.getByRole("button", { name: "Communicate a card" });
+  await expect(modeButton).toHaveCSS("width", "128px");
   await modeButton.click();
   await expect(
     page.getByRole("button", { name: "Cancel communication mode" }),

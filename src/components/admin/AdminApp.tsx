@@ -382,7 +382,7 @@ function AdminLogin({
                   {error}
                 </Notice>
               ) : null}
-              <Button className="w-full" disabled={busy} type="submit">
+              <Button className="self-end" disabled={busy} type="submit">
                 {busy ? (
                   <>
                     <Spinner label="Signing in" /> Signing in…
@@ -393,8 +393,8 @@ function AdminLogin({
               </Button>
             </FieldGroup>
           </CardContent>
-          <CardFooter className="border-t">
-            <Button asChild className="w-full" variant="ghost">
+          <CardFooter className="justify-end border-t">
+            <Button asChild className="w-44" variant="ghost">
               <Link href="/">
                 <ArrowLeft />
                 Back to player join
@@ -431,7 +431,7 @@ function CreateRoom({
 
   if (!open) {
     return (
-      <Button className="w-full lg:w-auto" type="button" onClick={() => setOpen(true)}>
+      <Button type="button" onClick={() => setOpen(true)}>
         <Plus />
         New room
       </Button>

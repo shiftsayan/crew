@@ -140,7 +140,7 @@
 }
 
 .sidebarActions > :global(.button) {
-  width: 100%;
+  width: 8rem;
 }
 
 .forgetButton {
@@ -181,7 +181,7 @@
 }
 
 .missionOutcome :global(.button) {
-  width: 100%;
+  width: 8rem;
 }
 
 .mobileTabs {
@@ -432,6 +432,7 @@
 }
 
 .tileAction {
+  width: 4rem;
   min-width: 2.75rem;
 }
 
@@ -806,7 +807,7 @@
   }
 
   .sidebarActions > :global(.button) {
-    width: auto;
+    width: 8rem;
   }
 
   .missionOutcome {
@@ -825,7 +826,7 @@
   }
 
   .missionOutcome :global(.button) {
-    width: auto;
+    width: 8rem;
   }
 
   .view {
