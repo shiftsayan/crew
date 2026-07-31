@@ -7,8 +7,8 @@ import styles from "./Artwork.module.css";
 export const DEFAULT_ARTWORK_CHARACTERS = "@#S08Xxthecrew+=-;:.";
 const GLYPH_ASPECT_RATIO = 1.45;
 const COVERAGE = 0.85;
-const DEFAULT_BRIGHTNESS_THRESHOLD = 0.36;
-const DEFAULT_BRIGHTNESS_FEATHER = 0.2;
+const DEFAULT_BRIGHTNESS_THRESHOLD = 0.25;
+const DEFAULT_BRIGHTNESS_FEATHER = 0.5;
 const DEFAULT_SAMPLING_THRESHOLD = 0.6;
 
 export type ArtworkProps = {
