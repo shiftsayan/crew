@@ -1,9 +1,11 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  DEFAULT_ARTWORK_CHARACTERS,
   getCoverSourceRect,
   getArtworkVisibility,
   selectArtworkCharacter,
+  shouldSampleArtworkCharacter,
 } from "./Artwork";
 
 describe("Artwork", () => {
@@ -38,9 +40,24 @@ describe("Artwork", () => {
 
   test("masks dark sky while feathering characters into bright clouds", () => {
     expect(getArtworkVisibility(0.08)).toBe(0);
-    expect(getArtworkVisibility(0.34)).toBe(0);
-    expect(getArtworkVisibility(0.44)).toBeCloseTo(0.5, 5);
-    expect(getArtworkVisibility(0.54)).toBe(1);
+    expect(getArtworkVisibility(0.36)).toBe(0);
+    expect(getArtworkVisibility(0.46)).toBeCloseTo(0.5, 5);
+    expect(getArtworkVisibility(0.56)).toBe(1);
     expect(getArtworkVisibility(0.9)).toBe(1);
+  });
+
+  test("includes thecrew in the default character ramp", () => {
+    expect(DEFAULT_ARTWORK_CHARACTERS).toContain("thecrew");
+  });
+
+  test("resamples approximately sixty percent of characters per frame", () => {
+    const sampledCells = Array.from({ length: 10_000 }, (_, index) =>
+      shouldSampleArtworkCharacter(index % 100, Math.floor(index / 100), 3),
+    ).filter(Boolean);
+
+    expect(sampledCells.length / 10_000).toBeGreaterThan(0.58);
+    expect(sampledCells.length / 10_000).toBeLessThan(0.62);
+    expect(shouldSampleArtworkCharacter(2, 4, 1, 0)).toBe(false);
+    expect(shouldSampleArtworkCharacter(2, 4, 1, 1)).toBe(true);
   });
 });

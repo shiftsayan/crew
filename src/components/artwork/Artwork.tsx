@@ -4,11 +4,12 @@ import { useEffect, useRef } from "react";
 
 import styles from "./Artwork.module.css";
 
-const DEFAULT_CHARACTERS = "@#S08Xx+=-;:.";
+export const DEFAULT_ARTWORK_CHARACTERS = "@#S08Xxthecrew+=-;:.";
 const GLYPH_ASPECT_RATIO = 1.45;
 const COVERAGE = 0.85;
-const DEFAULT_BRIGHTNESS_THRESHOLD = 0.34;
+const DEFAULT_BRIGHTNESS_THRESHOLD = 0.36;
 const DEFAULT_BRIGHTNESS_FEATHER = 0.2;
+const DEFAULT_SAMPLING_THRESHOLD = 0.6;
 
 export type ArtworkProps = {
   src: string;
@@ -20,6 +21,7 @@ export type ArtworkProps = {
   opacity?: number;
   brightnessThreshold?: number;
   brightnessFeather?: number;
+  samplingThreshold?: number;
 };
 
 type SourceRect = {
@@ -33,12 +35,13 @@ export function Artwork({
   src,
   alt = "",
   className,
-  characters = DEFAULT_CHARACTERS,
-  cellSize = 11,
+  characters = DEFAULT_ARTWORK_CHARACTERS,
+  cellSize = 10,
   intervalMs = 220,
   opacity = 0.48,
   brightnessThreshold = DEFAULT_BRIGHTNESS_THRESHOLD,
   brightnessFeather = DEFAULT_BRIGHTNESS_FEATHER,
+  samplingThreshold = DEFAULT_SAMPLING_THRESHOLD,
 }: ArtworkProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -72,6 +75,7 @@ export function Artwork({
     let frame = 0;
     let lastFrameAt = 0;
     let pixels: Uint8ClampedArray | null = null;
+    let renderedCharacters: string[] = [];
 
     function draw(nextFrame: number) {
       if (!pixels || !columns || !rows) return;
@@ -104,13 +108,26 @@ export function Artwork({
           );
           if (visibility <= 0.01) continue;
 
-          const character = selectArtworkCharacter(
-            characters,
-            brightness,
-            column,
-            row,
-            nextFrame,
-          );
+          const cellIndex = row * columns + column;
+          let character = renderedCharacters[cellIndex];
+          if (
+            !character ||
+            shouldSampleArtworkCharacter(
+              column,
+              row,
+              nextFrame,
+              samplingThreshold,
+            )
+          ) {
+            character = selectArtworkCharacter(
+              characters,
+              brightness,
+              column,
+              row,
+              nextFrame,
+            );
+            renderedCharacters[cellIndex] = character;
+          }
           const characterAlpha =
             sourceAlpha *
             opacity *
@@ -157,6 +174,7 @@ export function Artwork({
       artworkCanvas.height = Math.round(bounds.height * deviceScale);
       sampleCanvas.width = columns;
       sampleCanvas.height = rows;
+      renderedCharacters = new Array(columns * rows);
 
       const source = getCoverSourceRect(
         artworkImage.naturalWidth,
@@ -220,6 +238,7 @@ export function Artwork({
     characters,
     intervalMs,
     opacity,
+    samplingThreshold,
     src,
   ]);
 
@@ -308,6 +327,18 @@ export function getArtworkVisibility(
   const progress = Math.min(1, Math.max(0, (value - start) / width));
 
   return progress * progress * (3 - 2 * progress);
+}
+
+export function shouldSampleArtworkCharacter(
+  column: number,
+  row: number,
+  frame: number,
+  threshold = DEFAULT_SAMPLING_THRESHOLD,
+) {
+  const samplingRate = Math.min(1, Math.max(0, threshold));
+  const sample = hashCell(column + 97, row + 193, frame) / 0x100000000;
+
+  return sample < samplingRate;
 }
 
 function hashCell(column: number, row: number, frame: number) {
