@@ -574,13 +574,22 @@ test("authenticated admin dashboard is accessible and responsive at target width
 }) => {
   await mockAuthenticatedAdmin(page);
 
-  for (const width of [320, 375, 768, 1440]) {
+  for (const width of [320, 375, 768, 879, 1440]) {
     await page.setViewportSize({
       width,
       height: width <= 375 ? 740 : 900,
     });
     await page.goto("/admin");
-    await expect(page.getByRole("heading", { name: "Room admin" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Admin", exact: true })).toBeVisible();
+    await expect(page.getByText("1 room", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "New room" })).toBeVisible();
+    await expect(page.getByText("Planet Nine · Level 1", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("3 of 5 players")).toBeVisible();
+    await expect(page.getByText(/Updated \d+[mhd] ago|Updated Just now/)).toBeVisible();
+    await expect(page.locator("main#main-content > header")).toHaveCount(0);
+    await expect(
+      page.getByText("Create a room, add its crew, then start the mission."),
+    ).toHaveCount(0);
     await expect(page.getByTestId("admin-artwork")).toHaveCSS(
       "background-image",
       /crew-clouds\.jpg/,
@@ -591,7 +600,20 @@ test("authenticated admin dashboard is accessible and responsive at target width
       page.getByRole("heading", { name: adminRoom.name, exact: true }),
     ).toBeVisible();
 
+    const detailScroll = page.getByTestId("admin-detail-scroll");
+    await expect(detailScroll).toHaveCSS("overflow-y", "auto");
+    if (width === 879) {
+      const detailDimensions = await detailScroll.evaluate((element) => ({
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+      }));
+      expect(detailDimensions.scrollHeight).toBeGreaterThan(
+        detailDimensions.clientHeight,
+      );
+    }
+
     await expectNoHorizontalDocumentOverflow(page);
+    await expectNoDocumentScroll(page);
     await expectNoAccessibilityViolations(page);
   }
 });

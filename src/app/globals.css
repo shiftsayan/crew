@@ -456,7 +456,7 @@ select:not([data-slot]):focus {
 
 /* Player join and terminal room states */
 
-.player-login-theme {
+.shadcn-default-theme {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -636,13 +636,21 @@ select:not([data-slot]):focus {
 /* Admin console */
 
 .admin-artwork-bg {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  overflow: hidden;
   background:
     linear-gradient(rgb(7 12 35 / 58%), rgb(7 12 35 / 72%)),
     url("/crew-clouds.jpg") center / cover no-repeat;
 }
 
-@media (max-width: 1279px) {
-  .admin-has-room-detail > :first-child {
+@media (max-width: 767px) {
+  .admin-shell:not(.admin-has-room-detail) > .admin-detail-pane {
+    display: none;
+  }
+
+  .admin-has-room-detail > .admin-sidebar {
     display: none;
   }
 }

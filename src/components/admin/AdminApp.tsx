@@ -143,10 +143,36 @@ export function AdminApp() {
     if (roomId) await loadRoom(roomId);
   }
 
+  async function signOut() {
+    await fetch("/api/admin/session", { method: "DELETE" });
+    setSelectedRoom(null);
+    setAuthState("locked");
+  }
+
+  async function createRoom(input: {
+    name: string;
+    editionKey: string;
+    missionKey: string;
+  }) {
+    const created = await adminRequest<AdminRoom | { room: AdminRoom }>(
+      "/api/admin/rooms",
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+      },
+    );
+    if (!created) return false;
+    const room = "room" in created ? created.room : created;
+    setMessage(`${room.name} is ready for players.`);
+    await refreshAfterMutation(room.id);
+    return true;
+  }
+
   if (authState === "checking") {
     return (
       <main
-        className="admin-artwork-bg grid min-h-dvh place-items-center p-4"
+        className="admin-artwork-bg shadcn-default-theme grid min-h-dvh place-items-center p-4"
+        data-color-theme="shadcn-default"
         data-testid="admin-artwork"
         id="main-content"
       >
@@ -176,78 +202,31 @@ export function AdminApp() {
 
   return (
     <div
-      className="admin-artwork-bg min-h-dvh p-2 sm:p-4 lg:p-6"
+      className="admin-artwork-bg shadcn-default-theme min-h-dvh p-2 sm:p-4 lg:p-6"
+      data-color-theme="shadcn-default"
       data-testid="admin-artwork"
     >
-      <div className="mx-auto flex min-h-[calc(100dvh-1rem)] w-full max-w-[96rem] flex-col overflow-hidden rounded-2xl border border-white/40 bg-background/95 shadow-2xl sm:min-h-[calc(100dvh-2rem)] lg:min-h-[calc(100dvh-3rem)]">
-        <header className="flex min-h-20 items-center gap-3 border-b bg-background px-4 py-3 sm:px-6">
-          <Link
-            href="/"
-            className="rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            aria-label="Crew home"
-          >
-            <CrewMark />
-          </Link>
-          <div className="min-w-0 flex-1 border-l pl-3 sm:pl-4">
-            <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              Administration
-            </p>
-            <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">
-              Room admin
-            </h1>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            type="button"
-            aria-label="Sign out"
-            onClick={async () => {
-              await fetch("/api/admin/session", { method: "DELETE" });
-              setSelectedRoom(null);
-              setAuthState("locked");
-            }}
-          >
-            <LogOut />
-            <span className="hidden sm:inline">Sign out</span>
-          </Button>
-        </header>
+      <main
+        className={cn(
+          "admin-shell mx-auto grid h-[calc(100dvh-1rem)] w-full max-w-[96rem] min-w-0 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-2xl border border-white/40 bg-background/95 shadow-2xl sm:h-[calc(100dvh-2rem)] md:grid-cols-[18rem_minmax(0,1fr)] lg:h-[calc(100dvh-3rem)]",
+          selectedRoom && "admin-has-room-detail",
+        )}
+        id="main-content"
+      >
+        <AdminSidebar
+          rooms={rooms}
+          editions={editions}
+          selectedRoomId={selectedRoom?.id}
+          disabled={busy}
+          onCreate={createRoom}
+          onSelect={(roomId) => void loadRoom(roomId)}
+          onSignOut={() => void signOut()}
+        />
 
-        <main className="flex min-h-0 flex-1 flex-col gap-4 p-3 sm:p-5" id="main-content">
-          <section
-            className="flex flex-col gap-4 rounded-xl border bg-muted/25 p-4 lg:flex-row lg:items-start lg:justify-between"
-            aria-labelledby="room-count-title"
-          >
-            <div className="shrink-0">
-              <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                Rooms
-              </p>
-              <h2 className="text-xl font-semibold tracking-tight" id="room-count-title">
-                {rooms.length ? `${rooms.length} active` : "No rooms yet"}
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Create a room, add its crew, then start the mission.
-              </p>
-            </div>
-            <CreateRoom
-              editions={editions}
-              disabled={busy}
-              onCreate={async (input) => {
-                const created = await adminRequest<AdminRoom | { room: AdminRoom }>(
-                  "/api/admin/rooms",
-                  {
-                    method: "POST",
-                    body: JSON.stringify(input),
-                  },
-                );
-                if (!created) return false;
-                const room = "room" in created ? created.room : created;
-                setMessage(`${room.name} is ready for players.`);
-                await refreshAfterMutation(room.id);
-                return true;
-              }}
-            />
-          </section>
-
+        <section
+          className="admin-detail-pane flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden bg-muted/30 p-3 sm:p-4"
+          aria-label="Room details"
+        >
           {error ? (
             <Notice tone="error" live>
               {error}
@@ -260,18 +239,9 @@ export function AdminApp() {
           ) : null}
 
           <div
-            className={cn(
-              "grid min-h-0 flex-1 gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]",
-              selectedRoom && "admin-has-room-detail",
-            )}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            data-testid="admin-detail-scroll"
           >
-            <RoomList
-              rooms={rooms}
-              selectedRoomId={selectedRoom?.id}
-              disabled={busy}
-              onSelect={(roomId) => void loadRoom(roomId)}
-            />
-
             {selectedRoom ? (
               <RoomEditor
                 key={`${selectedRoom.id}:${selectedRoom.editionKey}:${selectedRoom.missionKey}`}
@@ -291,7 +261,7 @@ export function AdminApp() {
                 }}
               />
             ) : (
-              <Card className="min-h-64 justify-center border-dashed shadow-none">
+              <Card className="h-full min-h-64 justify-center border-dashed shadow-none">
                 <CardContent className="mx-auto max-w-md text-center">
                   <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-muted text-muted-foreground">
                     <ChevronRight className="size-5" />
@@ -304,8 +274,8 @@ export function AdminApp() {
               </Card>
             )}
           </div>
-        </main>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
@@ -345,7 +315,8 @@ function AdminLogin({
 
   return (
     <main
-      className="admin-artwork-bg grid min-h-dvh place-items-center p-4 sm:p-6"
+      className="admin-artwork-bg shadcn-default-theme grid min-h-dvh place-items-center p-4 sm:p-6"
+      data-color-theme="shadcn-default"
       data-testid="admin-artwork"
       id="main-content"
     >
@@ -407,6 +378,67 @@ function AdminLogin({
   );
 }
 
+function AdminSidebar({
+  rooms,
+  editions,
+  selectedRoomId,
+  disabled,
+  onCreate,
+  onSelect,
+  onSignOut,
+}: {
+  rooms: AdminRoom[];
+  editions: EditionOption[];
+  selectedRoomId?: string;
+  disabled: boolean;
+  onCreate: (input: {
+    name: string;
+    editionKey: string;
+    missionKey: string;
+  }) => Promise<boolean>;
+  onSelect: (roomId: string) => void;
+  onSignOut: () => void;
+}) {
+  return (
+    <aside className="admin-sidebar min-h-0 min-w-0 overflow-hidden bg-background">
+      <Card className="h-full min-h-0 gap-0 overflow-hidden rounded-none border-0 border-r py-0 shadow-none">
+        <CardHeader className="gap-4 border-b p-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              aria-label="Crew home"
+            >
+              <CrewMark />
+            </Link>
+            <div className="border-l pl-3">
+              <h1 className="text-base font-semibold">Admin</h1>
+              <p className="text-sm text-muted-foreground">
+                {rooms.length} {rooms.length === 1 ? "room" : "rooms"}
+              </p>
+            </div>
+          </div>
+          <CreateRoom editions={editions} disabled={disabled} onCreate={onCreate} />
+        </CardHeader>
+
+        <RoomList
+          rooms={rooms}
+          selectedRoomId={selectedRoomId}
+          disabled={disabled}
+          onSelect={onSelect}
+        />
+
+        <CardFooter className="border-t p-3">
+          <Button variant="ghost" size="sm" type="button" onClick={onSignOut}>
+            <LogOut />
+            Sign out
+          </Button>
+        </CardFooter>
+      </Card>
+    </aside>
+  );
+}
+
 function CreateRoom({
   editions,
   disabled,
@@ -440,7 +472,7 @@ function CreateRoom({
 
   return (
     <form
-      className="grid w-full min-w-0 gap-3 rounded-lg border bg-background p-3 shadow-sm lg:max-w-4xl lg:grid-cols-[minmax(9rem,1fr)_minmax(9rem,1fr)_minmax(12rem,1.35fr)_auto_auto] lg:items-end"
+      className="grid w-full min-w-0 gap-3 rounded-lg border bg-muted/30 p-3"
       onSubmit={(event) => {
         event.preventDefault();
         void onCreate({
@@ -505,12 +537,14 @@ function CreateRoom({
           ))}
         </select>
       </Field>
-      <Button disabled={disabled} type="submit">
-        Create
-      </Button>
-      <Button variant="ghost" type="button" onClick={() => setOpen(false)}>
-        Cancel
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" disabled={disabled} type="submit">
+          Create
+        </Button>
+        <Button size="sm" variant="ghost" type="button" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
     </form>
   );
 }
@@ -528,75 +562,64 @@ function RoomList({
 }) {
   if (!rooms.length) {
     return (
-      <Card className="min-h-48 justify-center border-dashed shadow-none">
-        <CardContent className="text-center">
+      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        <div className="rounded-lg border border-dashed p-4 text-center">
           <h2 className="font-semibold">No rooms yet</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Create one, then add three to five players before starting the mission.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="gap-0 overflow-hidden py-0 shadow-none" aria-labelledby="room-list-title">
-      <CardHeader className="border-b py-4">
-        <h2 className="font-semibold" id="room-list-title">
-          All rooms
-        </h2>
-        <CardDescription>Recently updated first</CardDescription>
-      </CardHeader>
-      <nav className="max-h-[31rem] overflow-y-auto p-2" aria-label="Room management">
-        <ul className="grid gap-1">
-          {rooms.map((room) => {
-            const selected = selectedRoomId === room.id;
-            return (
-              <li key={room.id}>
-                <button
-                  className={cn(
-                    "group flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-3 text-left outline-none transition-colors hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
-                    selected && "border-primary/20 bg-primary/8 hover:bg-primary/10",
-                  )}
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => onSelect(room.id)}
-                  aria-label={`Manage ${room.name}`}
-                  aria-current={selected ? "page" : undefined}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <strong className="truncate text-sm font-semibold">{room.name}</strong>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {room.playerCount}/5
-                      </span>
-                    </span>
-                    <span className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="truncate">
-                        {room.editionKey === "deep-sea" ? "Deep Sea" : "Planet Nine"}{" "}
-                        {room.missionNumber ?? room.missionKey}
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span className="shrink-0">{formatRelativeTime(room.updatedAt)}</span>
-                    </span>
-                    <span className="mt-2 block">
-                      <PhaseBadge phase={room.phase} />
-                    </span>
+    <nav className="min-h-0 flex-1 overflow-y-auto p-2" aria-label="Room management">
+      <ul className="grid gap-1">
+        {rooms.map((room) => {
+          const selected = selectedRoomId === room.id;
+          return (
+            <li key={room.id}>
+              <button
+                className={cn(
+                  "group flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-3 text-left outline-none transition-colors hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+                  selected && "border-border bg-muted hover:bg-muted",
+                )}
+                type="button"
+                disabled={disabled}
+                onClick={() => onSelect(room.id)}
+                aria-label={`Manage ${room.name}`}
+                aria-current={selected ? "page" : undefined}
+              >
+                <span className="min-w-0 flex-1">
+                  <strong className="block truncate text-sm font-semibold">{room.name}</strong>
+                  <span className="mt-1 block truncate text-xs text-foreground/70">
+                    {room.editionKey === "deep-sea" ? "Deep Sea" : "Planet Nine"} · Level{" "}
+                    {room.missionNumber ?? room.missionKey}
                   </span>
-                  <ChevronRight
-                    className={cn(
-                      "size-4 shrink-0 text-muted-foreground transition-transform",
-                      selected && "translate-x-0.5 text-primary",
-                    )}
-                    aria-hidden="true"
-                  />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </Card>
+                  <span className="mt-1 block text-xs text-foreground/70">
+                    Updated {formatRelativeTime(room.updatedAt)}
+                  </span>
+                </span>
+                <span
+                  className="grid size-10 shrink-0 place-items-center rounded-full border bg-background text-xs font-semibold"
+                  aria-label={`${room.playerCount} of 5 players`}
+                >
+                  {room.playerCount}/5
+                </span>
+                <ChevronRight
+                  className={cn(
+                    "size-4 shrink-0 text-muted-foreground transition-transform",
+                    selected && "translate-x-0.5 text-foreground",
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 
@@ -1073,7 +1096,7 @@ function PhaseBadge({ phase }: { phase: AdminRoom["phase"] }) {
   return (
     <span
       className={cn(
-        "inline-flex w-fit items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium capitalize text-muted-foreground",
+        "inline-flex w-fit items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium capitalize text-foreground",
         (phase === "playing-trick" || phase === "between-tricks") &&
           "bg-primary/10 text-primary",
         phase === "finished" && "bg-emerald-100 text-emerald-800",
