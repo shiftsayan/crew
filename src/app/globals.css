@@ -413,7 +413,13 @@ select:focus {
   overflow: hidden;
   place-items: center;
   padding: clamp(0.75rem, 4vw, 2rem);
-  background: var(--indigo-700);
+  background-color: var(--indigo-700);
+  background-image:
+    linear-gradient(rgb(7 12 35 / 18%), rgb(7 12 35 / 32%)),
+    url("/crew-clouds.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .join-console {

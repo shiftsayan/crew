@@ -310,6 +310,18 @@ test("shared buttons use the original Crew treatment", async ({ page }) => {
   );
 });
 
+test("the join screen uses the local cloud wallpaper", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".join-page")).toHaveCSS(
+    "background-image",
+    /crew-clouds\.jpg/,
+  );
+
+  const wallpaper = await page.request.get("/crew-clouds.jpg");
+  expect(wallpaper.ok()).toBe(true);
+  expect(wallpaper.headers()["content-type"]).toBe("image/jpeg");
+});
+
 test("join is keyboard-operable and stores only the submitted player credential", async ({
   page,
 }) => {
