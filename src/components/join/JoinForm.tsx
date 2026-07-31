@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { FormEvent, useEffect, useId, useState } from "react";
 
 import { credentialStorageKey, normalizeRoomName } from "@/components/game/credentials";
@@ -14,13 +13,11 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
 } from "@/components/ui/card";
 import { CrewMark } from "@/components/ui/CrewMark";
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -120,7 +117,7 @@ export function JoinForm() {
           Enter your room name and player key.
         </CardDescription>
       </CardHeader>
-      <CardContent className="px-6 pt-6 sm:px-8">
+      <CardContent className="px-6 pt-6 pb-6 sm:px-8 sm:pb-8">
         <form onSubmit={submit}>
           <FieldGroup className="gap-5">
             <Field className="gap-2">
@@ -165,12 +162,8 @@ export function JoinForm() {
                   )
                 }
                 required
-                aria-describedby={`${keyId}-hint`}
                 aria-invalid={Boolean(error)}
               />
-              <FieldDescription id={`${keyId}-hint`}>
-                Keys use six letters and numbers.
-              </FieldDescription>
             </Field>
 
             {error ? (
@@ -232,15 +225,6 @@ export function JoinForm() {
           </div>
         ) : null}
       </CardContent>
-      <CardFooter className="px-6 pt-3 pb-6 sm:px-8 sm:pb-8">
-        <Button
-          asChild
-          className="h-9 px-0 text-xs font-semibold"
-          variant="link"
-        >
-          <Link href="/admin">Room admin</Link>
-        </Button>
-      </CardFooter>
     </Card>
   );
 }

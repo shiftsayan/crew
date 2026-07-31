@@ -284,6 +284,12 @@ test("the homepage uses shadcn New York primitives", async ({ page }) => {
   await expect(joinButton).toHaveAttribute("data-size", "default");
   await expect(joinButton).toHaveCSS("height", "44px");
   await expect(joinButton).toHaveCSS("border-radius", "6px");
+  await expect(page.getByText("Keys use six letters and numbers.")).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("link", { name: "Room admin" }),
+  ).toHaveCount(0);
 });
 
 test("the join screen animates a character overlay on the local artwork", async ({
