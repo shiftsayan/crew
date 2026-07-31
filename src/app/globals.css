@@ -1,4 +1,53 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
 :root {
+  --background: #fff;
+  --foreground: #272251;
+  --card: #fff;
+  --card-foreground: #272251;
+  --popover: #fff;
+  --popover-foreground: #272251;
+  --primary: #4338ca;
+  --primary-foreground: #fff;
+  --secondary: #e0e7ff;
+  --secondary-foreground: #4338ca;
+  --muted: #f3f4f6;
+  --muted-foreground: #4b5563;
+  --accent: #e0e7ff;
+  --accent-foreground: #3730a3;
+  --destructive: #dc2626;
+  --border: #d1d5db;
+  --input: #d1d5db;
+  --ring: #6366f1;
+  --radius: 0.5rem;
   --ink: #272251;
   --ink-soft: #4b5563;
   --indigo-900: #312e81;
@@ -47,52 +96,52 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-button,
-input,
-select {
+button:not([data-slot]),
+input:not([data-slot]),
+select:not([data-slot]) {
   color: inherit;
   font: inherit;
 }
 
-button,
-select {
+button:not([data-slot]),
+select:not([data-slot]) {
   cursor: pointer;
 }
 
-button:disabled,
-select:disabled {
+button:not([data-slot]):disabled,
+select:not([data-slot]):disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
-a {
+a:not([data-slot]) {
   color: inherit;
 }
 
-h1,
-h2,
-h3,
+h1:not([data-slot]),
+h2:not([data-slot]),
+h3:not([data-slot]),
 p {
   margin-top: 0;
 }
 
-h1,
-h2,
-h3 {
+h1:not([data-slot]),
+h2:not([data-slot]),
+h3:not([data-slot]) {
   line-height: 1.2;
 }
 
-h1 {
+h1:not([data-slot]) {
   margin-bottom: 0.75rem;
   font-size: clamp(1.55rem, 3vw, 2.25rem);
 }
 
-h2 {
+h2:not([data-slot]) {
   margin-bottom: 0.55rem;
   font-size: clamp(1.15rem, 2vw, 1.5rem);
 }
 
-h3 {
+h3:not([data-slot]) {
   margin-bottom: 0.45rem;
   font-size: 1rem;
 }
@@ -106,7 +155,7 @@ strong {
   background: var(--indigo-700);
 }
 
-:focus-visible {
+:focus-visible:not([data-slot]) {
   outline: 3px solid #fbbf24;
   outline-offset: 3px;
 }
@@ -167,14 +216,14 @@ strong {
   border-radius: 0.75rem;
 }
 
-label {
+label:not([data-slot]) {
   color: var(--ink);
   font-size: 0.8rem;
   font-weight: 700;
 }
 
-input,
-select {
+input:not([data-slot]),
+select:not([data-slot]) {
   width: 100%;
   min-width: 0;
   min-height: 2.75rem;
@@ -185,13 +234,13 @@ select {
   outline: 0;
 }
 
-input:hover,
-select:hover {
+input:not([data-slot]):hover,
+select:not([data-slot]):hover {
   border-color: #9ca3af;
 }
 
-input:focus,
-select:focus {
+input:not([data-slot]):focus,
+select:not([data-slot]):focus {
   border-color: var(--indigo-700);
   box-shadow: 0 0 0 3px rgb(67 56 202 / 15%);
 }

@@ -273,41 +273,17 @@ for (const width of [320, 375, 768, 1440]) {
   });
 }
 
-test("shared buttons use the original Crew treatment", async ({ page }) => {
+test("the homepage uses shadcn New York primitives", async ({ page }) => {
   await page.goto("/");
   const joinButton = page.getByRole("button", { name: "Join mission" });
-  const tokens = await joinButton.evaluate((element) => {
-    const style = window.getComputedStyle(element);
-    return {
-      backgroundColor: style.backgroundColor,
-      borderRadius: style.borderRadius,
-      color: style.color,
-      fontSize: style.fontSize,
-      fontWeight: style.fontWeight,
-      height: style.height,
-      paddingLeft: style.paddingLeft,
-      paddingTop: style.paddingTop,
-    };
-  });
-
-  expect(tokens).toEqual({
-    backgroundColor: "rgb(224, 231, 255)",
-    borderRadius: "6px",
-    color: "rgb(67, 56, 202)",
-    fontSize: "16px",
-    fontWeight: "500",
-    height: "40px",
-    paddingLeft: "24px",
-    paddingTop: "8px",
-  });
-
-  await joinButton.hover();
-  await expect(joinButton).toHaveCSS("background-color", "rgb(199, 210, 254)");
-  await joinButton.focus();
-  await expect(joinButton).toHaveCSS(
-    "box-shadow",
-    "rgb(99, 102, 241) 0px 0px 0px 2px",
-  );
+  await expect(page.locator('[data-slot="card"]')).toHaveCount(1);
+  await expect(page.locator('[data-slot="field"]')).toHaveCount(2);
+  await expect(page.locator('[data-slot="input"]')).toHaveCount(2);
+  await expect(joinButton).toHaveAttribute("data-slot", "button");
+  await expect(joinButton).toHaveAttribute("data-variant", "default");
+  await expect(joinButton).toHaveAttribute("data-size", "default");
+  await expect(joinButton).toHaveCSS("height", "44px");
+  await expect(joinButton).toHaveCSS("border-radius", "6px");
 });
 
 test("the join screen animates a character overlay on the local artwork", async ({
