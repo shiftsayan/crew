@@ -393,15 +393,23 @@ select:focus {
 .join-page {
   display: grid;
   min-height: 100dvh;
-  place-items: center;
+  overflow: hidden;
+  align-items: center;
+  justify-items: center;
+  gap: 1rem;
+  grid-template-rows: minmax(0, 1fr) auto;
   padding: 2rem;
   background: var(--indigo-700);
+  isolation: isolate;
+  position: relative;
 }
 
 .join-console {
   display: grid;
+  z-index: 1;
   width: min(52rem, 100%);
   overflow: hidden;
+  grid-row: 1;
   grid-template-columns: minmax(16rem, 0.85fr) minmax(20rem, 1.15fr);
   background: var(--surface-soft);
   border-radius: 1rem;

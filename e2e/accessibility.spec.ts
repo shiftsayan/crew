@@ -1,8 +1,33 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { LANDING_BACKGROUNDS } from "../src/components/join/landingBackgrounds";
+
 const roomName = "Europa";
 const playerKey = "6FJ9KP";
+const landingBackgroundSessionKey = "crew:landing-background";
+
+const landingImageFixture = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800">
+    <rect width="1200" height="800" fill="#312e81"/>
+    <circle cx="260" cy="220" r="180" fill="#e0e7ff"/>
+    <circle cx="850" cy="510" r="260" fill="#818cf8"/>
+  </svg>
+`;
+
+test.beforeEach(async ({ page }) => {
+  await page.route("https://images.unsplash.com/**", async (route) => {
+    await route.fulfill({
+      body: landingImageFixture,
+      contentType: "image/svg+xml",
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=3600",
+      },
+      status: 200,
+    });
+  });
+});
 
 const players = [
   {
@@ -268,6 +293,63 @@ for (const width of [320, 375, 768, 1440]) {
     }
   });
 }
+
+for (const configuredBackground of LANDING_BACKGROUNDS) {
+  test(`join renders stable, attributed background ${configuredBackground.id}`, async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      ({ key, value }) => window.sessionStorage.setItem(key, value),
+      {
+        key: landingBackgroundSessionKey,
+        value: configuredBackground.id,
+      },
+    );
+    await page.goto("/");
+
+    const background = page.locator("[data-landing-background]");
+    await expect(background).toHaveAttribute(
+      "data-landing-background-id",
+      configuredBackground.id,
+    );
+    await expect(background).toHaveAttribute(
+      "data-landing-background-status",
+      "ready",
+    );
+    await expect(background.locator("canvas")).toBeVisible();
+    await expect(
+      page.getByRole("link", {
+        name: configuredBackground.photographerName,
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Unsplash" })).toBeVisible();
+
+    await page.reload();
+    await expect(background).toHaveAttribute(
+      "data-landing-background-id",
+      configuredBackground.id,
+    );
+  });
+}
+
+test("join remains usable when the configured image cannot load", async ({
+  page,
+}) => {
+  await page.unroute("https://images.unsplash.com/**");
+  await page.route("https://images.unsplash.com/**", (route) => route.abort());
+  await page.addInitScript(
+    ({ key, value }) => window.sessionStorage.setItem(key, value),
+    { key: landingBackgroundSessionKey, value: "maroon-stars" },
+  );
+  await page.goto("/");
+
+  await expect(page.locator("[data-landing-background]")).toHaveAttribute(
+    "data-landing-background-status",
+    "fallback",
+  );
+  await expect(page.getByLabel("Join a room")).toBeVisible();
+  await expectNoHorizontalDocumentOverflow(page);
+});
 
 test("join is keyboard-operable and stores only the submitted player credential", async ({
   page,

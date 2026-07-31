@@ -57,6 +57,19 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) to join a room and
 [http://localhost:3000/admin](http://localhost:3000/admin) to administer one.
 
+### Landing background
+
+The join page chooses one configured Unsplash photo per browser tab and renders
+it once as ASCII, ordered-dithered ASCII, or dot art. Add, remove, or tune
+photos in `src/components/join/landingBackgrounds.ts`. Each entry includes the
+direct Unsplash image URL, its visible attribution, focal position, and
+`asciify-engine` effect options. No Unsplash API key is used.
+
+Keep the image URL on `images.unsplash.com`, retain the photographer and photo
+links, and leave decorative animation and hover effects disabled. To force a
+new selection while developing, clear the `crew:landing-background` value from
+`sessionStorage` and reload.
+
 ## Verification
 
 ```bash
