@@ -1,63 +1,71 @@
 {
   "name": "crew",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
-    "@emotion/react": "^11.7.1",
-    "@emotion/styled": "^11.6.0",
-    "@firebase/database": "^0.13.2",
-    "@mui/material": "^5.3.1",
-    "@radix-ui/react-dialog": "^1.0.5",
-    "@testing-library/jest-dom": "^5.16.1",
-    "@testing-library/react": "^12.1.2",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.0.3",
-    "@types/node": "^16.11.17",
-    "@types/react": "^17.0.38",
-    "@types/react-dom": "^17.0.11",
-    "firebase": "^9.8.4",
-    "lodash": "^4.17.21",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "react-router-dom": "^6.2.1",
-    "react-scripts": "5.0.0",
-    "typescript": "^4.5.4",
-    "web-vitals": "^2.1.2"
+    "@base-ui/react": "^1.6.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@fontsource/geist-mono": "^5.3.0",
+    "@fontsource/poppins": "^5.3.0",
+    "canvas-confetti": "^1.9.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.28.0",
+    "next": "^16.0.0",
+    "next-themes": "^0.4.6",
+    "pg": "^8.16.0",
+    "radix-ui": "^1.6.7",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "server-only": "^0.0.1",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.0.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "dev": "next dev",
+    "start": "next start",
+    "prebuild": "vitest run src/game/config/config.test.ts",
+    "build": "next build --webpack",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:lint": "supabase db lint --local --level error",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^5.30.7",
-    "@typescript-eslint/parser": "^5.30.7",
-    "classnames": "^2.3.1",
-    "eslint": "^8.20.0",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-jsx-a11y": "^6.6.0",
-    "eslint-plugin-react": "^7.30.1",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "react-icons": "^4.3.1"
+    "@axe-core/playwright": "^4.12.1",
+    "@next/eslint-plugin-next": "^16.2.12",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/node": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^10.8.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-tailwind-canonical-classes": "^1.4.1",
+    "shadcn": "^4.16.0",
+    "supabase": "^2.110.0",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.0.0"
+  },
+  "overrides": {
+    "postcss": "^8.5.25",
+    "sharp": "^0.35.3"
   }
 }
