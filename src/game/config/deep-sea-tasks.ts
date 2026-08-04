@@ -1,4 +1,13 @@
 import type { PlayerCount } from "../contracts";
+import {
+  DEEP_SEA_TASK_VISUALS,
+  type DeepSeaTaskVisual,
+} from "./deep-sea-task-visuals";
+
+export type {
+  DeepSeaTaskVisual,
+  DeepSeaTaskVisualItem,
+} from "./deep-sea-task-visuals";
 
 export type DeepSeaTaskId = `deep-sea-task-${number}`;
 
@@ -10,6 +19,7 @@ export type DeepSeaTaskDefinition = {
   presentation: {
     summary: string;
     footnote?: string;
+    visual: DeepSeaTaskVisual;
   };
 };
 
@@ -230,7 +240,7 @@ const RAW_DEEP_SEA_TASKS: readonly RawTask[] = [
 ];
 
 export const DEEP_SEA_TASKS: readonly DeepSeaTaskDefinition[] = Object.freeze(
-  RAW_DEEP_SEA_TASKS.map(([number, title, difficulty, footnote]) => ({
+  RAW_DEEP_SEA_TASKS.map(([number, title, difficulty, footnote], index) => ({
     id: `deep-sea-task-${number}` as DeepSeaTaskId,
     number,
     title,
@@ -241,6 +251,7 @@ export const DEEP_SEA_TASKS: readonly DeepSeaTaskDefinition[] = Object.freeze(
     },
     presentation: {
       summary: title,
+      visual: DEEP_SEA_TASK_VISUALS[index],
       ...(footnote ? { footnote } : {}),
     },
   })),
@@ -249,9 +260,15 @@ export const DEEP_SEA_TASKS: readonly DeepSeaTaskDefinition[] = Object.freeze(
 const tasksById = new Map(DEEP_SEA_TASKS.map((task) => [task.id, task]));
 
 export function getDeepSeaTask(taskId: string): DeepSeaTaskDefinition {
-  const task = tasksById.get(taskId as DeepSeaTaskId);
+  const task = findDeepSeaTask(taskId);
   if (!task) {
     throw new Error(`Unknown Deep Sea task: ${taskId}`);
   }
   return task;
+}
+
+export function findDeepSeaTask(
+  taskId: string,
+): DeepSeaTaskDefinition | null {
+  return tasksById.get(taskId as DeepSeaTaskId) ?? null;
 }

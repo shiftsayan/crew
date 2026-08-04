@@ -18,9 +18,10 @@ Updated: 2026-07-30
 - Players manually adjudicate task and manual-special-rule outcomes.
 - Existing Firebase runtime data is discarded without migration.
 - There is no host. One global password-protected admin interface manages
-  rooms, players, keys, missions, starts, resets, advancement, and deletion.
-- Players log in with distinct six-character plaintext room and player keys.
-  This protects against accidental hand disclosure, not adversarial access.
+  rooms, players, missions, preflight resets, advancement, and deletion.
+  Any player can start a playable room from preflight.
+- Players log in with the room name and their display name. These identifiers
+  are convenience credentials, not secure authentication.
 - There are no accounts, Supabase Auth sessions, impersonation, presence,
   chat, event log, revision history, replay system, or audit UI.
 
@@ -51,8 +52,7 @@ Use a private Postgres schema with exactly two runtime tables.
 ### `private.rooms`
 
 - UUID primary key.
-- Case-insensitively unique room name.
-- Globally unique six-character uppercase plaintext room key.
+- Case-insensitively unique room name using letters, numbers, `_`, and `-`.
 - Edition and mission string keys.
 - State compatibility version.
 - Whole current game state as JSONB.
@@ -61,24 +61,22 @@ Use a private Postgres schema with exactly two runtime tables.
 ### `private.room_players`
 
 - UUID primary key and cascading room foreign key.
-- Display name.
-- Six-character uppercase plaintext player key using
-  `[A-HJ-NP-Z2-9]{6}`.
+- Display name using letters, numbers, `_`, and `-`.
 - Seat from one through five.
-- Unique room/key, room/seat, and case-insensitive room/name constraints.
+- Unique room/seat and case-insensitive room/name constraints.
 
 No catalog, session, command, event, revision, or audit tables are added.
 
 Every game or room mutation locks its room row with `SELECT ... FOR UPDATE`,
 validates the latest state, applies one transition, and replaces the snapshot.
-Incompatible state returns `LEVEL_RESTART_REQUIRED`; an admin restart preserves
-the room, roster, and keys.
+Incompatible state returns `LEVEL_RESTART_REQUIRED`; an admin reset returns the
+room to preflight while preserving its configuration and roster.
 
 ## Authentication and APIs
 
-Room and player keys are kept in local storage by normalized room name and sent
-in the `X-Crew-Room-Key` and `X-Crew-Player-Key` headers. They never appear in
-URLs or another player's projection.
+The browser stores the canonical room and player names in local storage. The
+room name stays in the route and the player name is sent in the
+`X-Crew-Player-Name` header.
 
 Admin authentication uses `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET`. A valid
 password creates an eight-hour signed, secure, HTTP-only, same-site cookie.
@@ -86,22 +84,26 @@ There are no admin records in Postgres.
 
 Player commands are explicit:
 
-- Claim or pass a task.
+- Claim an unassigned task.
+- Release one of your own tasks while task selection is still open.
+- Confirm `Start Trick` after every task is assigned.
+- Begin the next trick without playing its lead card.
 - Communicate one card as highest, only, or lowest.
 - Play a card.
 - Set a task outcome.
-- Set a manual mission outcome.
+- Record the final mission outcome as commander.
 
 Player projections contain the player's own hand, public room/game state, and
-server-derived legal actions. They never contain another hand or any access key.
+server-derived legal actions. They never contain another hand.
 
 Admin APIs provide:
 
 - Admin login/logout.
 - Room list/create/read/update/delete.
-- Player add/rename/reseat/remove and key rotation.
+- Player add/rename/reseat/remove and tags.
 - Edition/mission selection.
-- Attempt start, restart, and advancement.
+- Return-to-preflight and mission advancement. Only a player command starts an
+  attempt and performs the shuffle and deal.
 
 Roster or definition changes during active play require explicit reset
 confirmation.
@@ -113,12 +115,13 @@ React, Postgres, network, clock, or global random behavior.
 
 Stored phases:
 
-1. `setup`
+1. `preflight`
 2. `assigning-tasks`
-3. `between-tricks`
-4. `playing-trick`
-5. `adjudicating`
-6. `finished`
+3. `ready-to-start-trick`
+4. `between-tricks`
+5. `playing-trick`
+6. `adjudicating`
+7. `finished`
 
 Rules:
 
@@ -130,19 +133,28 @@ Rules:
 - Highest trump wins; otherwise highest card in the led suit wins.
 - Communication is once per player per attempt, between tricks, after tasks are
   allocated, on a non-trump card that is currently highest, only, or lowest.
-- Task selection begins with the captain and proceeds clockwise.
+- Any player may select any unassigned task during task assignment and may
+  deselect one of their own tasks by clicking it again. Ownership locks when
+  `Start Trick` closes the task-selection screen.
+- After every task is assigned, any player may confirm `Start Trick` before the
+  room switches to gameplay.
+- Between tricks, the next leader may communicate, lead by playing a card, or
+  begin a cardless trick with `Start Trick`.
 - Deep Sea task selection uses the correct player-count difficulty and an
   exact-sum selection algorithm.
 - Planet Nine draws unique non-trump task cards, displays order tokens, and
   disables communication for configured dead spots.
-- Any room player may mark any task. Failure ends the attempt; all successful
-  tasks win it.
-- Taskless/manual missions expose explicit success and failure controls.
+- Any room player may mark any task pending, successful, or failed. Task status
+  changes do not end the attempt.
+- Once every task status is set, only the commander can record final success or
+  failure. Taskless/manual missions use the same commander-only controls.
 - Exhausting playable tricks with pending outcomes enters adjudication.
 
-Any gameplay-affecting state or configuration change increments the state
-compatibility version and requires active rooms to restart. Stored JSON is not
-migrated.
+Gameplay-affecting state or configuration changes that make existing snapshots
+unsafe increment the state compatibility version and require active rooms to
+restart. Backward-compatible state-machine additions may retain the version so
+existing rooms continue, but deployments must account for newly emitted states
+when rolling back. Stored JSON is not migrated.
 
 ## Configuration normalization
 
@@ -180,8 +192,7 @@ must not overflow at 320px.
 
 - `/admin` — password prompt and room dashboard.
 - Show room name, edition, mission, phase, player count, and update time.
-- Create draft rooms and manage roster, keys, mission, start/reset/advance, and
-  deletion.
+- Create draft rooms and manage roster, mission, reset/advance, and deletion.
 - Show public state only; do not expose hands, raw JSON, or impersonation.
 
 The public `/reset` and `/tasks` routes are removed.
@@ -223,10 +234,10 @@ production secrets.
 
 Cutover consists of applying the schema migration, configuring Vercel, deploying,
 and smoke-testing room creation, three distinct player logins, a full trick,
-manual victory with one celebration, restart, and advancement. The previous
+manual victory with one celebration, return-to-preflight, and advancement. The previous
 Vercel deployment is the application rollback; the new schema is additive.
 
-## Explicit non-goals
+## Explicit exclusions
 
 - Missing missions or invented content.
 - Automatic evaluation of Deep Sea or Planet Nine task semantics.

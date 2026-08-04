@@ -13,14 +13,13 @@ type EditionKey = "planet-nine" | "deep-sea";
 type AdminPlayer = {
   id: string;
   displayName: string;
-  playerKey: string;
+  tags: string[];
   seat: number;
 };
 
 type AdminRoom = {
   id: string;
   name: string;
-  roomKey: string;
   editionKey: EditionKey;
   missionKey: string;
   missionNumber: number;
@@ -33,7 +32,9 @@ type AdminRoom = {
 type ProjectionPlayer = {
   id: string;
   displayName: string;
+  tags: string[];
   cardCount: number;
+  isCaptain: boolean;
   isCurrent: boolean;
   communication: {
     cardId: string;
@@ -54,6 +55,7 @@ type Projection = {
   self: {
     id: string;
     displayName: string;
+    tags: string[];
     hand: Array<{ id: string }>;
   };
   players: ProjectionPlayer[];
@@ -71,7 +73,10 @@ type Projection = {
     winnerPlayerId: string | null;
   } | null;
   legalActions: {
+    canStartMission: boolean;
+    canStartTrick: boolean;
     claimableTaskIds: string[];
+    releasableTaskIds: string[];
     canPassTask: boolean;
     playableCardIds: string[];
     communicationOptions: Array<{
@@ -87,7 +92,6 @@ type PlayerSession = {
   context: BrowserContext;
   page: Page;
   player: AdminPlayer;
-  roomKey: string;
 };
 
 type Scenario = {
@@ -188,6 +192,14 @@ async function adminPost<T>(
   return expectOk<T>(await request.post(path, { data }));
 }
 
+async function adminPatch<T>(
+  request: APIRequestContext,
+  path: string,
+  data: unknown,
+): Promise<T> {
+  return expectOk<T>(await request.patch(path, { data }));
+}
+
 async function createRoom(
   request: APIRequestContext,
   input: {
@@ -221,7 +233,7 @@ async function createRoom(
 async function adminAction(
   request: APIRequestContext,
   roomId: string,
-  type: "start" | "restart" | "advance",
+  type: "return-to-preflight" | "advance",
 ): Promise<AdminRoom> {
   return (
     await adminPost<{ room: AdminRoom }>(
@@ -242,10 +254,7 @@ async function getProjection(
 ): Promise<Projection> {
   return expectOk<Projection>(
     await session.context.request.get(roomApiPath(roomName), {
-      headers: {
-        "X-Crew-Room-Key": session.roomKey,
-        "X-Crew-Player-Key": session.player.playerKey,
-      },
+      headers: { "X-Crew-Player-Name": session.player.displayName },
     }),
   );
 }
@@ -258,10 +267,7 @@ async function sendAction(
   return expectOk<Projection>(
     await session.context.request.post(`${roomApiPath(roomName)}/actions`, {
       data: command,
-      headers: {
-        "X-Crew-Room-Key": session.roomKey,
-        "X-Crew-Player-Key": session.player.playerKey,
-      },
+      headers: { "X-Crew-Player-Name": session.player.displayName },
     }),
   );
 }
@@ -285,34 +291,24 @@ async function openPlayerSessions(
   return Promise.all(
     room.players.map(async (player) => {
       const context = await browser.newContext({ baseURL });
-      await context.addInitScript(
-        ({ name, playerKey, roomKey }) => {
-          const storageKey = `crew:credentials:${name.toLowerCase()}`;
-          if (window.localStorage.getItem(storageKey) === null) {
-            window.localStorage.setItem(
-              storageKey,
-              JSON.stringify({ roomName: name, roomKey, playerKey }),
-            );
-          }
-        },
-        { name: room.name, playerKey: player.playerKey, roomKey: room.roomKey },
-      );
 
       const login = await expectOk<{
         player: { id: string };
         room: { id: string };
       }>(
         await context.request.post("/api/rooms/login", {
-          data: { roomKey: room.roomKey, playerKey: player.playerKey },
+          data: { roomName: room.name, playerName: player.displayName },
         }),
       );
       expect(login.player.id).toBe(player.id);
       expect(login.room.id).toBe(room.id);
 
       const page = await context.newPage();
-      await page.goto(`/rooms/${encodeURIComponent(room.name)}`);
+      await page.goto(
+        `/rooms/${encodeURIComponent(room.name)}?player=${encodeURIComponent(player.displayName)}`,
+      );
       await expect(
-        page.getByRole("heading", { name: "Waiting for the room admin" }),
+        page.getByRole("button", { name: "Start Mission" }),
       ).toBeVisible();
 
       const savedCredentials = await page.evaluate(() =>
@@ -322,15 +318,9 @@ async function openPlayerSessions(
           ),
         ),
       );
-      expect(savedCredentials).toEqual({
-        [`crew:credentials:${room.name.toLowerCase()}`]: JSON.stringify({
-          roomName: room.name,
-          roomKey: room.roomKey,
-          playerKey: player.playerKey,
-        }),
-      });
+      expect(savedCredentials).toEqual({});
 
-      return { context, page, player, roomKey: room.roomKey };
+      return { context, page, player };
     }),
   );
 }
@@ -338,7 +328,6 @@ async function openPlayerSessions(
 async function assignTasks(
   roomName: string,
   sessions: PlayerSession[],
-  exercisePass: boolean,
 ): Promise<Projection> {
   let projection = await getProjection(sessions[0], roomName);
 
@@ -347,29 +336,19 @@ async function assignTasks(
       throw new Error("Task assignment did not finish within one selection round.");
     }
 
-    const currentPlayer = projection.players.find((player) => player.isCurrent);
-    if (!currentPlayer) {
-      throw new Error("The task selector projection has no current player.");
+    const actor = sessions[turn % sessions.length];
+    if (!actor) {
+      throw new Error("Could not resolve a task selector.");
     }
-    const actor = sessionForPlayer(sessions, currentPlayer.id);
     const actorProjection = await getProjection(actor, roomName);
-
-    if (
-      exercisePass &&
-      turn === 0 &&
-      actorProjection.legalActions.canPassTask
-    ) {
-      projection = await sendAction(actor, roomName, { type: "pass-task" });
-    } else if (actorProjection.legalActions.claimableTaskIds.length > 0) {
-      projection = await sendAction(actor, roomName, {
-        type: "claim-task",
-        taskId: actorProjection.legalActions.claimableTaskIds[0],
-      });
-    } else if (actorProjection.legalActions.canPassTask) {
-      projection = await sendAction(actor, roomName, { type: "pass-task" });
-    } else {
-      throw new Error("The current selector can neither claim nor pass.");
+    const taskId = actorProjection.legalActions.claimableTaskIds[0];
+    if (!taskId) {
+      throw new Error("The task selector has no claimable task.");
     }
+    projection = await sendAction(actor, roomName, {
+      type: "claim-task",
+      taskId,
+    });
   }
 
   return projection;
@@ -441,14 +420,14 @@ async function finishMission(
 ): Promise<Projection> {
   const actor = sessions[0];
   let projection = await getProjection(actor, roomName);
+  const commander = projection.players.find((player) => player.isCaptain);
+  if (!commander) {
+    throw new Error("The mission projection has no commander.");
+  }
+  const commanderSession = sessionForPlayer(sessions, commander.id);
 
   if (victory === "manual") {
     expect(projection.tasks).toHaveLength(0);
-    expect(projection.legalActions.canSetMissionOutcome).toBe(true);
-    projection = await sendAction(actor, roomName, {
-      type: "set-mission-outcome",
-      outcome: "success",
-    });
   } else {
     expect(projection.tasks.length).toBeGreaterThan(0);
     for (const task of projection.tasks) {
@@ -459,6 +438,13 @@ async function finishMission(
       });
     }
   }
+
+  projection = await getProjection(commanderSession, roomName);
+  expect(projection.legalActions.canSetMissionOutcome).toBe(true);
+  projection = await sendAction(commanderSession, roomName, {
+    type: "set-mission-outcome",
+    outcome: "success",
+  });
 
   expect(projection.phase).toBe("finished");
   expect(projection.result).toBe("won");
@@ -496,22 +482,19 @@ async function assertWinningUiAndGuard(
   ).toBe("true");
 }
 
-async function assertWrongAndCrossRoomKeys(
+async function assertWrongAndCrossRoomNames(
   request: APIRequestContext,
   room: AdminRoom,
   cleanupRoomIds: string[],
 ) {
-  const wrongKey = room.players.some((player) => player.playerKey === "AAAAAA")
-    ? "BBBBBB"
-    : "AAAAAA";
   const wrongLogin = await request.post("/api/rooms/login", {
-    data: { roomKey: room.roomKey, playerKey: wrongKey },
+    data: { roomName: room.name, playerName: "UnknownPlayer" },
   });
   expect(wrongLogin.status()).toBe(401);
   const wrongRoomLogin = await request.post("/api/rooms/login", {
     data: {
-      roomKey: room.roomKey === "CCCCCC" ? "DDDDDD" : "CCCCCC",
-      playerKey: room.players[0].playerKey,
+      roomName: "UnknownRoom",
+      playerName: room.players[0].displayName,
     },
   });
   expect(wrongRoomLogin.status()).toBe(401);
@@ -526,67 +509,18 @@ async function assertWrongAndCrossRoomKeys(
 
   const firstCrossLogin = await request.post("/api/rooms/login", {
     data: {
-      roomKey: decoy.roomKey,
-      playerKey: room.players[0].playerKey,
+      roomName: decoy.name,
+      playerName: room.players[0].displayName,
     },
   });
   expect(firstCrossLogin.status()).toBe(401);
   const secondCrossLogin = await request.post("/api/rooms/login", {
     data: {
-      roomKey: room.roomKey,
-      playerKey: decoy.players[0].playerKey,
+      roomName: room.name,
+      playerName: decoy.players[0].displayName,
     },
   });
   expect(secondCrossLogin.status()).toBe(401);
-}
-
-async function rotateKeyAndReconnect(
-  request: APIRequestContext,
-  room: AdminRoom,
-  session: PlayerSession,
-) {
-  const oldKey = session.player.playerKey;
-  const updatedRoom = (
-    await adminPost<{ room: AdminRoom }>(
-      request,
-      `/api/admin/rooms/${room.id}/players/${session.player.id}/rotate-key`,
-      undefined,
-    )
-  ).room;
-  const updatedPlayer = updatedRoom.players.find(
-    (player) => player.id === session.player.id,
-  );
-  expect(updatedPlayer).toBeTruthy();
-  expect(updatedPlayer?.playerKey).not.toBe(oldKey);
-
-  const oldLogin = await request.post("/api/rooms/login", {
-    data: { roomKey: room.roomKey, playerKey: oldKey },
-  });
-  expect(oldLogin.status()).toBe(401);
-
-  await session.page.reload();
-  await expect(
-    session.page.getByRole("heading", { name: `Join ${room.name}` }),
-  ).toBeVisible();
-
-  session.player.playerKey = updatedPlayer!.playerKey;
-  await session.page.evaluate(
-    ({ name, playerKey, roomKey }) => {
-      window.localStorage.setItem(
-        `crew:credentials:${name.toLowerCase()}`,
-        JSON.stringify({ roomName: name, roomKey, playerKey }),
-      );
-    },
-    {
-      name: room.name,
-      playerKey: session.player.playerKey,
-      roomKey: room.roomKey,
-    },
-  );
-  await session.page.reload();
-  await expect(session.page.locator(".player-identity")).toHaveText(
-    session.player.displayName,
-  );
 }
 
 test.describe("database-backed multiplayer", () => {
@@ -611,7 +545,7 @@ test.describe("database-backed multiplayer", () => {
 
       await adminLogin(request);
       const unique = `${Date.now().toString(36)}-${testInfo.workerIndex}-${testInfo.retry}`;
-      const room = await createRoom(request, {
+      let room = await createRoom(request, {
         name: `E2E-${scenario.editionKey === "deep-sea" ? "DS" : "PN"}${
           scenario.playerCount
         }-${unique}`,
@@ -620,20 +554,36 @@ test.describe("database-backed multiplayer", () => {
         playerCount: scenario.playerCount,
       });
       cleanupRoomIds.push(room.id);
+      room = (
+        await adminPatch<{ room: AdminRoom }>(
+          request,
+          `/api/admin/rooms/${room.id}/players/${room.players[0].id}`,
+          { tags: ["bug"] },
+        )
+      ).room;
 
       try {
         if (scenario.editionKey === "planet-nine" && scenario.playerCount === 3) {
-          await assertWrongAndCrossRoomKeys(request, room, cleanupRoomIds);
+          await assertWrongAndCrossRoomNames(request, room, cleanupRoomIds);
         }
 
         sessions.push(...(await openPlayerSessions(browser, baseURL, room)));
 
-        await adminAction(request, room.id, "start");
+        const started = await sendAction(sessions[0], room.name, {
+          type: "start-mission",
+        });
+        expect(started.phase).not.toBe("preflight");
         for (const session of sessions) {
           const projection = await getProjection(session, room.name);
           expect(projection.self.id).toBe(session.player.id);
-          expect(JSON.stringify(projection)).not.toContain("playerKey");
-          expect(JSON.stringify(projection)).not.toContain("roomKey");
+          expect(projection.self.tags).toEqual(
+            session.player.id === room.players[0].id ? ["bug"] : [],
+          );
+          expect(
+            projection.players.find(
+              (player) => player.id === room.players[0].id,
+            )?.tags,
+          ).toEqual(["bug"]);
           expect(
             projection.players.every(
               (player) => !Object.hasOwn(player, "hand"),
@@ -641,17 +591,31 @@ test.describe("database-backed multiplayer", () => {
           ).toBe(true);
         }
 
-        const assigned = await assignTasks(
-          room.name,
-          sessions,
-          scenario.editionKey === "deep-sea" && scenario.playerCount === 5,
+        const assigned = await assignTasks(room.name, sessions);
+        expect(assigned.phase).toBe("ready-to-start-trick");
+        expect(assigned.legalActions.canStartTrick).toBe(true);
+        expect(assigned.players.every((player) => !player.isCurrent)).toBe(
+          true,
         );
-        expect(assigned.phase).toBe("between-tricks");
         if (scenario.victory === "task") {
           expect(
             assigned.tasks.every((task) => task.outcome === "pending"),
           ).toBe(true);
         }
+
+        const readyToPlay = await sendAction(sessions[1], room.name, {
+          type: "start-trick",
+        });
+        expect(readyToPlay.phase).toBe("between-tricks");
+        const nextLeader = readyToPlay.players.find((player) => player.isCurrent);
+        if (!nextLeader) {
+          throw new Error("The between-tricks projection has no next leader.");
+        }
+        const leaderSession = sessionForPlayer(sessions, nextLeader.id);
+        expect(
+          (await getProjection(leaderSession, room.name)).legalActions
+            .canStartTrick,
+        ).toBe(true);
 
         await communicateOnce(room.name, sessions);
         await playCompleteTrick(room.name, sessions);
@@ -669,17 +633,24 @@ test.describe("database-backed multiplayer", () => {
         const advanced = await adminAction(request, room.id, "advance");
         expect(advanced.missionNumber).toBe(scenario.nextMissionNumber);
         expect(advanced.attemptNumber).toBe(won.mission.attemptNumber + 1);
-        const restarted = await adminAction(request, room.id, "restart");
-        expect(restarted.attemptNumber).toBe(advanced.attemptNumber + 1);
+        expect(advanced.phase).toBe("preflight");
+        const advancedStarted = await sendAction(
+          sessions[0],
+          room.name,
+          { type: "start-mission" },
+        );
+        expect(advancedStarted.phase).not.toBe("preflight");
+        const reset = await adminAction(request, room.id, "return-to-preflight");
+        expect(reset.phase).toBe("preflight");
+        expect(reset.attemptNumber).toBe(advanced.attemptNumber + 1);
 
-        if (scenario.editionKey === "planet-nine" && scenario.playerCount === 3) {
-          await rotateKeyAndReconnect(request, room, sessions[0]);
-        } else {
-          await sessions[0].page.reload();
-          await expect(sessions[0].page.locator(".player-identity")).toHaveText(
-            sessions[0].player.displayName,
-          );
-        }
+        await sessions[0].page.reload();
+        await expect(
+          sessions[0].page.getByText(
+            `${room.name} · ${sessions[0].player.displayName} · Live`,
+            { exact: true },
+          ),
+        ).toBeVisible();
       } finally {
         await Promise.allSettled(
           sessions.map((session) => session.context.close()),
@@ -721,7 +692,9 @@ test.describe("database-backed browser gaps", () => {
 
     try {
       sessions.push(...(await openPlayerSessions(browser, baseURL, room)));
-      await adminAction(request, room.id, "start");
+      await sendAction(sessions[0], room.name, {
+        type: "start-mission",
+      });
 
       let projection = await getProjection(sessions[0], room.name);
       expect(projection.tasks).toHaveLength(0);
@@ -761,16 +734,22 @@ test.describe("database-backed browser gaps", () => {
       expect(
         projection.players.reduce((total, player) => total + player.cardCount, 0),
       ).toBe(1);
+      const commander = projection.players.find((player) => player.isCaptain);
+      if (!commander) {
+        throw new Error("The adjudicating projection has no commander.");
+      }
+      const commanderSession = sessionForPlayer(sessions, commander.id);
+      projection = await getProjection(commanderSession, room.name);
       expect(projection.legalActions.canSetMissionOutcome).toBe(true);
 
-      await sessions[0].page.reload();
+      await commanderSession.page.reload();
       await expect(
-        sessions[0].page.getByRole("heading", {
+        commanderSession.page.getByRole("heading", {
           name: "How did the mission go?",
         }),
       ).toBeVisible();
 
-      const failed = await sendAction(sessions[0], room.name, {
+      const failed = await sendAction(commanderSession, room.name, {
         type: "set-mission-outcome",
         outcome: "failure",
       });
@@ -778,14 +757,14 @@ test.describe("database-backed browser gaps", () => {
       expect(failed.result).toBe("lost");
 
       await expect(
-        sessions[0].page.getByRole("heading", {
+        commanderSession.page.getByRole("heading", {
           name: "Mission unsuccessful",
         }),
       ).toBeVisible({ timeout: 10_000 });
-      await expect(sessions[0].page.getByText("Attempt complete")).toBeVisible();
-      await expect(sessions[0].page.locator("canvas")).toHaveCount(0);
+      await expect(commanderSession.page.getByText("Attempt complete")).toBeVisible();
+      await expect(commanderSession.page.locator("canvas")).toHaveCount(0);
       expect(
-        await sessions[0].page.evaluate(
+        await commanderSession.page.evaluate(
           (key) => window.sessionStorage.getItem(key),
           `crew:celebrated:${room.id}:${failed.mission.attemptNumber}`,
         ),
@@ -800,7 +779,7 @@ test.describe("database-backed browser gaps", () => {
     }
   });
 
-  test("admin signs in, creates a room, manages players and starts the mission", async ({
+  test("admin signs in, creates a room, and manages its players and level", async ({
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
@@ -815,11 +794,19 @@ test.describe("database-backed browser gaps", () => {
 
     try {
       await page.goto("/admin");
-      await page.getByLabel("Admin password").fill(adminPassword);
-      await page.getByRole("button", { name: "Enter room admin" }).click();
-      await expect(
-        page.getByRole("heading", { name: "Admin", exact: true }),
-      ).toBeVisible();
+      await page.getByLabel("Admin Password").fill(adminPassword);
+      await page.getByRole("button", { name: "Enter" }).click();
+      const adminLogo = page.getByLabel("Crew administration");
+      await expect(adminLogo).toBeVisible();
+      const logoFontSizes = await adminLogo.evaluate((logo) => {
+        const icon = logo.querySelector('[data-slot="crew-logo-icon"]');
+        const text = logo.querySelector('[data-slot="crew-logo-text"]');
+        return [
+          icon ? window.getComputedStyle(icon).fontSize : null,
+          text ? window.getComputedStyle(text).fontSize : null,
+        ];
+      });
+      expect(logoFontSizes[0]).toBe(logoFontSizes[1]);
 
       await page.getByRole("button", { name: "New room" }).click();
       const createForm = page.getByRole("form", { name: "Create room" });
@@ -847,57 +834,52 @@ test.describe("database-backed browser gaps", () => {
       await expect(
         page.getByRole("heading", { name: roomName, exact: true }),
       ).toBeVisible();
-      await expect(page.getByRole("button", { name: "Save settings" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Delete room" })).toBeVisible();
-      const roomKeyValue = page.getByLabel(`Room key for ${roomName}`);
-      await expect(roomKeyValue).toHaveText(/[A-HJ-NP-Z2-9]{6}/);
-      const oldRoomKey = await roomKeyValue.textContent();
-      page.once("dialog", (dialog) => dialog.accept());
-      await roomKeyValue
-        .locator("..")
-        .getByRole("button", { name: "Rotate" })
-        .click();
-      await expect(roomKeyValue).not.toHaveText(oldRoomKey ?? "");
+      await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Delete Room" })).toBeVisible();
 
-      for (const playerName of ["Ada", "Grace", "Katherine"]) {
-        await page.getByLabel("New player").fill(playerName);
-        await page.getByRole("button", { name: "Add player" }).click();
-        await expect(
-          page.getByLabel(`Player key for ${playerName}`),
-        ).toHaveText(/[A-HJ-NP-Z2-9]{6}/);
+      for (const [seat, playerName] of [
+        [1, "Ada"],
+        [2, "Grace"],
+        [3, "Katherine"],
+      ] as const) {
+        await page
+          .getByLabel(`Display name for player ${seat}`)
+          .fill(playerName);
       }
 
-      await expect(page.getByRole("button", { name: "Rotate" })).toHaveCount(3);
-      await expect(page.getByLabel(/^Seat for /)).toHaveCount(3);
-      await expect(page.getByRole("button", { name: /^Remove / })).toHaveCount(3);
+      await expect(page.locator("[data-admin-player-row]")).toHaveCount(5);
+      await expect(
+        page.locator('[data-admin-player-row][data-empty="true"]'),
+      ).toHaveCount(2);
+      await expect(page.getByRole("button", { name: "Add player" })).toHaveCount(0);
 
       const firstPlayer = page.locator("[data-admin-player-row]").first();
-      await firstPlayer.getByLabel("Display name for seat 1").fill("Ada Lovelace");
-      await firstPlayer.getByRole("button", { name: "Save" }).click();
+      await firstPlayer
+        .getByLabel("Display name for player 1")
+        .fill("Ada_Lovelace");
       await expect(
-        page.getByLabel("Display name for seat 1"),
-      ).toHaveValue("Ada Lovelace");
+        page.getByLabel("Display name for player 1"),
+      ).toHaveValue("Ada_Lovelace");
+      await expect(
+        page.locator(
+          '[data-player-color], [data-slot="admin-player-color"], [data-slot="admin-player-color-square"]',
+        ),
+      ).toHaveCount(0);
 
-      const oldKey = await page
-        .getByLabel("Player key for Ada Lovelace")
-        .textContent();
-      page.once("dialog", (dialog) => dialog.accept());
+      await expect(page.getByRole("button", { name: "Start Mission" })).toHaveCount(0);
+      await expect(
+        page.getByText("Any player can start this mission from the room."),
+      ).toHaveCount(0);
       await page
-        .locator("[data-admin-player-row]")
-        .first()
-        .getByRole("button", { name: "Rotate" })
+        .getByRole("combobox", { name: "Mission", exact: true })
         .click();
-      await expect(page.getByLabel("Player key for Ada Lovelace")).not.toHaveText(
-        oldKey ?? "",
-      );
-
+      await page.getByRole("option", { name: /^2 ·/ }).click();
+      await page.getByRole("button", { name: "Save" }).click();
       await expect(
-        page.getByRole("button", { name: "Start mission" }),
-      ).toBeEnabled();
-      await page.getByRole("button", { name: "Start mission" }).click();
-      await expect(page.getByText("Mission started.")).toBeVisible();
+        page.getByText("Room settings saved", { exact: true }),
+      ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Restart level" }),
+        page.getByRole("button", { name: "Return to preflight" }),
       ).toBeVisible();
     } finally {
       if (roomId) {

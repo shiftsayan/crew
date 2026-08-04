@@ -38,18 +38,18 @@ export function projectForPlayer(
   const unclaimedTaskIds = state.tasks
     .filter((task) => task.ownerPlayerId === null)
     .map((task) => task.id);
-  const isAssignmentTurn =
-    state.phase === "assigning-tasks" &&
-    state.currentPlayerId === actorPlayerId;
-  const remainingTurnsAfterPass =
-    state.seatOrder.length - (state.assignmentTurns + 1);
-  const canPassTask =
-    isAssignmentTurn &&
-    state.editionKey === "deep-sea" &&
-    state.tasks.length < state.seatOrder.length &&
-    state.assignmentTurns < state.seatOrder.length &&
-    unclaimedTaskIds.length <= remainingTurnsAfterPass;
+  const isAssigningTasks = state.phase === "assigning-tasks";
+  const isSelectingTasks =
+    isAssigningTasks || state.phase === "ready-to-start-trick";
   const canResolveOutcomes = OUTCOME_PHASES.has(state.phase);
+  const isCommander = state.captainPlayerId === actorPlayerId;
+  const canRecordTaskedMissionOutcome =
+    state.tasks.length > 0 &&
+    state.tasks.every((task) => task.outcome !== "pending");
+  const canRecordTasklessMissionOutcome =
+    state.tasks.length === 0 && mission.allowsManualMissionOutcome;
+  const isMissionOutcomePhase =
+    state.phase === "between-tricks" || state.phase === "adjudicating";
 
   const projection: ActorProjection = {
     room: {
@@ -70,6 +70,7 @@ export function projectForPlayer(
     self: {
       id: actorPlayerId,
       displayName: actorRoster.displayName,
+      tags: actorRoster.tags,
       seat: actorRoster.seat,
       hand: actorState.hand.map(getCard),
       captured: actorState.captured.map(getCard),
@@ -83,12 +84,14 @@ export function projectForPlayer(
         return {
           id: rosterPlayer.id,
           displayName: rosterPlayer.displayName,
+          tags: rosterPlayer.tags,
           seat: rosterPlayer.seat,
           cardCount: player?.hand.length ?? 0,
           tricksWon: player?.tricksWon ?? 0,
           communication: player?.communication ?? null,
           isCaptain: state.captainPlayerId === rosterPlayer.id,
-          isCurrent: state.currentPlayerId === rosterPlayer.id,
+          isCurrent:
+            !isAssigningTasks && state.currentPlayerId === rosterPlayer.id,
         };
       }),
     tasks: state.tasks.map((task) => ({
@@ -101,8 +104,22 @@ export function projectForPlayer(
     currentTrick: state.currentTrick,
     lastTrick: state.lastTrick,
     legalActions: {
-      claimableTaskIds: isAssignmentTurn ? unclaimedTaskIds : [],
-      canPassTask,
+      canStartMission:
+        state.phase === "preflight" &&
+        context.roster.length >= 3 &&
+        context.roster.length <= 5,
+      canStartTrick:
+        state.phase === "ready-to-start-trick" ||
+        (state.phase === "between-tricks" &&
+          state.currentPlayerId === actorPlayerId &&
+          actorState.hand.length > 0),
+      claimableTaskIds: isAssigningTasks ? unclaimedTaskIds : [],
+      releasableTaskIds: isSelectingTasks
+        ? state.tasks
+            .filter((task) => task.ownerPlayerId === actorPlayerId)
+            .map((task) => task.id)
+        : [],
+      canPassTask: false,
       playableCardIds: getPlayableCardIds(state, actorPlayerId),
       communicationOptions:
         state.phase === "between-tricks" &&
@@ -121,7 +138,9 @@ export function projectForPlayer(
         ? state.tasks.map((task) => task.id)
         : [],
       canSetMissionOutcome:
-        canResolveOutcomes && mission.allowsManualMissionOutcome,
+        isCommander &&
+        isMissionOutcomePhase &&
+        (canRecordTaskedMissionOutcome || canRecordTasklessMissionOutcome),
     },
   };
 
@@ -141,7 +160,7 @@ function taskPresentation(
   }
 
   if (!task.cardId) {
-    throw new Error(`Planet Nine task ${task.id} has no objective card.`);
+    throw new Error(`Planet Nine task ${task.id} has no task card.`);
   }
   const card = getCard(task.cardId);
   return {

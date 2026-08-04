@@ -73,16 +73,16 @@ function selectDeepSeaTasks(
 }
 
 export function startAttempt(
-  setupState: GameState,
+  preflightState: GameState,
   input: StartAttemptInput,
 ): TransitionResult {
-  const parsed = GameStateSchema.safeParse(setupState);
+  const parsed = GameStateSchema.safeParse(preflightState);
   if (!parsed.success) {
     return failure("INVALID_STATE", "The stored game state is invalid.");
   }
   const state = parsed.data;
-  if (state.phase !== "setup") {
-    return failure("INVALID_PHASE", "Only a setup room can start an attempt.");
+  if (state.phase !== "preflight") {
+    return failure("INVALID_PHASE", "Only a preflight room can start an attempt.");
   }
 
   const playerCount = input.playerIds.length;
@@ -93,13 +93,13 @@ export function startAttempt(
     input.playerIds.some((playerId) => playerId.length === 0)
   ) {
     return failure(
-      "INVALID_SETUP",
+      "INVALID_PREFLIGHT",
       "An attempt requires three to five distinct players in seat order.",
     );
   }
   if (!hasExactlyValues(input.deckOrder, CARD_IDS)) {
     return failure(
-      "INVALID_SETUP",
+      "INVALID_PREFLIGHT",
       "Deck order must contain each of the 40 cards exactly once.",
     );
   }
@@ -129,7 +129,7 @@ export function startAttempt(
     players[playerId].hand.includes("trump-4"),
   );
   if (!captainPlayerId) {
-    return failure("INVALID_SETUP", "The dealt deck has no captain.");
+    return failure("INVALID_PREFLIGHT", "The dealt deck has no captain.");
   }
 
   const mission = getMission(state.editionKey, state.missionKey);
@@ -139,7 +139,7 @@ export function startAttempt(
     if (mission.editionKey === "planet-nine") {
       if (!hasExactlyValues(input.taskOrder as CardId[], NON_TRUMP_CARD_IDS)) {
         return failure(
-          "INVALID_SETUP",
+          "INVALID_PREFLIGHT",
           "Planet Nine task order must contain every non-trump card exactly once.",
         );
       }
@@ -158,7 +158,7 @@ export function startAttempt(
       const expectedTaskIds = DEEP_SEA_TASKS.map((task) => task.id);
       if (!hasExactlyValues(input.taskOrder, expectedTaskIds)) {
         return failure(
-          "INVALID_SETUP",
+          "INVALID_PREFLIGHT",
           "Deep Sea task order must contain each task from 1 through 96 exactly once.",
         );
       }
@@ -170,13 +170,13 @@ export function startAttempt(
         ) ?? [];
       if (mission.taskBudget > 0 && tasks.length === 0) {
         return failure(
-          "INVALID_SETUP",
+          "INVALID_PREFLIGHT",
           `No task combination matches difficulty ${mission.taskBudget}.`,
         );
       }
     }
   } catch {
-    return failure("INVALID_SETUP", "Task order contains an unknown task.");
+    return failure("INVALID_PREFLIGHT", "Task order contains an unknown task.");
   }
 
   const nextState: GameState = {
@@ -197,5 +197,5 @@ export function startAttempt(
   const validated = GameStateSchema.safeParse(nextState);
   return validated.success
     ? success(validated.data)
-    : failure("INVALID_STATE", "Attempt setup produced invalid state.");
+    : failure("INVALID_STATE", "Attempt start produced invalid state.");
 }

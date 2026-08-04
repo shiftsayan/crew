@@ -136,12 +136,12 @@ describe("level-complete celebration coordinator", () => {
     expect(confetti).toHaveBeenNthCalledWith(1, {
       ...shared,
       angle: 60,
-      origin: { x: 0, y: 0.68 },
+      origin: { x: 0, y: 1 },
     });
     expect(confetti).toHaveBeenNthCalledWith(2, {
       ...shared,
       angle: 120,
-      origin: { x: 1, y: 0.68 },
+      origin: { x: 1, y: 1 },
     });
   });
 

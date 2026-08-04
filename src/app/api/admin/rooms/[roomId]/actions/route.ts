@@ -21,7 +21,11 @@ export async function POST(
     const roomId = z.string().uuid().parse((await context.params).roomId);
     const input = AdminRoomActionSchema.parse(await readJson(request));
     return NextResponse.json({
-      room: await runAdminRoomAction(roomId, input.type),
+      room: await runAdminRoomAction(
+        roomId,
+        input.type,
+        input.confirmReset,
+      ),
     });
   } catch (error) {
     return errorResponse(error);

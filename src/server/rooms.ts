@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomInt } from "node:crypto";
 import type { PoolClient } from "pg";
 
 import {
@@ -7,6 +8,7 @@ import {
   getDeepSeaTask,
   getMission,
   type PlayerCount,
+  type PlayerCommand,
 } from "@/game";
 import {
   type AddPlayerInput,
@@ -14,8 +16,11 @@ import {
   type AdminRoomDetail,
   type AdminRoomSummary,
   type CreateRoomInput,
+  DisplayNameSchema,
   type PlayerRow,
+  RoomNameSchema,
   type RoomRow,
+  type SaveAdminRoomSettingsInput,
   type UpdatePlayerInput,
   type UpdateRoomInput,
 } from "@/server/contracts";
@@ -28,26 +33,15 @@ import {
   assertMission,
   beginAttempt,
   makePlayerProjection,
-  makeSetupState,
+  makePreflightState,
   nextMissionFor,
   runPlayerCommand,
   type ActorProjection,
   type GameState,
-  type PlayerCommand,
 } from "@/server/game-runtime";
-import {
-  PLAYER_KEY_PATTERN,
-  ROOM_KEY_PATTERN,
-  generatePlayerKey,
-  generateRoomKey,
-  normalizePlayerKey,
-  normalizeRoomKey,
-} from "@/server/player-keys";
-
 const roomColumns = `
   id,
   name,
-  room_key as "roomKey",
   edition_key as "editionKey",
   mission_key as "missionKey",
   state_version as "stateVersion",
@@ -60,7 +54,7 @@ const playerColumns = `
   id,
   room_id as "roomId",
   display_name as "displayName",
-  player_key as "playerKey",
+  tags,
   seat,
   created_at as "createdAt"
 `;
@@ -71,7 +65,6 @@ export async function listAdminRooms(): Promise<AdminRoomSummary[]> {
       select
         rooms.id,
         rooms.name,
-        rooms.room_key as "roomKey",
         rooms.edition_key as "editionKey",
         rooms.mission_key as "missionKey",
         rooms.state_version as "stateVersion",
@@ -95,25 +88,22 @@ export async function createAdminRoom(
   input: CreateRoomInput,
 ): Promise<AdminRoomDetail> {
   const mission = assertMission(input.editionKey, input.missionKey);
-  const state = makeSetupState(mission.editionKey, mission.missionKey);
-  const roomKey = await uniqueRoomKey();
+  const state = makePreflightState(mission.editionKey, mission.missionKey);
 
   const result = await query<RoomRow>(
     `
       insert into private.rooms (
         name,
-        room_key,
         edition_key,
         mission_key,
         state_version,
         state
       )
-      values ($1, $2, $3, $4, $5, $6::jsonb)
+      values ($1, $2, $3, $4, $5::jsonb)
       returning ${roomColumns}
     `,
     [
       input.name,
-      roomKey,
       mission.editionKey,
       mission.missionKey,
       CURRENT_STATE_VERSION,
@@ -155,7 +145,7 @@ export async function updateAdminRoom(
     let stateVersion = room.stateVersion;
     if (gameChanged) {
       const reset = resetStateForMutation(room, input.confirmReset);
-      state = makeSetupState(
+      state = makePreflightState(
         mission.editionKey,
         mission.missionKey,
         reset.attemptNumber,
@@ -178,6 +168,168 @@ export async function updateAdminRoom(
       [
         roomId,
         input.name ?? room.name,
+        mission.editionKey,
+        mission.missionKey,
+        stateVersion,
+        JSON.stringify(state),
+      ],
+    );
+  });
+
+  return getAdminRoom(roomId);
+}
+
+export async function saveAdminRoomSettings(
+  roomId: string,
+  input: SaveAdminRoomSettingsInput,
+): Promise<AdminRoomDetail> {
+  await withTransaction(async (client) => {
+    const room = await getRoomForUpdate(client, roomId);
+    const currentPlayers = await getPlayersWithClient(client, roomId);
+    const currentPlayersById = new Map(
+      currentPlayers.map((player) => [player.id, player]),
+    );
+    const desiredPlayers = input.players.filter(
+      (player) => player.displayName.length > 0,
+    );
+
+    for (const player of desiredPlayers) {
+      if (player.id && !currentPlayersById.has(player.id)) {
+        throw new AppError(
+          "NOT_FOUND",
+          "A player in these settings no longer exists.",
+          404,
+        );
+      }
+    }
+
+    const mission = assertMission(input.editionKey, input.missionKey);
+    const gameChanged =
+      mission.editionKey !== room.editionKey ||
+      mission.missionKey !== room.missionKey;
+    const rosterChanged = hasRosterChanged(currentPlayers, desiredPlayers);
+    const parsedState = GameStateSchema.safeParse(room.state);
+    const attemptChanged =
+      input.attemptNumber !== undefined &&
+      input.attemptNumber !== attemptNumber(room);
+    const attemptRequiresReset =
+      attemptChanged &&
+      (room.stateVersion !== CURRENT_STATE_VERSION ||
+        !parsedState.success ||
+        parsedState.data.stateVersion !== room.stateVersion ||
+        !stateIsCoherent(parsedState.data, room, currentPlayers));
+    const reset =
+      gameChanged || rosterChanged || attemptRequiresReset
+        ? resetStateForMutation(room, input.confirmReset)
+        : null;
+    const desiredIds = new Set(
+      desiredPlayers.flatMap((player) => (player.id ? [player.id] : [])),
+    );
+
+    await client.query(
+      "set constraints private.room_players_room_seat_key deferred",
+    );
+
+    for (const player of currentPlayers) {
+      if (!desiredIds.has(player.id)) {
+        await client.query(
+          `delete from private.room_players where room_id = $1 and id = $2`,
+          [roomId, player.id],
+        );
+      }
+    }
+
+    const reservedNames = new Set(
+      desiredPlayers.map((player) =>
+        player.displayName.toLocaleLowerCase("en-US"),
+      ),
+    );
+    for (const player of desiredPlayers) {
+      if (!player.id) continue;
+      const temporaryName = temporaryPlayerName(player.id, reservedNames);
+      reservedNames.add(temporaryName.toLocaleLowerCase("en-US"));
+      await client.query(
+        `
+          update private.room_players
+          set display_name = $3
+          where room_id = $1 and id = $2
+        `,
+        [roomId, player.id, temporaryName],
+      );
+    }
+
+    for (const player of desiredPlayers) {
+      if (player.id) {
+        await client.query(
+          `
+            update private.room_players
+            set display_name = $3, tags = $4, seat = $5
+            where room_id = $1 and id = $2
+          `,
+          [
+            roomId,
+            player.id,
+            player.displayName,
+            player.tags,
+            player.seat,
+          ],
+        );
+      } else {
+        await client.query(
+          `
+            insert into private.room_players (
+              room_id,
+              display_name,
+              tags,
+              seat
+            )
+            values ($1, $2, $3, $4)
+          `,
+          [
+            roomId,
+            player.displayName,
+            player.tags,
+            player.seat,
+          ],
+        );
+      }
+    }
+
+    let state = room.state;
+    let stateVersion = room.stateVersion;
+    if (reset) {
+      state = makePreflightState(
+        mission.editionKey,
+        mission.missionKey,
+        attemptChanged && input.attemptNumber !== undefined
+          ? input.attemptNumber
+          : reset.attemptNumber,
+      );
+      stateVersion = CURRENT_STATE_VERSION;
+    } else if (
+      attemptChanged &&
+      input.attemptNumber !== undefined &&
+      parsedState.success
+    ) {
+      state = {
+        ...parsedState.data,
+        attemptNumber: input.attemptNumber,
+      };
+    }
+
+    await client.query(
+      `
+        update private.rooms
+        set
+          edition_key = $2,
+          mission_key = $3,
+          state_version = $4,
+          state = $5::jsonb,
+          updated_at = now()
+        where id = $1
+      `,
+      [
+        roomId,
         mission.editionKey,
         mission.missionKey,
         stateVersion,
@@ -213,29 +365,21 @@ export async function addAdminPlayer(
     }
 
     const seat = input.seat ?? firstAvailableSeat(players);
-    if (seat > players.length + 1) {
-      throw new AppError(
-        "INVALID_REQUEST",
-        "New players must use the next available seat.",
-        400,
-      );
-    }
     if (players.some((player) => player.seat === seat)) {
       throw new AppError("CONFLICT", "That seat is already occupied.", 409);
     }
 
-    const key = uniquePlayerKey(players);
     await client.query(
       `
         insert into private.room_players (
           room_id,
           display_name,
-          player_key,
+          tags,
           seat
         )
         values ($1, $2, $3, $4)
       `,
-      [roomId, input.displayName, key, seat],
+      [roomId, input.displayName, input.tags, seat],
     );
     await touchRoom(client, roomId);
   });
@@ -250,19 +394,15 @@ export async function updateAdminPlayer(
 ): Promise<AdminRoomDetail> {
   await withTransaction(async (client) => {
     const room = await getRoomForUpdate(client, roomId);
-    await resetRoomForRosterMutation(client, room, input.confirmReset);
+    const rosterChanged =
+      input.displayName !== undefined || input.seat !== undefined;
+    if (rosterChanged) {
+      await resetRoomForRosterMutation(client, room, input.confirmReset);
+    }
     const players = await getPlayersWithClient(client, roomId);
     const player = players.find((candidate) => candidate.id === playerId);
     if (!player) {
       throw new AppError("NOT_FOUND", "Player not found.", 404);
-    }
-
-    if (input.seat !== undefined && input.seat > players.length) {
-      throw new AppError(
-        "INVALID_REQUEST",
-        "Choose an occupied seat to swap these players.",
-        400,
-      );
     }
 
     if (input.seat !== undefined && input.seat !== player.seat) {
@@ -289,13 +429,15 @@ export async function updateAdminPlayer(
         update private.room_players
         set
           display_name = $3,
-          seat = $4
+          tags = $4,
+          seat = $5
         where room_id = $1 and id = $2
       `,
       [
         roomId,
         playerId,
         input.displayName ?? player.displayName,
+        input.tags ?? player.tags,
         input.seat ?? player.seat,
       ],
     );
@@ -320,54 +462,7 @@ export async function deleteAdminPlayer(
     if (result.rowCount === 0) {
       throw new AppError("NOT_FOUND", "Player not found.", 404);
     }
-    await compactPlayerSeats(client, roomId);
     await touchRoom(client, roomId);
-  });
-
-  return getAdminRoom(roomId);
-}
-
-export async function rotateAdminPlayerKey(
-  roomId: string,
-  playerId: string,
-): Promise<AdminRoomDetail> {
-  await withTransaction(async (client) => {
-    await getRoomForUpdate(client, roomId);
-    const players = await getPlayersWithClient(client, roomId);
-    const player = players.find((candidate) => candidate.id === playerId);
-    if (!player) {
-      throw new AppError("NOT_FOUND", "Player not found.", 404);
-    }
-
-    const key = uniquePlayerKey(players);
-    await client.query(
-      `
-        update private.room_players
-        set player_key = $3
-        where room_id = $1 and id = $2
-      `,
-      [roomId, playerId, key],
-    );
-    await touchRoom(client, roomId);
-  });
-
-  return getAdminRoom(roomId);
-}
-
-export async function rotateAdminRoomKey(
-  roomId: string,
-): Promise<AdminRoomDetail> {
-  await withTransaction(async (client) => {
-    const room = await getRoomForUpdate(client, roomId);
-    const key = await uniqueRoomKey(client, room.roomKey);
-    await client.query(
-      `
-        update private.rooms
-        set room_key = $2, updated_at = now()
-        where id = $1
-      `,
-      [roomId, key],
-    );
   });
 
   return getAdminRoom(roomId);
@@ -376,57 +471,58 @@ export async function rotateAdminRoomKey(
 export async function runAdminRoomAction(
   roomId: string,
   action: AdminRoomAction,
+  confirmReset = false,
 ): Promise<AdminRoomDetail> {
   await withTransaction(async (client) => {
     const room = await getRoomForUpdate(client, roomId);
     const players = await getPlayersWithClient(client, roomId);
-    requirePlayableRoster(players);
 
-    let state: GameState;
-    let editionKey = room.editionKey;
-    let missionKey = room.missionKey;
-
-    if (action === "start") {
-      const current = compatibleState(room, players);
-      if (current.phase !== "setup") {
+    if (action === "shuffle") {
+      if (players.length < 2) {
         throw new AppError(
-          "CONFLICT",
-          "This room has already started. Restart it to create a new attempt.",
+          "ROOM_NOT_READY",
+          "Add at least two players before shuffling.",
           409,
         );
       }
-      state = beginAttempt(current, players.map((player) => player.id));
-    } else {
-      let currentAttempt = attemptNumber(room);
-      if (action === "advance") {
-        const current = compatibleState(room, players);
-        if (current.phase !== "finished") {
-          throw new AppError(
-            "CONFLICT",
-            "Finish the current mission before advancing.",
-            409,
-          );
-        }
-        currentAttempt = current.attemptNumber;
-        const nextMission = nextMissionFor(room.editionKey, room.missionKey);
-        if (!nextMission) {
-          throw new AppError(
-            "CONFLICT",
-            "This is the last configured mission in this edition.",
-            409,
-          );
-        }
-        editionKey = nextMission.editionKey;
-        missionKey = nextMission.missionKey;
-      }
-
-      const setup = makeSetupState(
-        editionKey,
-        missionKey,
-        currentAttempt + 1,
-      );
-      state = beginAttempt(setup, players.map((player) => player.id));
+      await resetRoomForRosterMutation(client, room, confirmReset);
+      await shufflePlayerSeats(client, roomId, players);
+      await touchRoom(client, roomId);
+      return;
     }
+
+    let editionKey = room.editionKey;
+    let missionKey = room.missionKey;
+
+    let currentAttempt = attemptNumber(room);
+    if (action === "advance") {
+      requirePlayableRoster(players);
+      const current = compatibleState(room, players);
+      if (current.phase !== "finished") {
+        throw new AppError(
+          "CONFLICT",
+          "Finish the current mission before advancing.",
+          409,
+        );
+      }
+      currentAttempt = current.attemptNumber;
+      const nextMission = nextMissionFor(room.editionKey, room.missionKey);
+      if (!nextMission) {
+        throw new AppError(
+          "CONFLICT",
+          "This is the last configured mission in this edition.",
+          409,
+        );
+      }
+      editionKey = nextMission.editionKey;
+      missionKey = nextMission.missionKey;
+    }
+
+    const state = makePreflightState(
+      editionKey,
+      missionKey,
+      currentAttempt + 1,
+    );
 
     await client.query(
       `
@@ -453,14 +549,18 @@ export async function runAdminRoomAction(
 }
 
 export async function loginPlayer(
-  roomKey: string,
-  playerKey: string,
+  roomName: string,
+  playerName: string,
 ): Promise<{
   room: { id: string; name: string };
   player: { id: string; displayName: string; seat: number };
 }> {
-  const normalizedRoomKey = normalizeRoomKey(roomKey);
-  const normalizedPlayerKey = normalizePlayerKey(playerKey);
+  const parsedRoomName = RoomNameSchema.safeParse(roomName);
+  const parsedPlayerName = DisplayNameSchema.safeParse(playerName);
+  if (!parsedRoomName.success || !parsedPlayerName.success) {
+    throw invalidPlayerCredentials();
+  }
+
   const result = await query<
     Pick<RoomRow, "id" | "name"> &
       Pick<PlayerRow, "displayName" | "seat"> & { playerId: string }
@@ -474,11 +574,11 @@ export async function loginPlayer(
         players.seat
       from private.rooms rooms
       join private.room_players players on players.room_id = rooms.id
-      where rooms.room_key = $1
-        and players.player_key = $2
+      where lower(rooms.name) = lower($1)
+        and lower(players.display_name) = lower($2)
       limit 1
     `,
-    [normalizedRoomKey, normalizedPlayerKey],
+    [parsedRoomName.data, parsedPlayerName.data],
   );
   const match = result.rows[0];
   if (!match) {
@@ -497,21 +597,21 @@ export async function loginPlayer(
 
 export async function getPlayerRoom(
   roomName: string,
-  roomKey: string | null,
-  playerKey: string | null,
+  playerName: string | null,
 ): Promise<ActorProjection> {
-  if (
-    !roomKey ||
-    !ROOM_KEY_PATTERN.test(normalizeRoomKey(roomKey)) ||
-    !playerKey ||
-    !PLAYER_KEY_PATTERN.test(normalizePlayerKey(playerKey))
-  ) {
+  const parsedRoomName = RoomNameSchema.safeParse(roomName);
+  const parsedPlayerName = DisplayNameSchema.safeParse(playerName);
+  if (!parsedRoomName.success || !parsedPlayerName.success) {
     throw invalidPlayerCredentials();
   }
 
   return withTransaction(async (client) => {
-    const room = await getRoomByCredentials(client, roomName, roomKey, "share");
-    const player = await getPlayerByKey(client, room.id, playerKey);
+    const room = await getRoomByName(client, parsedRoomName.data, "share");
+    const player = await getPlayerByName(
+      client,
+      room.id,
+      parsedPlayerName.data,
+    );
     const players = await getPlayersWithClient(client, room.id);
     const state = compatibleState(room, players);
 
@@ -521,6 +621,7 @@ export async function getPlayerRoom(
       roster: players.map((rosterPlayer) => ({
         id: rosterPlayer.id,
         displayName: rosterPlayer.displayName,
+        tags: rosterPlayer.tags,
         seat: rosterPlayer.seat,
       })),
     });
@@ -529,25 +630,38 @@ export async function getPlayerRoom(
 
 export async function applyPlayerRoomCommand(
   roomName: string,
-  roomKey: string | null,
-  playerKey: string | null,
+  playerName: string | null,
   command: PlayerCommand,
 ): Promise<ActorProjection> {
-  if (
-    !roomKey ||
-    !ROOM_KEY_PATTERN.test(normalizeRoomKey(roomKey)) ||
-    !playerKey ||
-    !PLAYER_KEY_PATTERN.test(normalizePlayerKey(playerKey))
-  ) {
+  const parsedRoomName = RoomNameSchema.safeParse(roomName);
+  const parsedPlayerName = DisplayNameSchema.safeParse(playerName);
+  if (!parsedRoomName.success || !parsedPlayerName.success) {
     throw invalidPlayerCredentials();
   }
 
   return withTransaction(async (client) => {
-    const room = await getRoomByCredentials(client, roomName, roomKey, "update");
-    const player = await getPlayerByKey(client, room.id, playerKey);
+    const room = await getRoomByName(client, parsedRoomName.data, "update");
+    const player = await getPlayerByName(
+      client,
+      room.id,
+      parsedPlayerName.data,
+    );
     const players = await getPlayersWithClient(client, room.id);
     const state = compatibleState(room, players);
-    const nextState = runPlayerCommand(state, player.id, command);
+    let nextState: GameState;
+    if (command.type === "start-mission") {
+      if (state.phase !== "preflight") {
+        throw new AppError(
+          "CONFLICT",
+          "This mission has already started.",
+          409,
+        );
+      }
+      requirePlayableRoster(players);
+      nextState = beginAttempt(state, players.map((roomPlayer) => roomPlayer.id));
+    } else {
+      nextState = runPlayerCommand(state, player.id, command);
+    }
 
     await client.query(
       `
@@ -564,6 +678,7 @@ export async function applyPlayerRoomCommand(
       roster: players.map((rosterPlayer) => ({
         id: rosterPlayer.id,
         displayName: rosterPlayer.displayName,
+        tags: rosterPlayer.tags,
         seat: rosterPlayer.seat,
       })),
     });
@@ -590,10 +705,9 @@ async function getRoomForUpdate(
   return room;
 }
 
-async function getRoomByCredentials(
+async function getRoomByName(
   client: PoolClient,
   roomName: string,
-  roomKey: string,
   lock: "share" | "update",
 ): Promise<RoomRow> {
   const result = await client.query<RoomRow>(
@@ -601,10 +715,9 @@ async function getRoomByCredentials(
       select ${roomColumns}
       from private.rooms
       where lower(name) = lower($1)
-        and room_key = $2
       ${lock === "update" ? "for update" : "for share"}
     `,
-    [roomName, normalizeRoomKey(roomKey)],
+    [roomName],
   );
   const room = result.rows[0];
   if (!room) {
@@ -642,18 +755,18 @@ async function getPlayersWithClient(
   return result.rows;
 }
 
-async function getPlayerByKey(
+async function getPlayerByName(
   client: PoolClient,
   roomId: string,
-  key: string,
+  playerName: string,
 ): Promise<PlayerRow> {
   const result = await client.query<PlayerRow>(
     `
       select ${playerColumns}
       from private.room_players
-      where room_id = $1 and player_key = $2
+      where room_id = $1 and lower(display_name) = lower($2)
     `,
-    [roomId, normalizePlayerKey(key)],
+    [roomId, playerName],
   );
   const player = result.rows[0];
   if (!player) {
@@ -698,7 +811,7 @@ export function stateIsCoherent(
     return false;
   }
 
-  if (state.phase === "setup") {
+  if (state.phase === "preflight") {
     return (
       state.seatOrder.length === 0 &&
       Object.keys(state.players).length === 0 &&
@@ -802,20 +915,50 @@ export function stateIsCoherent(
   }
 
   if (state.currentTrick) {
+    const expectedLeaderPlayerId =
+      state.trickNumber === 0
+        ? state.captainPlayerId
+        : state.lastTrick?.winnerPlayerId;
     if (
       (state.phase !== "playing-trick" && state.phase !== "finished") ||
       state.currentTrick.number !== state.trickNumber + 1 ||
-      state.currentTrick.plays.length === 0 ||
       state.currentTrick.plays.length >= seatIds.length ||
       state.currentTrick.winnerPlayerId !== null ||
       !seatIds.includes(state.currentTrick.leaderPlayerId) ||
+      state.currentTrick.leaderPlayerId !== expectedLeaderPlayerId ||
+      (state.currentTrick.plays[0]?.playerId ??
+        state.currentTrick.leaderPlayerId) !==
+        state.currentTrick.leaderPlayerId ||
       new Set(
         state.currentTrick.plays.map((play) => play.playerId),
       ).size !== state.currentTrick.plays.length
     ) {
       return false;
     }
+    if (
+      state.currentTrick.plays.length === 0 &&
+      state.currentPlayerId !== state.currentTrick.leaderPlayerId
+    ) {
+      return false;
+    }
   } else if (state.phase === "playing-trick") {
+    return false;
+  }
+
+  const isPreparingFirstTrick =
+    state.phase === "assigning-tasks" ||
+    state.phase === "ready-to-start-trick";
+  if (
+    isPreparingFirstTrick &&
+    (state.currentTrick !== null ||
+      state.lastTrick !== null ||
+      state.trickNumber !== 0 ||
+      state.tasks.some((task) => task.outcome !== "pending") ||
+      playerEntries.some(
+        ([, player]) =>
+          player.hasCommunicated || player.communication !== null,
+      ))
+  ) {
     return false;
   }
 
@@ -836,7 +979,7 @@ export function stateMatchesMissionConfig(state: GameState): boolean {
     return false;
   }
 
-  if (state.phase === "setup") {
+  if (state.phase === "preflight") {
     return state.tasks.length === 0;
   }
 
@@ -851,7 +994,9 @@ export function stateMatchesMissionConfig(state: GameState): boolean {
   const assignmentIsCoherent =
     state.phase === "assigning-tasks"
       ? state.tasks.length > 0 && assignedTaskCount < state.tasks.length
-      : assignedTaskCount === state.tasks.length;
+      : state.phase === "ready-to-start-trick"
+        ? state.tasks.length > 0 && assignedTaskCount === state.tasks.length
+        : assignedTaskCount === state.tasks.length;
   if (!assignmentIsCoherent || state.assignmentTurns < assignedTaskCount) {
     return false;
   }
@@ -864,9 +1009,9 @@ export function stateMatchesMissionConfig(state: GameState): boolean {
       return false;
     }
 
-    const objectiveCards = state.tasks.map((task) => task.cardId);
+    const taskCardIds = state.tasks.map((task) => task.cardId);
     return (
-      new Set(objectiveCards).size === objectiveCards.length &&
+      new Set(taskCardIds).size === taskCardIds.length &&
       state.tasks.every((task, index) => {
         const cardId = task.cardId;
         return (
@@ -934,15 +1079,15 @@ function resetStateForMutation(
     !parsed.success;
   const active =
     parsed.success &&
-    parsed.data.phase !== "setup" &&
+    parsed.data.phase !== "preflight" &&
     parsed.data.phase !== "finished";
   const requiresReset =
-    broken || (parsed.success && parsed.data.phase !== "setup");
+    broken || (parsed.success && parsed.data.phase !== "preflight");
 
   if ((broken || active) && !confirmReset) {
     throw new AppError(
       "RESET_CONFIRMATION_REQUIRED",
-      "This change will restart the current level. Confirm the reset to continue.",
+      "This change will discard the current attempt and return the room to preflight. Confirm the reset to continue.",
       409,
     );
   }
@@ -967,13 +1112,13 @@ async function resetRoomForRosterMutation(
   const requiresReset =
     room.stateVersion !== CURRENT_STATE_VERSION ||
     !parsed.success ||
-    parsed.data.phase !== "setup";
+    parsed.data.phase !== "preflight";
 
   if (!requiresReset) {
     return;
   }
 
-  const state = makeSetupState(
+  const state = makePreflightState(
     room.editionKey,
     room.missionKey,
     reset.attemptNumber,
@@ -1007,36 +1152,35 @@ function firstAvailableSeat(players: PlayerRow[]): number {
   throw new AppError("CONFLICT", "There are no available seats.", 409);
 }
 
-function uniquePlayerKey(players: PlayerRow[]): string {
-  const keys = new Set(players.map((player) => player.playerKey));
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const key = generatePlayerKey();
-    if (!keys.has(key)) {
-      return key;
-    }
-  }
-  throw new AppError("SERVER_ERROR", "Could not generate a player key.", 500);
+function hasRosterChanged(
+  currentPlayers: PlayerRow[],
+  desiredPlayers: SaveAdminRoomSettingsInput["players"],
+): boolean {
+  if (currentPlayers.length !== desiredPlayers.length) return true;
+  const currentPlayersById = new Map(
+    currentPlayers.map((player) => [player.id, player]),
+  );
+
+  return desiredPlayers.some((player) => {
+    if (!player.id) return true;
+    const current = currentPlayersById.get(player.id);
+    return (
+      !current ||
+      current.displayName !== player.displayName ||
+      current.seat !== player.seat
+    );
+  });
 }
 
-async function uniqueRoomKey(
-  client?: PoolClient,
-  currentKey?: string,
-): Promise<string> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const key = generateRoomKey();
-    if (key === currentKey) continue;
-    const result = client
-      ? await client.query<{ exists: boolean }>(
-          `select exists(select 1 from private.rooms where room_key = $1)`,
-          [key],
-        )
-      : await query<{ exists: boolean }>(
-          `select exists(select 1 from private.rooms where room_key = $1)`,
-          [key],
-        );
-    if (!result.rows[0]?.exists) return key;
+function temporaryPlayerName(playerId: string, reservedNames: Set<string>) {
+  const token = playerId.replaceAll("-", "").slice(0, 20);
+  let suffix = 0;
+  let candidate = `tmp_${token}`;
+  while (reservedNames.has(candidate.toLocaleLowerCase("en-US"))) {
+    suffix += 1;
+    candidate = `tmp_${token}_${suffix}`.slice(0, 32);
   }
-  throw new AppError("SERVER_ERROR", "Could not generate a room key.", 500);
+  return candidate;
 }
 
 async function touchRoom(client: PoolClient, roomId: string): Promise<void> {
@@ -1046,26 +1190,40 @@ async function touchRoom(client: PoolClient, roomId: string): Promise<void> {
   );
 }
 
-async function compactPlayerSeats(
+async function shufflePlayerSeats(
   client: PoolClient,
   roomId: string,
+  players: PlayerRow[],
 ): Promise<void> {
-  const players = await getPlayersWithClient(client, roomId);
-  if (players.every((player, index) => player.seat === index + 1)) {
-    return;
+  const shuffledPlayers = [...players];
+  for (let index = shuffledPlayers.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(index + 1);
+    [shuffledPlayers[index], shuffledPlayers[swapIndex]] = [
+      shuffledPlayers[swapIndex],
+      shuffledPlayers[index],
+    ];
+  }
+  if (
+    shuffledPlayers.every(
+      (player, index) => player.id === players[index]?.id,
+    )
+  ) {
+    shuffledPlayers.push(shuffledPlayers.shift()!);
   }
 
   await client.query(
     "set constraints private.room_players_room_seat_key deferred",
   );
-  for (const [index, player] of players.entries()) {
+  const occupiedSeats = players.map((player) => player.seat);
+  for (const [index, player] of shuffledPlayers.entries()) {
+    const seat = occupiedSeats[index];
     await client.query(
       `
         update private.room_players
         set seat = $3
         where room_id = $1 and id = $2
       `,
-      [roomId, player.id, index + 1],
+      [roomId, player.id, seat],
     );
   }
 }
@@ -1097,7 +1255,6 @@ function adminSummary(
   return {
     id: room.id,
     name: room.name,
-    roomKey: room.roomKey,
     editionKey: room.editionKey,
     missionKey: room.missionKey,
     missionNumber: missionDefinition.number,
@@ -1135,7 +1292,7 @@ function adminDetail(room: RoomRow, players: PlayerRow[]): AdminRoomDetail {
     players: players.map((player) => ({
       id: player.id,
       displayName: player.displayName,
-      playerKey: player.playerKey,
+      tags: player.tags,
       seat: player.seat,
       createdAt: asIsoString(player.createdAt),
     })),
@@ -1149,7 +1306,7 @@ function asIsoString(value: Date | string): string {
 function invalidPlayerCredentials(): AppError {
   return new AppError(
     "INVALID_CREDENTIALS",
-    "The room key or player key is incorrect.",
+    "The room name or player name is incorrect.",
     401,
   );
 }
@@ -1157,7 +1314,7 @@ function invalidPlayerCredentials(): AppError {
 function restartRequired(): AppError {
   return new AppError(
     "LEVEL_RESTART_REQUIRED",
-    "This level was created by an incompatible game version. Ask an admin to restart it.",
+    "This level was created by an incompatible game version. Ask an admin to return it to preflight.",
     409,
   );
 }

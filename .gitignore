@@ -15,6 +15,7 @@
 # production
 /build
 /.next
+/.next-*
 /out
 
 # local Supabase runtime

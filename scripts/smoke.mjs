@@ -47,25 +47,19 @@ async function adminJson(path, method, input) {
   ).body;
 }
 
-async function playerProjection(roomName, roomKey, playerKey) {
+async function playerProjection(roomName, playerName) {
   return (
     await expectOk(`/api/rooms/${encodeURIComponent(roomName)}`, {
-      headers: {
-        "X-Crew-Room-Key": roomKey,
-        "X-Crew-Player-Key": playerKey,
-      },
+      headers: { "X-Crew-Player-Name": playerName },
     })
   ).body;
 }
 
-async function playerAction(roomName, roomKey, playerKey, command) {
+async function playerAction(roomName, playerName, command) {
   return (
     await expectOk(`/api/rooms/${encodeURIComponent(roomName)}/actions`, {
       method: "POST",
-      headers: {
-        "X-Crew-Room-Key": roomKey,
-        "X-Crew-Player-Key": playerKey,
-      },
+      headers: { "X-Crew-Player-Name": playerName },
       body: JSON.stringify(command),
     })
   ).body;
@@ -95,9 +89,6 @@ async function main() {
     })
   ).room;
   createdRoomIds.push(room.id);
-  if (!/^[A-HJ-NP-Z2-9]{6}$/.test(room.roomKey)) {
-    throw new Error("The smoke room does not have a valid room key.");
-  }
   console.log("✓ Room created");
 
   for (const displayName of ["Ada", "Grace", "Katherine"]) {
@@ -110,115 +101,74 @@ async function main() {
   if (room.players.length !== 3) {
     throw new Error("The smoke room does not have three players.");
   }
-  console.log("✓ Three unique player keys");
-
-  const rotatedPlayer = room.players[0];
-  room = (
-    await adminJson(
-      `/api/admin/rooms/${room.id}/players/${rotatedPlayer.id}/rotate-key`,
-      "POST",
-    )
-  ).room;
-  const rotated = room.players.find(
-    (player) => player.id === rotatedPlayer.id,
-  );
-  if (!rotated || rotated.playerKey === rotatedPlayer.playerKey) {
-    throw new Error("Player key rotation did not replace the key.");
-  }
-  const oldLogin = await request("/api/rooms/login", {
-    method: "POST",
-    body: JSON.stringify({
-      roomKey: room.roomKey,
-      playerKey: rotatedPlayer.playerKey,
-    }),
-  });
-  if (oldLogin.response.status !== 401) {
-    throw new Error("A rotated player key still works.");
-  }
-  console.log("✓ Player key rotation invalidates the old key");
-
-  const oldRoomKey = room.roomKey;
-  room = (
-    await adminJson(
-      `/api/admin/rooms/${room.id}/rotate-key`,
-      "POST",
-    )
-  ).room;
-  if (room.roomKey === oldRoomKey) {
-    throw new Error("Room key rotation did not replace the key.");
-  }
-  const oldRoomLogin = await request("/api/rooms/login", {
-    method: "POST",
-    body: JSON.stringify({
-      roomKey: oldRoomKey,
-      playerKey: room.players[0].playerKey,
-    }),
-  });
-  if (oldRoomLogin.response.status !== 401) {
-    throw new Error("A rotated room key still works.");
-  }
-  console.log("✓ Room key rotation invalidates the old key");
+  console.log("✓ Three named players");
 
   const credentials = new Map(
     room.players.map((player) => [
       player.id,
-      { key: player.playerKey, name: player.displayName },
+      { name: player.displayName },
     ]),
   );
   for (const credential of credentials.values()) {
     await expectOk("/api/rooms/login", {
       method: "POST",
       body: JSON.stringify({
-        roomKey: room.roomKey,
-        playerKey: credential.key,
+        roomName,
+        playerName: credential.name,
       }),
     });
   }
   console.log("✓ Three player logins");
 
-  room = (
-    await adminJson(`/api/admin/rooms/${room.id}/actions`, "POST", {
-      type: "start",
-    })
-  ).room;
-
-  let projection = await playerProjection(
+  let projection = await playerAction(
     roomName,
-    room.roomKey,
-    credentials.values().next().value.key,
+    credentials.values().next().value.name,
+    { type: "start-mission" },
   );
   if (
     projection.players.some((player) =>
       Object.prototype.hasOwnProperty.call(player, "hand"),
-    ) ||
-    JSON.stringify(projection).includes("playerKey") ||
-    JSON.stringify(projection).includes("roomKey")
+    )
   ) {
-    throw new Error("A player projection leaked another hand or access key.");
+    throw new Error("A player projection leaked another hand.");
   }
   console.log("✓ Actor-specific projection privacy");
 
+  const taskSelectors = Array.from(credentials.values());
   for (let turn = 0; projection.phase === "assigning-tasks"; turn += 1) {
     if (turn > 10) {
       throw new Error("Task assignment did not converge.");
     }
-    const current = projection.players.find((player) => player.isCurrent);
-    const credential = current && credentials.get(current.id);
+    const credential = taskSelectors[turn % taskSelectors.length];
     if (!credential) {
-      throw new Error("Could not resolve the current task selector.");
+      throw new Error("Could not resolve a task selector.");
     }
-    projection = await playerProjection(roomName, room.roomKey, credential.key);
-    projection =
-      projection.legalActions.claimableTaskIds.length > 0
-        ? await playerAction(roomName, room.roomKey, credential.key, {
-            type: "claim-task",
-            taskId: projection.legalActions.claimableTaskIds[0],
-          })
-        : await playerAction(roomName, room.roomKey, credential.key, {
-            type: "pass-task",
-          });
+    projection = await playerProjection(roomName, credential.name);
+    const taskId = projection.legalActions.claimableTaskIds[0];
+    if (!taskId) {
+      throw new Error("The task selector has no claimable task.");
+    }
+    projection = await playerAction(roomName, credential.name, {
+      type: "claim-task",
+      taskId,
+    });
   }
   console.log("✓ Task assignment");
+
+  if (projection.tasks.length > 0) {
+    if (projection.phase !== "ready-to-start-trick") {
+      throw new Error("Task assignment did not wait for Start Trick.");
+    }
+    projection = await playerAction(
+      roomName,
+      taskSelectors[0].name,
+      { type: "start-trick" },
+    );
+    if (projection.phase !== "between-tricks") {
+      throw new Error("Start Trick did not enter gameplay.");
+    }
+  }
+  console.log("✓ Start trick confirmation");
 
   for (let play = 0; !projection.lastTrick; play += 1) {
     if (play > 5) {
@@ -229,12 +179,12 @@ async function main() {
     if (!credential) {
       throw new Error("Could not resolve the current card player.");
     }
-    projection = await playerProjection(roomName, room.roomKey, credential.key);
+    projection = await playerProjection(roomName, credential.name);
     const cardId = projection.legalActions.playableCardIds[0];
     if (!cardId) {
       throw new Error("The current player has no legal card.");
     }
-    projection = await playerAction(roomName, room.roomKey, credential.key, {
+    projection = await playerAction(roomName, credential.name, {
       type: "play-card",
       cardId,
     });
@@ -244,18 +194,33 @@ async function main() {
   const firstCredential = credentials.values().next().value;
   projection = await playerProjection(
     roomName,
-    room.roomKey,
-    firstCredential.key,
+    firstCredential.name,
   );
-  projection = await playerAction(roomName, room.roomKey, firstCredential.key, {
+  projection = await playerAction(roomName, firstCredential.name, {
     type: "set-task-outcome",
     taskId: projection.tasks[0].id,
     outcome: "success",
   });
-  if (projection.phase !== "finished" || projection.result !== "won") {
-    throw new Error("Manual task adjudication did not win the mission.");
+  if (projection.phase !== "between-tricks" || projection.result !== null) {
+    throw new Error("Setting a task status ended the mission prematurely.");
   }
-  console.log("✓ Manual victory");
+  const commander = projection.players.find((player) => player.isCaptain);
+  const commanderCredential = commander && credentials.get(commander.id);
+  if (!commanderCredential) {
+    throw new Error("Could not resolve the commander.");
+  }
+  projection = await playerProjection(roomName, commanderCredential.name);
+  if (!projection.legalActions.canSetMissionOutcome) {
+    throw new Error("The commander could not record the completed mission.");
+  }
+  projection = await playerAction(roomName, commanderCredential.name, {
+    type: "set-mission-outcome",
+    outcome: "success",
+  });
+  if (projection.phase !== "finished" || projection.result !== "won") {
+    throw new Error("Commander adjudication did not win the mission.");
+  }
+  console.log("✓ Commander-confirmed victory");
 
   room = (
     await adminJson(`/api/admin/rooms/${room.id}/actions`, "POST", {
@@ -265,16 +230,28 @@ async function main() {
   if (room.missionNumber !== 2) {
     throw new Error("Sparse configured advancement did not reach Mission 2.");
   }
+  if (room.phase !== "preflight") {
+    throw new Error("Advancement did not return the room to preflight.");
+  }
   const advancedAttempt = room.attemptNumber;
+  projection = await playerAction(roomName, firstCredential.name, {
+    type: "start-mission",
+  });
+  if (projection.phase === "preflight") {
+    throw new Error("A player could not start the advanced mission.");
+  }
   room = (
     await adminJson(`/api/admin/rooms/${room.id}/actions`, "POST", {
-      type: "restart",
+      type: "return-to-preflight",
     })
   ).room;
   if (room.attemptNumber !== advancedAttempt + 1) {
-    throw new Error("Restart did not increment the attempt number.");
+    throw new Error("Reset did not increment the attempt number.");
   }
-  console.log("✓ Advance and fresh restart");
+  if (room.phase !== "preflight") {
+    throw new Error("Reset did not return the room to preflight.");
+  }
+  console.log("✓ Advance, player start, and return to preflight");
 }
 
 try {

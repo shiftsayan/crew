@@ -21,7 +21,10 @@ type ConnectionState =
 
 type FetchResult = "success" | "retry" | "terminal";
 
-export function useRoomProjection(roomName: string, credential: StoredCredential | null) {
+export function useRoomProjection(
+  roomName: string,
+  credential: StoredCredential | undefined,
+) {
   const [projection, setProjection] = useState<ActorProjection | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("loading");
   const [message, setMessage] = useState("");
@@ -37,8 +40,6 @@ export function useRoomProjection(roomName: string, credential: StoredCredential
   const fetchProjection = useCallback(
     async (background = false): Promise<FetchResult> => {
       if (!credential) {
-        terminal.current = true;
-        setConnection("unauthorized");
         return "terminal";
       }
       if (actionInFlight.current) return "success";
@@ -48,8 +49,7 @@ export function useRoomProjection(roomName: string, credential: StoredCredential
       try {
         const response = await fetch(`/api/rooms/${encodeURIComponent(roomName)}`, {
           headers: {
-            "X-Crew-Room-Key": credential.roomKey,
-            "X-Crew-Player-Key": credential.playerKey,
+            "X-Crew-Player-Name": credential.playerName,
           },
           cache: "no-store",
         });
@@ -59,7 +59,7 @@ export function useRoomProjection(roomName: string, credential: StoredCredential
           if ((body as ApiErrorBody).error?.code === "LEVEL_RESTART_REQUIRED") {
             terminal.current = true;
             setConnection("restart-required");
-            setMessage(apiErrorMessage(body as ApiErrorBody, "This level needs to be restarted."));
+            setMessage(apiErrorMessage(body as ApiErrorBody, "This room needs to be returned to preflight."));
           } else if (response.status === 401 || response.status === 403) {
             terminal.current = true;
             setConnection("unauthorized");
@@ -153,8 +153,7 @@ export function useRoomProjection(roomName: string, credential: StoredCredential
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-Crew-Room-Key": credential.roomKey,
-            "X-Crew-Player-Key": credential.playerKey,
+            "X-Crew-Player-Name": credential.playerName,
           },
           body: JSON.stringify(command),
         });

@@ -2,7 +2,7 @@
 
 Crew is a server-authoritative web companion for **The Crew: The Quest for
 Planet Nine** and **The Crew: Mission Deep Sea**. Players join with separate
-six-character room and player keys; a small password-protected admin interface
+room and player display names; a small password-protected admin interface
 manages rooms, rosters, missions, and resets.
 
 The application is a single Next.js service backed by a private Supabase
@@ -59,6 +59,21 @@ Open [http://localhost:3000](http://localhost:3000) to join a room and
 The player room requires a browser viewport of at least 1024 × 640; the join
 and admin pages remain available on smaller screens.
 
+### Multiplayer UX testing
+
+In local development, open one room in several tabs with a different `player`
+query parameter in each tab:
+
+```text
+http://localhost:3000/rooms/my-room?player=Ada
+http://localhost:3000/rooms/my-room?player=Grace
+http://localhost:3000/rooms/my-room?player=Katherine
+```
+
+Each tab impersonates that room player without changing the browser's saved
+login, including after a reload. Query-parameter impersonation is disabled in
+production builds.
+
 ## Verification
 
 ```bash
@@ -101,4 +116,4 @@ environment file and refuses application, Supabase, Firebase, and Doppler
 credentials. Never pass `.env.local` to it.
 
 See [PLAN.md](./PLAN.md) for the accepted rebuild scope and explicit
-non-goals.
+exclusions.

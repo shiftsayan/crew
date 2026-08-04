@@ -1,15 +1,13 @@
 import type canvasConfetti from "canvas-confetti";
 
-export const CELEBRATION_COLORS = [
-  "#5146d9",
-  "#f45c93",
-  "#3d9df2",
-  "#46b98c",
-  "#f6c94c",
-  "#ffffff",
-] as const;
+import {
+  MISSION_COMPLETE_COLORS,
+  MISSION_COMPLETE_SHAPES,
+  playMissionCompleteDecoration,
+} from "./mission-complete-decoration";
 
-export const CELEBRATION_SHAPES = ["circle", "square", "star"] as const;
+export const CELEBRATION_COLORS = MISSION_COMPLETE_COLORS;
+export const CELEBRATION_SHAPES = MISSION_COMPLETE_SHAPES;
 
 type Confetti = typeof canvasConfetti;
 
@@ -73,28 +71,7 @@ function fire(record: CelebrationRecord): void {
   record.fired = true;
   rememberCelebration(record.storage, record.storageKey);
 
-  const sharedOptions = {
-    particleCount: 60,
-    spread: 70,
-    startVelocity: 42,
-    gravity: 0.95,
-    ticks: 170,
-    colors: [...CELEBRATION_COLORS],
-    shapes: [...CELEBRATION_SHAPES],
-    disableForReducedMotion: true,
-    zIndex: 1000,
-  };
-
-  record.confetti({
-    ...sharedOptions,
-    angle: 60,
-    origin: { x: 0, y: 0.68 },
-  });
-  record.confetti({
-    ...sharedOptions,
-    angle: 120,
-    origin: { x: 1, y: 0.68 },
-  });
+  playMissionCompleteDecoration(record.confetti);
 }
 
 function createRecord(

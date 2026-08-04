@@ -2,12 +2,16 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { requireAdmin } from "@/server/admin-auth";
-import { UpdateRoomSchema } from "@/server/contracts";
+import {
+  SaveAdminRoomSettingsSchema,
+  UpdateRoomSchema,
+} from "@/server/contracts";
 import { errorResponse } from "@/server/errors";
 import { readJson } from "@/server/request";
 import {
   deleteAdminRoom,
   getAdminRoom,
+  saveAdminRoomSettings,
   updateAdminRoom,
 } from "@/server/rooms";
 
@@ -38,6 +42,22 @@ export async function PATCH(
     const roomId = await parseRoomId(context);
     const input = UpdateRoomSchema.parse(await readJson(request));
     return NextResponse.json({ room: await updateAdminRoom(roomId, input) });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  context: RouteContext,
+): Promise<NextResponse> {
+  try {
+    requireAdmin(request);
+    const roomId = await parseRoomId(context);
+    const input = SaveAdminRoomSettingsSchema.parse(await readJson(request));
+    return NextResponse.json({
+      room: await saveAdminRoomSettings(roomId, input),
+    });
   } catch (error) {
     return errorResponse(error);
   }

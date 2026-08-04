@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const CURRENT_STATE_VERSION = 1 as const;
+export const CURRENT_STATE_VERSION = 2 as const;
 
 export const EditionKeySchema = z.enum(["planet-nine", "deep-sea"]);
 export type EditionKey = z.infer<typeof EditionKeySchema>;
@@ -37,8 +37,9 @@ export const MissionKeySchema = z.string().regex(/^(?:planet-nine|deep-sea):\d+$
 export type MissionKey = z.infer<typeof MissionKeySchema>;
 
 export const GamePhaseSchema = z.enum([
-  "setup",
+  "preflight",
   "assigning-tasks",
+  "ready-to-start-trick",
   "between-tricks",
   "playing-trick",
   "adjudicating",
@@ -134,13 +135,23 @@ export const GameStateSchema = z.object({
 });
 export type GameState = z.infer<typeof GameStateSchema>;
 
-export const PlayerCommandSchema = z.discriminatedUnion("type", [
+const EnginePlayerCommandSchemas = [
   z.object({
     type: z.literal("claim-task"),
     taskId: z.string().min(1),
   }),
   z.object({
+    type: z.literal("release-task"),
+    taskId: z.string().min(1),
+  }),
+  z.object({
     type: z.literal("pass-task"),
+  }),
+  z.object({
+    type: z.literal("start-trick"),
+  }),
+  z.object({
+    type: z.literal("begin-trick"),
   }),
   z.object({
     type: z.literal("communicate"),
@@ -160,12 +171,26 @@ export const PlayerCommandSchema = z.discriminatedUnion("type", [
     type: z.literal("set-mission-outcome"),
     outcome: z.enum(["success", "failure"]),
   }),
+] as const;
+
+export const EnginePlayerCommandSchema = z.discriminatedUnion(
+  "type",
+  EnginePlayerCommandSchemas,
+);
+export type EnginePlayerCommand = z.infer<typeof EnginePlayerCommandSchema>;
+
+export const PlayerCommandSchema = z.discriminatedUnion("type", [
+  ...EnginePlayerCommandSchemas,
+  z.object({
+    type: z.literal("start-mission"),
+  }),
 ]);
 export type PlayerCommand = z.infer<typeof PlayerCommandSchema>;
 
 export const PublicPlayerSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
+  tags: z.array(z.string()),
   seat: z.number().int().min(1).max(5),
   cardCount: z.number().int().nonnegative(),
   tricksWon: z.number().int().nonnegative(),
@@ -207,6 +232,7 @@ export const ActorProjectionSchema = z.object({
   self: z.object({
     id: z.string().min(1),
     displayName: z.string().min(1),
+    tags: z.array(z.string()),
     seat: z.number().int().min(1).max(5),
     hand: z.array(CardSchema),
     captured: z.array(CardSchema),
@@ -218,7 +244,10 @@ export const ActorProjectionSchema = z.object({
   currentTrick: TrickSchema.nullable(),
   lastTrick: TrickSchema.nullable(),
   legalActions: z.object({
+    canStartMission: z.boolean(),
+    canStartTrick: z.boolean(),
     claimableTaskIds: z.array(z.string()),
+    releasableTaskIds: z.array(z.string()),
     canPassTask: z.boolean(),
     playableCardIds: z.array(CardIdSchema),
     communicationOptions: z.array(CommunicationOptionSchema),
@@ -231,6 +260,7 @@ export type ActorProjection = z.infer<typeof ActorProjectionSchema>;
 export type ProjectionRosterPlayer = {
   id: string;
   displayName: string;
+  tags: string[];
   seat: number;
 };
 
@@ -242,12 +272,13 @@ export type ProjectionContext = {
 
 export const EngineErrorCodeSchema = z.enum([
   "INVALID_STATE",
-  "INVALID_SETUP",
+  "INVALID_PREFLIGHT",
   "UNKNOWN_PLAYER",
   "INVALID_PHASE",
   "NOT_YOUR_TURN",
   "UNKNOWN_TASK",
   "TASK_ALREADY_CLAIMED",
+  "TASK_NOT_OWNED",
   "PASS_NOT_ALLOWED",
   "INVALID_CARD",
   "MUST_FOLLOW_SUIT",

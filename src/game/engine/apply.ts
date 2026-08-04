@@ -1,9 +1,9 @@
 import {
   GameStateSchema,
-  PlayerCommandSchema,
+  EnginePlayerCommandSchema,
   type CardId,
+  type EnginePlayerCommand,
   type GameState,
-  type PlayerCommand,
   type TransitionResult,
 } from "../contracts";
 import { getMission } from "../config";
@@ -15,25 +15,6 @@ import {
   nextPlayerId,
 } from "./rules";
 
-function finishFromTaskOutcomes(state: GameState): boolean {
-  if (state.tasks.some((task) => task.outcome === "failure")) {
-    state.phase = "finished";
-    state.result = "lost";
-    state.currentPlayerId = null;
-    return true;
-  }
-  if (
-    state.tasks.length > 0 &&
-    state.tasks.every((task) => task.outcome === "success")
-  ) {
-    state.phase = "finished";
-    state.result = "won";
-    state.currentPlayerId = null;
-    return true;
-  }
-  return false;
-}
-
 function claimTask(
   state: GameState,
   actorPlayerId: string,
@@ -41,9 +22,6 @@ function claimTask(
 ): TransitionResult {
   if (state.phase !== "assigning-tasks") {
     return failure("INVALID_PHASE", "Tasks can only be claimed during assignment.");
-  }
-  if (state.currentPlayerId !== actorPlayerId) {
-    return failure("NOT_YOUR_TURN", "It is not your turn to claim a task.");
   }
   const task = state.tasks.find((candidate) => candidate.id === taskId);
   if (!task) {
@@ -57,48 +35,93 @@ function claimTask(
   state.assignmentTurns += 1;
 
   if (state.tasks.every((candidate) => candidate.ownerPlayerId !== null)) {
-    state.phase = "between-tricks";
-    state.currentPlayerId = state.captainPlayerId;
+    state.phase = "ready-to-start-trick";
+    state.currentPlayerId = null;
   } else {
-    state.currentPlayerId = nextPlayerId(state.seatOrder, actorPlayerId);
+    state.currentPlayerId = state.captainPlayerId;
   }
   return success(state);
 }
 
-function passTask(
+function releaseTask(
   state: GameState,
   actorPlayerId: string,
+  taskId: string,
 ): TransitionResult {
+  if (
+    state.phase !== "assigning-tasks" &&
+    state.phase !== "ready-to-start-trick"
+  ) {
+    return failure(
+      "INVALID_PHASE",
+      "Tasks can only be deselected during task selection.",
+    );
+  }
+  const task = state.tasks.find((candidate) => candidate.id === taskId);
+  if (!task) {
+    return failure("UNKNOWN_TASK", "That task does not exist in this attempt.");
+  }
+  if (task.ownerPlayerId !== actorPlayerId) {
+    return failure("TASK_NOT_OWNED", "You can only deselect your own task.");
+  }
+  if (state.assignmentTurns < 1) {
+    return failure("INVALID_STATE", "The task assignment count is invalid.");
+  }
+
+  task.ownerPlayerId = null;
+  state.assignmentTurns -= 1;
+  state.phase = "assigning-tasks";
+  state.currentPlayerId = state.captainPlayerId;
+  return success(state);
+}
+
+function passTask(state: GameState): TransitionResult {
   if (state.phase !== "assigning-tasks") {
     return failure("INVALID_PHASE", "Tasks can only be passed during assignment.");
   }
+  return failure(
+    "PASS_NOT_ALLOWED",
+    "Passing is not used during open task assignment.",
+  );
+}
+
+function startTrick(state: GameState): TransitionResult {
+  if (state.phase !== "ready-to-start-trick") {
+    return failure(
+      "INVALID_PHASE",
+      "The first trick can only start after task assignment.",
+    );
+  }
+
+  state.phase = "between-tricks";
+  state.currentPlayerId = state.captainPlayerId;
+  return success(state);
+}
+
+function beginTrick(
+  state: GameState,
+  actorPlayerId: string,
+): TransitionResult {
+  if (state.phase !== "between-tricks") {
+    return failure(
+      "INVALID_PHASE",
+      "A trick can only begin during the between-tricks phase.",
+    );
+  }
   if (state.currentPlayerId !== actorPlayerId) {
-    return failure("NOT_YOUR_TURN", "It is not your turn to pass.");
+    return failure("NOT_YOUR_TURN", "Only the next trick leader can begin it.");
   }
-  if (state.editionKey !== "deep-sea" || state.tasks.length >= state.seatOrder.length) {
-    return failure(
-      "PASS_NOT_ALLOWED",
-      "Passing is only allowed when there are fewer Deep Sea tasks than players.",
-    );
+  if (state.currentTrick) {
+    return failure("INVALID_STATE", "A trick is already in progress.");
   }
 
-  const unclaimedCount = state.tasks.filter(
-    (task) => task.ownerPlayerId === null,
-  ).length;
-  const remainingTurnsAfterPass =
-    state.seatOrder.length - (state.assignmentTurns + 1);
-  if (
-    state.assignmentTurns >= state.seatOrder.length ||
-    unclaimedCount > remainingTurnsAfterPass
-  ) {
-    return failure(
-      "PASS_NOT_ALLOWED",
-      "A task must be claimed now so every task is assigned this round.",
-    );
-  }
-
-  state.assignmentTurns += 1;
-  state.currentPlayerId = nextPlayerId(state.seatOrder, actorPlayerId);
+  state.currentTrick = {
+    number: state.trickNumber + 1,
+    leaderPlayerId: actorPlayerId,
+    plays: [],
+    winnerPlayerId: null,
+  };
+  state.phase = "playing-trick";
   return success(state);
 }
 
@@ -193,10 +216,6 @@ function playCard(
   state.currentTrick = null;
   state.currentPlayerId = winnerPlayerId;
 
-  if (finishFromTaskOutcomes(state)) {
-    return success(state);
-  }
-
   const canCompleteAnotherTrick = state.seatOrder.every(
     (playerId) => state.players[playerId].hand.length > 0,
   );
@@ -230,24 +249,37 @@ function setTaskOutcome(
   }
 
   task.outcome = outcome;
-  finishFromTaskOutcomes(state);
   return success(state);
 }
 
 function setMissionOutcome(
   state: GameState,
+  actorPlayerId: string,
   outcome: "success" | "failure",
 ): TransitionResult {
   const mission = getMission(state.editionKey, state.missionKey);
-  if (
-    !mission.allowsManualMissionOutcome ||
-    (state.phase !== "between-tricks" &&
-      state.phase !== "playing-trick" &&
-      state.phase !== "adjudicating")
-  ) {
+  if (state.captainPlayerId !== actorPlayerId) {
     return failure(
       "OUTCOME_NOT_ALLOWED",
-      "This mission is resolved through its assigned tasks.",
+      "Only the commander can record the mission result.",
+    );
+  }
+  if (state.phase !== "between-tricks" && state.phase !== "adjudicating") {
+    return failure(
+      "OUTCOME_NOT_ALLOWED",
+      "The mission result can only be recorded between tricks.",
+    );
+  }
+
+  const allTaskStatusesSet =
+    state.tasks.length > 0 &&
+    state.tasks.every((task) => task.outcome !== "pending");
+  const tasklessManualMission =
+    state.tasks.length === 0 && mission.allowsManualMissionOutcome;
+  if (!allTaskStatusesSet && !tasklessManualMission) {
+    return failure(
+      "OUTCOME_NOT_ALLOWED",
+      "Set every task status before recording the mission result.",
     );
   }
   state.phase = "finished";
@@ -259,13 +291,13 @@ function setMissionOutcome(
 export function applyPlayerCommand(
   storedState: GameState,
   actorPlayerId: string,
-  rawCommand: PlayerCommand,
+  rawCommand: EnginePlayerCommand,
 ): TransitionResult {
   const stateResult = GameStateSchema.safeParse(storedState);
   if (!stateResult.success) {
     return failure("INVALID_STATE", "The stored game state is invalid.");
   }
-  const commandResult = PlayerCommandSchema.safeParse(rawCommand);
+  const commandResult = EnginePlayerCommandSchema.safeParse(rawCommand);
   if (!commandResult.success) {
     return failure("INVALID_STATE", "The player command is invalid.");
   }
@@ -279,8 +311,14 @@ export function applyPlayerCommand(
   switch (command.type) {
     case "claim-task":
       return claimTask(state, actorPlayerId, command.taskId);
+    case "release-task":
+      return releaseTask(state, actorPlayerId, command.taskId);
     case "pass-task":
-      return passTask(state, actorPlayerId);
+      return passTask(state);
+    case "start-trick":
+      return startTrick(state);
+    case "begin-trick":
+      return beginTrick(state, actorPlayerId);
     case "communicate":
       return communicate(
         state,
@@ -293,6 +331,6 @@ export function applyPlayerCommand(
     case "set-task-outcome":
       return setTaskOutcome(state, command.taskId, command.outcome);
     case "set-mission-outcome":
-      return setMissionOutcome(state, command.outcome);
+      return setMissionOutcome(state, actorPlayerId, command.outcome);
   }
 }

@@ -8,8 +8,7 @@ export function credentialStorageKey(roomName: string) {
 
 export type StoredCredential = {
   roomName: string;
-  roomKey: string;
-  playerKey: string;
+  playerName: string;
 };
 
 export function readCredential(roomName: string): StoredCredential | null {
@@ -22,15 +21,13 @@ export function readCredential(roomName: string): StoredCredential | null {
     const value = JSON.parse(raw) as Partial<StoredCredential>;
     if (
       typeof value.roomName !== "string" ||
-      typeof value.roomKey !== "string" ||
-      typeof value.playerKey !== "string"
+      typeof value.playerName !== "string"
     ) {
       return null;
     }
     return {
       roomName: value.roomName,
-      roomKey: value.roomKey,
-      playerKey: value.playerKey,
+      playerName: value.playerName,
     };
   } catch {
     return null;

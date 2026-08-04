@@ -11,16 +11,16 @@ import {
   MISSIONS,
   NON_TRUMP_CARDS,
   applyPlayerCommand,
-  createSetupState,
+  createPreflightState,
   getMission,
   getNextMission,
   projectForPlayer,
   startAttempt,
   type ActorProjection,
   type EditionKey,
+  type EnginePlayerCommand,
   type GameState,
   type MissionKey,
-  type PlayerCommand,
   type ProjectionContext,
 } from "@/game";
 
@@ -28,7 +28,12 @@ import { AppError } from "@/server/errors";
 import type { AdminEditionOption } from "@/server/contracts";
 
 export { CURRENT_STATE_VERSION, GameStateSchema };
-export type { ActorProjection, GameState, PlayerCommand, ProjectionContext };
+export type {
+  ActorProjection,
+  EnginePlayerCommand,
+  GameState,
+  ProjectionContext,
+};
 
 export function adminEditionOptions(): AdminEditionOption[] {
   return EDITIONS.map((edition) => ({
@@ -67,13 +72,13 @@ export function assertMission(
   }
 }
 
-export function makeSetupState(
+export function makePreflightState(
   editionKey: string,
   missionKey: string,
   attemptNumber = 1,
 ): GameState {
   const mission = assertMission(editionKey, missionKey);
-  return createSetupState({
+  return createPreflightState({
     ...mission,
     attemptNumber,
   });
@@ -96,17 +101,17 @@ export function nextMissionFor(
 }
 
 export function beginAttempt(
-  setupState: GameState,
+  preflightState: GameState,
   playerIdsInSeatOrder: string[],
 ): GameState {
   const deckOrder = shuffled(CARD_DECK.map((card) => card.id));
   const taskCandidates =
-    setupState.editionKey === "deep-sea"
+    preflightState.editionKey === "deep-sea"
       ? DEEP_SEA_TASKS.map((task) => task.id)
       : NON_TRUMP_CARDS.map((card) => card.id);
   const taskOrder = shuffled(taskCandidates);
 
-  const result = startAttempt(setupState, {
+  const result = startAttempt(preflightState, {
     playerIds: playerIdsInSeatOrder,
     deckOrder,
     taskOrder,
@@ -122,7 +127,7 @@ export function beginAttempt(
 export function runPlayerCommand(
   state: GameState,
   actorPlayerId: string,
-  command: PlayerCommand,
+  command: EnginePlayerCommand,
 ): GameState {
   const result = applyPlayerCommand(state, actorPlayerId, command);
   if (!result.ok) {

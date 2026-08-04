@@ -6,14 +6,14 @@ import {
   passwordMatches,
 } from "@/server/admin-auth";
 import { clearServerEnvironmentCacheForTests } from "@/server/env";
+import { createTestDatabaseUrl } from "@/test/database-url";
 
 const originalEnvironment = { ...process.env };
 
 describe("admin authentication", () => {
   beforeEach(() => {
     Object.assign(process.env, {
-      DATABASE_URL:
-        "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      DATABASE_URL: createTestDatabaseUrl(),
       ADMIN_PASSWORD: "correct horse battery staple",
       ADMIN_SESSION_SECRET:
         "test-secret-with-at-least-thirty-two-characters",

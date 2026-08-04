@@ -1,9 +1,10 @@
 import { z } from "zod";
 
+import { PLAYER_TAGS, type PlayerTag } from "@/game/player-tags";
 import {
-  PLAYER_KEY_PATTERN,
-  ROOM_KEY_PATTERN,
-} from "@/server/player-keys";
+  PLAYER_NAME_PATTERN,
+  ROOM_NAME_PATTERN,
+} from "@/lib/identifiers";
 
 export const RoomNameSchema = z
   .string()
@@ -11,12 +12,24 @@ export const RoomNameSchema = z
   .min(2)
   .max(32)
   .regex(
-    /^[A-Za-z0-9 _-]+$/,
-    "Use only letters, numbers, spaces, underscores, and hyphens.",
-  )
-  .transform((value) => value.replace(/\s+/g, " "));
+    ROOM_NAME_PATTERN,
+    "Use only letters, numbers, underscores, and hyphens.",
+  );
 
-export const DisplayNameSchema = z.string().trim().min(1).max(32);
+export const DisplayNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(32)
+  .regex(
+    PLAYER_NAME_PATTERN,
+    "Use only letters, numbers, underscores, and hyphens.",
+  );
+export const PlayerTagSchema = z.enum(PLAYER_TAGS);
+export const PlayerTagsSchema = z
+  .array(PlayerTagSchema)
+  .transform((tags) => [...new Set(tags)])
+  .pipe(z.array(PlayerTagSchema).max(PLAYER_TAGS.length));
 export const EditionKeySchema = z.enum(["planet-nine", "deep-sea"]);
 export const MissionKeySchema = z.string().regex(/^[A-Za-z0-9_:-]{1,32}$/);
 
@@ -45,6 +58,7 @@ export const UpdateRoomSchema = z
 
 export const AddPlayerSchema = z.strictObject({
   displayName: DisplayNameSchema,
+  tags: PlayerTagsSchema.optional().default([]),
   seat: z.number().int().min(1).max(5).optional(),
   confirmReset: z.boolean().optional().default(false),
 });
@@ -52,12 +66,16 @@ export const AddPlayerSchema = z.strictObject({
 export const UpdatePlayerSchema = z
   .strictObject({
     displayName: DisplayNameSchema.optional(),
+    tags: PlayerTagsSchema.optional(),
     seat: z.number().int().min(1).max(5).optional(),
     confirmReset: z.boolean().optional().default(false),
   })
   .refine(
-    ({ displayName, seat }) => displayName !== undefined || seat !== undefined,
-    "Provide a name or seat to update.",
+    ({ displayName, tags, seat }) =>
+      displayName !== undefined ||
+      tags !== undefined ||
+      seat !== undefined,
+    "Provide a name, tags, or seat to update.",
   );
 
 export const ConfirmResetSchema = z.strictObject({
@@ -65,20 +83,68 @@ export const ConfirmResetSchema = z.strictObject({
 });
 
 export const AdminRoomActionSchema = z.strictObject({
-  type: z.enum(["start", "restart", "advance"]),
+  type: z.enum(["return-to-preflight", "advance", "shuffle"]),
+  confirmReset: z.boolean().optional().default(false),
 });
 
+const AdminPlayerSettingsSchema = z.strictObject({
+  id: z.string().uuid().optional(),
+  displayName: z.union([DisplayNameSchema, z.literal("")]),
+  tags: PlayerTagsSchema.optional().default([]),
+  seat: z.number().int().min(1).max(5),
+});
+
+export const SaveAdminRoomSettingsSchema = z
+  .strictObject({
+    editionKey: EditionKeySchema,
+    missionKey: MissionKeySchema,
+    attemptNumber: z.number().int().positive().optional(),
+    players: z.array(AdminPlayerSettingsSchema).length(5),
+    confirmReset: z.boolean().optional().default(false),
+  })
+  .superRefine(({ players }, context) => {
+    const seats = new Set<number>();
+    const ids = new Set<string>();
+    const names = new Set<string>();
+
+    for (const [index, player] of players.entries()) {
+      if (seats.has(player.seat)) {
+        context.addIssue({
+          code: "custom",
+          message: "Each player slot must use a unique seat.",
+          path: ["players", index, "seat"],
+        });
+      }
+      seats.add(player.seat);
+
+      if (player.id) {
+        if (ids.has(player.id)) {
+          context.addIssue({
+            code: "custom",
+            message: "Each player can appear only once.",
+            path: ["players", index, "id"],
+          });
+        }
+        ids.add(player.id);
+      }
+
+      if (player.displayName) {
+        const normalizedName = player.displayName.toLocaleLowerCase("en-US");
+        if (names.has(normalizedName)) {
+          context.addIssue({
+            code: "custom",
+            message: "Player names must be unique in this room.",
+            path: ["players", index, "displayName"],
+          });
+        }
+        names.add(normalizedName);
+      }
+    }
+  });
+
 export const PlayerLoginSchema = z.strictObject({
-  roomKey: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(ROOM_KEY_PATTERN, "Room keys contain six unambiguous characters."),
-  playerKey: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(PLAYER_KEY_PATTERN, "Player keys contain six unambiguous characters."),
+  roomName: RoomNameSchema,
+  playerName: DisplayNameSchema,
 });
 
 export type CreateRoomInput = z.infer<typeof CreateRoomSchema>;
@@ -86,11 +152,13 @@ export type UpdateRoomInput = z.infer<typeof UpdateRoomSchema>;
 export type AddPlayerInput = z.infer<typeof AddPlayerSchema>;
 export type UpdatePlayerInput = z.infer<typeof UpdatePlayerSchema>;
 export type AdminRoomAction = z.infer<typeof AdminRoomActionSchema>["type"];
+export type SaveAdminRoomSettingsInput = z.infer<
+  typeof SaveAdminRoomSettingsSchema
+>;
 
 export interface RoomRow {
   id: string;
   name: string;
-  roomKey: string;
   editionKey: string;
   missionKey: string;
   stateVersion: number;
@@ -103,7 +171,7 @@ export interface PlayerRow {
   id: string;
   roomId: string;
   displayName: string;
-  playerKey: string;
+  tags: PlayerTag[];
   seat: number;
   createdAt: Date;
 }
@@ -111,7 +179,6 @@ export interface PlayerRow {
 export interface AdminRoomSummary {
   id: string;
   name: string;
-  roomKey: string;
   editionKey: string;
   missionKey: string;
   missionNumber: number;
@@ -140,7 +207,7 @@ export interface AdminRoomDetail extends AdminRoomSummary {
   players: Array<{
     id: string;
     displayName: string;
-    playerKey: string;
+    tags: PlayerTag[];
     seat: number;
     createdAt: string;
   }>;

@@ -26,6 +26,21 @@ describe("game configuration", () => {
     );
     expect(DEEP_SEA_TASKS.some((task) => task.number === 1000)).toBe(false);
     expect(DEEP_SEA_TASKS[1].title).toContain("Pink");
+    expect(
+      DEEP_SEA_TASKS.map((task) => task.presentation.visual.kind).filter(
+        (kind) => kind === "text",
+      ),
+    ).toHaveLength(45);
+    expect(
+      DEEP_SEA_TASKS.map((task) => task.presentation.visual.kind).filter(
+        (kind) => kind === "header",
+      ),
+    ).toHaveLength(34);
+    expect(
+      DEEP_SEA_TASKS.map((task) => task.presentation.visual.kind).filter(
+        (kind) => kind === "cards",
+      ),
+    ).toHaveLength(17);
   });
 
   it("exposes exactly the supported sparse mission lists", () => {

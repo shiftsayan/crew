@@ -6,17 +6,17 @@ import {
 } from "../contracts";
 import { getMission } from "../config";
 
-export type CreateSetupStateInput = {
+export type CreatePreflightStateInput = {
   editionKey: EditionKey;
   missionKey: MissionKey;
   attemptNumber?: number;
 };
 
-export function createSetupState({
+export function createPreflightState({
   editionKey,
   missionKey,
   attemptNumber = 1,
-}: CreateSetupStateInput): GameState {
+}: CreatePreflightStateInput): GameState {
   getMission(editionKey, missionKey);
   if (!Number.isInteger(attemptNumber) || attemptNumber < 1) {
     throw new Error("Attempt number must be a positive integer.");
@@ -26,7 +26,7 @@ export function createSetupState({
     editionKey,
     missionKey,
     attemptNumber,
-    phase: "setup",
+    phase: "preflight",
     result: null,
     seatOrder: [],
     captainPlayerId: null,

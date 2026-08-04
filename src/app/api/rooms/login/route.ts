@@ -12,7 +12,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const input = PlayerLoginSchema.parse(await readJson(request));
     return NextResponse.json(
-      await loginPlayer(input.roomKey, input.playerKey),
+      await loginPlayer(input.roomName, input.playerName),
     );
   } catch (error) {
     return errorResponse(error);

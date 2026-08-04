@@ -10,6 +10,7 @@ import {
   CardSchema,
   EditionKeySchema,
   MissionKeySchema,
+  SuitSchema,
   TaskOrderSchema,
 } from "../contracts";
 import { CARD_DECK } from "./cards";
@@ -287,6 +288,28 @@ const DifficultyMapSchema = z.strictObject({
   5: z.number().int().positive(),
 });
 
+const DeepSeaTaskVisualItemSchema = z.strictObject({
+  value: z.union([z.number().int(), z.string().min(1)]).optional(),
+  suit: SuitSchema.optional(),
+  text: z.string().min(1).optional(),
+});
+
+const DeepSeaTaskVisualSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("text"),
+    text: z.string().min(1),
+  }),
+  z.strictObject({
+    kind: z.literal("header"),
+    header: z.string().min(1),
+    items: z.array(DeepSeaTaskVisualItemSchema).min(1),
+  }),
+  z.strictObject({
+    kind: z.literal("cards"),
+    cards: z.array(DeepSeaTaskVisualItemSchema).min(1).max(4),
+  }),
+]);
+
 const DeepSeaTaskDefinitionSchema = z.strictObject({
   id: z.string().regex(/^deep-sea-task-(?:[1-9]|[1-8]\d|9[0-6])$/),
   number: z.number().int().min(1).max(96),
@@ -295,6 +318,7 @@ const DeepSeaTaskDefinitionSchema = z.strictObject({
   presentation: z.strictObject({
     summary: z.string().trim().min(1),
     footnote: z.string().trim().min(1).optional(),
+    visual: DeepSeaTaskVisualSchema,
   }),
 });
 

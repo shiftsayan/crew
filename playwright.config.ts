@@ -28,9 +28,11 @@ export default defineConfig({
       ADMIN_SESSION_SECRET:
         process.env.ADMIN_SESSION_SECRET ??
         "crew-e2e-session-secret-that-is-at-least-32-characters",
-      DATABASE_URL:
-        process.env.DATABASE_URL ??
-        "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      CREW_NEXT_DIST_DIR:
+        process.env.CREW_NEXT_DIST_DIR ?? ".next-playwright",
+      ...(process.env.DATABASE_URL
+        ? { DATABASE_URL: process.env.DATABASE_URL }
+        : {}),
     },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

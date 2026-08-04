@@ -56,6 +56,10 @@ jobs:
       - name: Start local Supabase
         run: npx supabase start --exclude studio
 
+      - name: Export local database URL
+        shell: bash
+        run: npx supabase status -o env | sed -n 's/^DB_URL=/DATABASE_URL=/p' >> "$GITHUB_ENV"
+
       - name: Reapply database migrations
         run: npx supabase db reset --local --no-seed
 
@@ -65,7 +69,6 @@ jobs:
       - name: Test database integration
         env:
           CREW_RUN_DB_TESTS: "1"
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: npm test -- src/server/database.integration.test.ts
 
       - name: Stop local Supabase
@@ -95,6 +98,10 @@ jobs:
       - name: Start local Supabase
         run: npx supabase start --exclude studio
 
+      - name: Export local database URL
+        shell: bash
+        run: npx supabase status -o env | sed -n 's/^DB_URL=/DATABASE_URL=/p' >> "$GITHUB_ENV"
+
       - name: Reapply database migrations
         run: npx supabase db reset --local --no-seed
 
@@ -103,7 +110,6 @@ jobs:
           ADMIN_PASSWORD: crew-e2e-admin-password
           ADMIN_SESSION_SECRET: crew-e2e-session-secret-that-is-at-least-32-characters
           CREW_RUN_DB_E2E: "1"
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: npm run test:e2e
 
       - name: Stop local Supabase

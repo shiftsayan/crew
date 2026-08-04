@@ -1,33 +1,63 @@
 "use client";
 
-import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
-  ArrowLeft,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+} from "react";
+import { toast } from "sonner";
+import {
   Check,
+  ChevronLeft,
   ChevronRight,
-  Clipboard,
+  Copy,
+  LogIn,
   LogOut,
   Plus,
   RefreshCw,
+  Save,
+  Shuffle,
   Trash2,
-  X,
 } from "lucide-react";
 
-import { CrewMark } from "@/components/ui/CrewMark";
-import { Notice } from "@/components/ui/Notice";
+import { CrewEdition } from "@/components/ui/CrewEdition";
+import { CrewLogo } from "@/components/ui/CrewLogo";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from "@/components/ui/combobox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Passport } from "@/components/ui/Passport";
+import { PLAYER_TAGS, type PlayerTag } from "@/game/player-tags";
 import {
   Select,
   SelectContent,
@@ -35,6 +65,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 import {
@@ -49,12 +93,67 @@ import {
 
 type AuthState = "checking" | "locked" | "authenticated";
 
+function AdminTopbar({ room }: { room: AdminRoomDetail | null }) {
+  const [copiedRoomId, setCopiedRoomId] = useState<string | null>(null);
+
+  if (!room) return null;
+
+  const roomId = room.id;
+  const roomName = room.name;
+  const copied = copiedRoomId === roomId;
+
+  async function copyRoomName() {
+    try {
+      await navigator.clipboard.writeText(roomName);
+      setCopiedRoomId(roomId);
+      window.setTimeout(() => {
+        setCopiedRoomId((current) => (current === roomId ? null : current));
+      }, 1_600);
+    } catch {
+      setCopiedRoomId(null);
+    }
+  }
+
+  return (
+    <header className="shrink-0 pb-4">
+      <div className="mx-auto w-full max-w-6xl px-1">
+        <div className="flex min-w-0 items-center gap-1">
+          <h1
+            className="flex min-w-0 items-baseline gap-2 text-[1.3rem] leading-none font-normal tracking-tight"
+            data-slot="admin-room-title"
+          >
+            <span className="select-none text-muted-foreground">Rooms</span>
+            <span className="select-none text-muted-foreground" aria-hidden="true">
+              /
+            </span>
+            <span
+              className="min-w-0 select-text truncate font-mono"
+              data-slot="admin-room-title-name"
+            >
+              {room.name}
+            </span>
+          </h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            type="button"
+            aria-label={copied ? `${room.name} copied` : `Copy ${room.name}`}
+            title={copied ? "Room name copied" : "Copy room name"}
+            onClick={() => void copyRoomName()}
+          >
+            {copied ? <Check /> : <Copy />}
+          </Button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
 export function AdminApp() {
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
   const [editions, setEditions] = useState<EditionOption[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<AdminRoomDetail | null>(null);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -96,7 +195,6 @@ export function AdminApp() {
   }, [loadRooms]);
 
   async function loadRoom(roomId: string) {
-    setBusy(true);
     setError("");
     try {
       const response = await fetch(`/api/admin/rooms/${roomId}`, { cache: "no-store" });
@@ -111,15 +209,12 @@ export function AdminApp() {
       setSelectedRoom(room);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load this room.");
-    } finally {
-      setBusy(false);
     }
   }
 
   async function adminRequest<T>(path: string, init: RequestInit) {
     setBusy(true);
     setError("");
-    setMessage("");
     try {
       const response = await fetch(path, {
         ...init,
@@ -135,7 +230,12 @@ export function AdminApp() {
       }
       return body as T;
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The admin action could not be completed.");
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "The admin action could not be completed.";
+      setError(message);
+      toast.error(message);
       return null;
     } finally {
       setBusy(false);
@@ -167,25 +267,19 @@ export function AdminApp() {
     );
     if (!created) return false;
     const room = "room" in created ? created.room : created;
-    setMessage(`${room.name} is ready for players.`);
     await refreshAfterMutation(room.id);
+    toast.success("Room created");
     return true;
   }
 
   if (authState === "checking") {
     return (
       <main
-        className="admin-artwork-bg grid min-h-dvh place-items-center p-4"
-        data-testid="admin-artwork"
+        className="grid h-dvh min-h-0 w-full place-items-center overflow-hidden"
         id="main-content"
+        aria-busy="true"
       >
-        <Card className="w-full max-w-sm border-white/40 bg-background/95 shadow-2xl">
-          <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
-            <CrewMark />
-            <Spinner label="Checking admin session" />
-            <p className="text-sm text-muted-foreground">Checking admin session…</p>
-          </CardContent>
-        </Card>
+        <Spinner className="text-white" label="Checking admin session" />
       </main>
     );
   }
@@ -204,16 +298,9 @@ export function AdminApp() {
   }
 
   return (
-    <div
-      className="admin-artwork-bg min-h-dvh p-2 sm:p-4 lg:p-6"
-      data-testid="admin-artwork"
-    >
-      <main
-        className={cn(
-          "admin-shell mx-auto grid h-[calc(100dvh-1rem)] w-full max-w-[96rem] min-w-0 grid-rows-[minmax(0,1fr)] overflow-hidden rounded-2xl border border-white/40 bg-background/95 shadow-2xl sm:h-[calc(100dvh-2rem)] md:grid-cols-[18rem_minmax(0,1fr)] lg:h-[calc(100dvh-3rem)]",
-          selectedRoom && "admin-has-room-detail",
-        )}
-        id="main-content"
+    <div className="mx-auto h-dvh min-h-0 w-full max-w-8xl overflow-hidden p-8">
+      <SidebarProvider
+        className="h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-admin-border bg-transparent text-admin-ink [--sidebar-width:18rem] [--sidebar:var(--color-admin-surface)] [--sidebar-foreground:var(--color-admin-ink)] [--sidebar-accent:var(--color-admin-accent)] [--sidebar-accent-foreground:var(--color-admin-ink)] [--sidebar-border:var(--color-admin-border)] md:flex-row"
       >
         <AdminSidebar
           rooms={rooms}
@@ -225,59 +312,35 @@ export function AdminApp() {
           onSignOut={() => void signOut()}
         />
 
-        <section
-          className="admin-detail-pane flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden bg-muted/30 p-3 sm:p-4"
-          aria-label="Room details"
+        <SidebarInset
+          className="min-h-0 min-w-0 w-auto border-t border-admin-border bg-admin-surface px-8 py-6 md:border-t-0 md:border-l"
+          id="main-content"
         >
-          {error ? (
-            <Notice tone="error" live>
-              {error}
-            </Notice>
-          ) : null}
-          {message ? (
-            <Notice tone="success" live>
-              {message}
-            </Notice>
-          ) : null}
+          <AdminTopbar room={selectedRoom} />
 
           <div
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            className="mx-auto min-h-0 w-full max-w-6xl flex-1 overflow-y-auto overscroll-contain px-1 pt-6 pb-1"
             data-testid="admin-detail-scroll"
           >
             {selectedRoom ? (
               <RoomEditor
-                key={`${selectedRoom.id}:${selectedRoom.editionKey}:${selectedRoom.missionKey}`}
+                key={`${selectedRoom.id}:${selectedRoom.updatedAt}`}
                 room={selectedRoom}
                 editions={editions}
                 disabled={busy}
-                onClose={() => setSelectedRoom(null)}
                 request={adminRequest}
-                afterMutation={async (successMessage) => {
-                  setMessage(successMessage);
+                afterMutation={async () => {
                   await refreshAfterMutation(selectedRoom.id);
                 }}
                 afterDelete={async () => {
                   setSelectedRoom(null);
-                  setMessage("Room deleted.");
                   await loadRooms();
                 }}
               />
-            ) : (
-              <Card className="h-full min-h-64 justify-center border-dashed shadow-none">
-                <CardContent className="mx-auto max-w-md text-center">
-                  <div className="mx-auto mb-4 grid size-11 place-items-center rounded-full bg-muted text-muted-foreground">
-                    <ChevronRight className="size-5" />
-                  </div>
-                  <h2 className="text-lg font-semibold">Select a room</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Choose a room to manage its roster, access keys, mission, and current attempt.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            ) : null}
           </div>
-        </section>
-      </main>
+        </SidebarInset>
+      </SidebarProvider>
     </div>
   );
 }
@@ -317,64 +380,43 @@ function AdminLogin({
 
   return (
     <main
-      className="admin-artwork-bg grid min-h-dvh place-items-center p-4 sm:p-6"
-      data-testid="admin-artwork"
+      className="grid h-dvh min-h-0 w-full place-items-center overflow-hidden p-4 md:p-6"
       id="main-content"
     >
-      <Card className="w-full max-w-md border-white/40 bg-background/95 shadow-2xl">
-        <CardHeader className="border-b">
-          <CrewMark />
-          <div className="mt-5">
-            <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-              Administration
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Room admin</h1>
-            <CardDescription className="mt-2">
-              Create rooms, manage room and player keys, and control active missions.
-            </CardDescription>
-          </div>
-        </CardHeader>
+      <Passport
+        role="region"
+        aria-label="Admin"
+        title="Hello commander"
+        subtitle="Enter the admin password."
+      >
         <form onSubmit={submit}>
-          <CardContent className="py-6">
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor={inputId}>Admin password</FieldLabel>
-                <Input
-                  id={inputId}
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  autoFocus
-                />
-              </Field>
-              {error ? (
-                <Notice tone="error" live>
-                  {error}
-                </Notice>
-              ) : null}
-              <Button className="self-end" disabled={busy} type="submit">
-                {busy ? (
-                  <>
-                    <Spinner label="Signing in" /> Signing in…
-                  </>
-                ) : (
-                  "Enter room admin"
-                )}
-              </Button>
-            </FieldGroup>
-          </CardContent>
-          <CardFooter className="justify-end border-t">
-            <Button asChild className="w-44" variant="ghost">
-              <Link href="/">
-                <ArrowLeft />
-                Back to player join
-              </Link>
+          <FieldGroup className="gap-5">
+            <Field className="gap-2">
+              <FieldLabel htmlFor={inputId}>Admin Password</FieldLabel>
+              <Input
+                className="bg-white"
+                id={inputId}
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your password..."
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                autoFocus
+              />
+            </Field>
+            {error ? (
+              <FieldError aria-live="polite">
+                {error}
+              </FieldError>
+            ) : null}
+            <Button disabled={busy} type="submit">
+              {busy ? <Spinner label="Entering admin" /> : <LogIn />}
+              {busy ? "Entering…" : "Enter"}
             </Button>
-          </CardFooter>
+          </FieldGroup>
         </form>
-      </Card>
+      </Passport>
     </main>
   );
 }
@@ -401,42 +443,46 @@ function AdminSidebar({
   onSignOut: () => void;
 }) {
   return (
-    <aside className="admin-sidebar min-h-0 min-w-0 overflow-hidden bg-background">
-      <Card className="h-full min-h-0 gap-0 overflow-hidden rounded-none border-0 border-r py-0 shadow-none">
-        <CardHeader className="gap-4 border-b p-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              aria-label="Crew home"
-            >
-              <CrewMark />
-            </Link>
-            <div className="border-l pl-3">
-              <h1 className="text-base font-semibold">Admin</h1>
-              <p className="text-sm text-muted-foreground">
-                {rooms.length} {rooms.length === 1 ? "room" : "rooms"}
-              </p>
-            </div>
-          </div>
-          <CreateRoom editions={editions} disabled={disabled} onCreate={onCreate} />
-        </CardHeader>
+    <Sidebar
+      className="h-auto max-h-[45dvh] w-full shrink-0 bg-sidebar/70 py-6 text-foreground backdrop-blur-lg md:h-full md:max-h-none md:w-(--sidebar-width)"
+      collapsible="none"
+    >
+      <SidebarHeader className="px-4 py-0">
+        <div className="flex h-9 w-fit items-center px-2">
+          <CrewLogo text="Admin" alt="Crew administration" />
+        </div>
+      </SidebarHeader>
 
-        <RoomList
-          rooms={rooms}
-          selectedRoomId={selectedRoomId}
-          disabled={disabled}
-          onSelect={onSelect}
-        />
-
-        <CardFooter className="border-t p-3">
-          <Button variant="ghost" size="sm" type="button" onClick={onSignOut}>
+      <SidebarContent>
+        <SidebarGroup className="px-3 pt-6 pb-2">
+          <SidebarGroupLabel className="px-3 text-base">Rooms</SidebarGroupLabel>
+          <SidebarGroupContent className="pt-1">
+            <RoomList
+              rooms={rooms}
+              selectedRoomId={selectedRoomId}
+              disabled={disabled}
+              onSelect={onSelect}
+            />
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter className="px-4 py-0">
+        <div
+          className="flex items-center justify-between gap-2 px-2"
+          data-testid="admin-sidebar-actions"
+        >
+          <Button variant="secondary" type="button" onClick={onSignOut}>
             <LogOut />
             Sign out
           </Button>
-        </CardFooter>
-      </Card>
-    </aside>
+          <CreateRoom
+            editions={editions}
+            disabled={disabled}
+            onCreate={onCreate}
+          />
+        </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
 
@@ -462,98 +508,110 @@ function CreateRoom({
     ? missionKey
     : (missions[0]?.key ?? "");
 
-  if (!open) {
-    return (
-      <Button type="button" onClick={() => setOpen(true)}>
-        <Plus />
-        New room
-      </Button>
-    );
-  }
-
   return (
-    <form
-      aria-label="Create room"
-      className="grid w-full min-w-0 gap-3 rounded-lg border bg-muted/30 p-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void onCreate({
-          name: name.trim(),
-          editionKey,
-          missionKey: selectedMissionKey,
-        }).then((created) => {
-          if (created) {
-            setName("");
-            setOpen(false);
-          }
-        });
-      }}
-    >
-      <Field>
-        <FieldLabel htmlFor="new-room-name">Room name</FieldLabel>
-        <Input
-          id="new-room-name"
-          type="text"
-          minLength={2}
-          maxLength={32}
-          pattern="[A-Za-z0-9 _-]{2,32}"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          required
-          autoFocus
-        />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="new-room-edition">Edition</FieldLabel>
-        <Select
-          value={editionKey}
-          onValueChange={(value) => {
-            const nextEditionKey = value as EditionOption["key"];
-            const nextMissions =
-              editions.find((edition) => edition.key === nextEditionKey)?.missions ?? [];
-            setEditionKey(nextEditionKey);
-            setMissionKey(nextMissions[0]?.key ?? "");
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" disabled={disabled}>
+          <Plus />
+          New room
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create a room</DialogTitle>
+          <DialogDescription>
+            Choose the edition and starting mission. You can add players next.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          aria-label="Create room"
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onCreate({
+              name: name.trim(),
+              editionKey,
+              missionKey: selectedMissionKey,
+            }).then((created) => {
+              if (created) {
+                setName("");
+                setOpen(false);
+              }
+            });
           }}
         >
-          <SelectTrigger className="w-full" id="new-room-edition">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {editions.map((edition) => (
-              <SelectItem key={edition.key} value={edition.key}>
-                {edition.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="new-room-mission">Mission</FieldLabel>
-        <Select
-          value={selectedMissionKey}
-          onValueChange={setMissionKey}
-        >
-          <SelectTrigger className="w-full" id="new-room-mission">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {missions.map((mission) => (
-              <SelectItem key={mission.key} value={mission.key}>
-                {mission.number} · {mission.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" disabled={disabled} type="submit">
-          Create
-        </Button>
-        <Button size="sm" variant="ghost" type="button" onClick={() => setOpen(false)}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+          <Field>
+            <FieldLabel htmlFor="new-room-name">Room name</FieldLabel>
+            <Input
+              className="font-mono"
+              id="new-room-name"
+              type="text"
+              minLength={2}
+              maxLength={32}
+              pattern="[A-Za-z0-9_-]{2,32}"
+              value={name}
+              onChange={(event) =>
+                setName(event.target.value.replace(/[^A-Za-z0-9_-]/g, ""))
+              }
+              required
+              autoFocus
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="new-room-edition">Edition</FieldLabel>
+            <Select
+              value={editionKey}
+              onValueChange={(value) => {
+                const nextEditionKey = value as EditionOption["key"];
+                const nextMissions =
+                  editions.find((edition) => edition.key === nextEditionKey)
+                    ?.missions ?? [];
+                setEditionKey(nextEditionKey);
+                setMissionKey(nextMissions[0]?.key ?? "");
+              }}
+            >
+              <SelectTrigger className="w-full" id="new-room-edition">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {editions.map((edition) => (
+                  <SelectItem key={edition.key} value={edition.key}>
+                    <CrewEdition editionKey={edition.key} />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="new-room-mission">Mission</FieldLabel>
+            <Select value={selectedMissionKey} onValueChange={setMissionKey}>
+              <SelectTrigger className="w-full" id="new-room-mission">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {missions.map((mission) => (
+                  <SelectItem key={mission.key} value={mission.key}>
+                    {mission.number} · {mission.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button disabled={disabled} type="submit">
+              Create room
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -570,74 +628,70 @@ function RoomList({
 }) {
   if (!rooms.length) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        <div className="rounded-lg border border-dashed p-4 text-center">
-          <h2 className="font-semibold">No rooms yet</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create one, then add three to five players before starting the mission.
-          </p>
-        </div>
+      <div className="rounded-lg bg-sidebar-accent/70 px-4 py-3 text-sm">
+        <p className="font-medium">No rooms yet</p>
+        <p className="mt-1 text-xs text-sidebar-foreground/80">
+          Create one, then add three to five players.
+        </p>
       </div>
     );
   }
 
   return (
-    <nav className="min-h-0 flex-1 overflow-y-auto p-2" aria-label="Room management">
-      <ul className="grid gap-1">
+    <nav aria-label="Room management">
+      <SidebarMenu>
         {rooms.map((room) => {
           const selected = selectedRoomId === room.id;
           return (
-            <li key={room.id}>
-              <button
-                className={cn(
-                  "group flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-3 text-left outline-none transition-colors hover:bg-muted focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
-                  selected && "border-border bg-muted hover:bg-muted",
-                )}
-                type="button"
+            <SidebarMenuItem key={room.id}>
+              <SidebarMenuButton
+                className="h-auto cursor-pointer items-center px-3 py-2 hover:bg-black/7 active:bg-black/7 data-[active=true]:bg-black/7 data-[active=true]:font-normal data-[active=true]:hover:bg-black/7"
                 disabled={disabled}
+                isActive={selected}
+                size="lg"
+                type="button"
                 onClick={() => onSelect(room.id)}
                 aria-label={`Manage ${room.name}`}
                 aria-current={selected ? "page" : undefined}
               >
-                <span className="min-w-0 flex-1">
-                  <strong className="block truncate text-sm font-semibold">{room.name}</strong>
-                  <span className="mt-1 block truncate text-xs text-foreground/70">
-                    {room.editionKey === "deep-sea" ? "Deep Sea" : "Planet Nine"} · Level{" "}
-                    {room.missionNumber ?? room.missionKey}
+                <div className="min-w-0 flex-1">
+                  <span
+                    className="block min-w-0 truncate font-mono text-sm font-normal"
+                    data-slot="admin-room-name"
+                  >
+                    {room.name}
                   </span>
-                  <span className="mt-1 block text-xs text-foreground/70">
-                    Updated {formatRelativeTime(room.updatedAt)}
+                  <span className="mt-1 block text-xs text-admin-muted">
+                    Last active {formatRelativeTime(room.updatedAt)}
                   </span>
-                </span>
-                <span
-                  className="grid size-10 shrink-0 place-items-center rounded-full border bg-background text-xs font-semibold"
-                  aria-label={`${room.playerCount} of 5 players`}
-                >
-                  {room.playerCount}/5
-                </span>
+                </div>
                 <ChevronRight
-                  className={cn(
-                    "size-4 shrink-0 text-muted-foreground transition-transform",
-                    selected && "translate-x-0.5 text-foreground",
-                  )}
+                  className="shrink-0 text-admin-muted"
+                  data-slot="admin-room-chevron"
                   aria-hidden="true"
                 />
-              </button>
-            </li>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           );
         })}
-      </ul>
+      </SidebarMenu>
     </nav>
   );
 }
 
 type AdminRequest = <T>(path: string, init: RequestInit) => Promise<T | null>;
 
+type AdminPlayerDraft = {
+  id?: string;
+  displayName: string;
+  tags: PlayerTag[];
+  seat: number;
+};
+
 function RoomEditor({
   room,
   editions,
   disabled,
-  onClose,
   request,
   afterMutation,
   afterDelete,
@@ -645,49 +699,44 @@ function RoomEditor({
   room: AdminRoomDetail;
   editions: EditionOption[];
   disabled: boolean;
-  onClose: () => void;
   request: AdminRequest;
-  afterMutation: (message: string) => Promise<void>;
+  afterMutation: () => Promise<void>;
   afterDelete: () => Promise<void>;
 }) {
-  const [name, setName] = useState(room.name);
   const [editionKey, setEditionKey] = useState(room.editionKey);
   const [missionKey, setMissionKey] = useState(room.missionKey);
-  const [newPlayerName, setNewPlayerName] = useState("");
+  const [attemptNumber, setAttemptNumber] = useState(
+    String(room.attemptNumber ?? 1),
+  );
+  const [playerDrafts, setPlayerDrafts] = useState<AdminPlayerDraft[]>(() =>
+    playerDraftsForRoom(room),
+  );
   const missionOptions = useMemo(
     () => editions.find((edition) => edition.key === editionKey)?.missions ?? [],
     [editionKey, editions],
   );
-  const activeAttempt = room.phase !== "setup" && room.phase !== "finished";
-  const selectedMissionKey = missionOptions.some((mission) => mission.key === missionKey)
+  const activeAttempt = room.phase !== "preflight" && room.phase !== "finished";
+  const selectedMissionKey = missionOptions.some(
+    (mission) => mission.key === missionKey,
+  )
     ? missionKey
     : (missionOptions[0]?.key ?? "");
+  const selectedMissionIndex = missionOptions.findIndex(
+    (mission) => mission.key === selectedMissionKey,
+  );
+  const filledPlayerCount = playerDrafts.filter(
+    (player) => player.displayName.trim().length > 0,
+  ).length;
+  const parsedAttemptNumber = Number(attemptNumber);
+  const attemptNumberIsValid =
+    Number.isInteger(parsedAttemptNumber) && parsedAttemptNumber >= 1;
 
-  async function patchRoom(input: Record<string, unknown>, successMessage: string) {
-    const requiresReset =
-      activeAttempt &&
-      ((typeof input.editionKey === "string" && input.editionKey !== room.editionKey) ||
-        (typeof input.missionKey === "string" && input.missionKey !== room.missionKey));
+  async function roomAction(type: "return-to-preflight" | "advance") {
     if (
-      requiresReset &&
-      !window.confirm("This change will restart the current attempt and return the room to setup. Continue?")
-    ) {
-      return;
-    }
-    const result = await request(`/api/admin/rooms/${room.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ ...input, confirmReset: requiresReset }),
-    });
-    if (result) await afterMutation(successMessage);
-  }
-
-  async function roomAction(type: "start" | "restart" | "advance") {
-    if (
-      (type === "restart" || type === "advance") &&
       !window.confirm(
-        type === "restart"
-          ? "Restart this level with a new deal and task draw?"
-          : "Advance this room to the next configured mission?",
+        type === "return-to-preflight"
+          ? "Are you sure you want to reset the room?"
+          : "Advance this room to the next configured mission and return it to preflight?",
       )
     ) {
       return;
@@ -697,82 +746,183 @@ function RoomEditor({
       body: JSON.stringify({ type }),
     });
     if (result) {
-      await afterMutation(
-        type === "start" ? "Mission started." : type === "restart" ? "Level restarted." : "Room advanced.",
+      await afterMutation();
+      toast.success(
+        type === "return-to-preflight" ? "Room returned to preflight" : "Mission advanced",
       );
     }
   }
 
-  return (
-    <Card className="min-w-0 gap-0 overflow-hidden py-0 shadow-none" aria-labelledby="room-editor-title">
-      <CardHeader className="border-b py-5">
-        <p className="text-xs font-medium tracking-[0.14em] text-muted-foreground uppercase">
-          Room details
-        </p>
-        <h2 className="text-xl font-semibold" id="room-editor-title">
-          {room.name}
-        </h2>
-        <CardDescription>
-          {room.editionKey === "deep-sea" ? "Mission Deep Sea" : "The Quest for Planet Nine"} ·
-          Mission {room.missionNumber ?? room.missionKey}
-        </CardDescription>
-        <CardAction>
-          <Button variant="ghost" size="icon" type="button" onClick={onClose}>
-            <X />
-            <span className="sr-only">Close room details</span>
-          </Button>
-        </CardAction>
-      </CardHeader>
+  function updatePlayerDraft(
+    seat: number,
+    patch: Partial<Omit<AdminPlayerDraft, "seat">>,
+  ) {
+    setPlayerDrafts((current) =>
+      current.map((player) =>
+        player.seat === seat ? { ...player, ...patch } : player,
+      ),
+    );
+  }
 
-      <CardContent className="grid gap-6 py-6">
-        <section aria-labelledby="room-mission-title">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold" id="room-mission-title">
-                Mission
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Change the room name or select the configured mission.
-              </p>
-            </div>
-            <PhaseBadge phase={room.phase} />
-          </div>
-          <RoomKeyControl
-            room={room}
-            disabled={disabled}
-            request={request}
-            afterMutation={afterMutation}
-          />
-          <form
-            className="grid gap-3 rounded-lg border bg-muted/20 p-4 md:grid-cols-2 xl:grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(13rem,1.35fr)_auto] xl:items-end"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void patchRoom(
-                { name, editionKey, missionKey: selectedMissionKey },
-                "Room settings updated.",
-              );
-            }}
+  function stepAttemptNumber(offset: -1 | 1) {
+    setAttemptNumber((current) => {
+      const parsed = Number(current);
+      if (!Number.isInteger(parsed) || parsed < 1) return "1";
+      return String(Math.max(1, parsed + offset));
+    });
+  }
+
+  function shufflePlayers() {
+    setPlayerDrafts((current) => {
+      const filled = current.filter(
+        (player) => player.displayName.trim().length > 0,
+      );
+      for (let index = filled.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [filled[index], filled[swapIndex]] = [filled[swapIndex], filled[index]];
+      }
+
+      if (
+        filled.length > 1 &&
+        filled.every((player, index) => player === current[index])
+      ) {
+        filled.push(filled.shift()!);
+      }
+
+      return Array.from({ length: 5 }, (_, index) => {
+        const player = filled[index];
+        const seat = index + 1;
+        return player
+          ? { ...player, seat }
+          : emptyPlayerDraft(seat);
+      });
+    });
+    toast.success("Players shuffled");
+  }
+
+  async function saveSettings(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const missionChanged =
+      editionKey !== room.editionKey || selectedMissionKey !== room.missionKey;
+    const nextAttemptNumber = Number(attemptNumber);
+    const attemptChanged = nextAttemptNumber !== (room.attemptNumber ?? 1);
+    const rosterChanged = hasDraftRosterChanged(room.players, playerDrafts);
+    const requiresReset =
+      activeAttempt &&
+      (missionChanged ||
+        rosterChanged ||
+        (attemptChanged && room.restartRequired));
+    if (
+      requiresReset &&
+      !window.confirm(
+        "These settings will discard the current attempt and return the room to preflight. Continue?",
+      )
+    ) {
+      return;
+    }
+
+    const result = await request(`/api/admin/rooms/${room.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        editionKey,
+        missionKey: selectedMissionKey,
+        ...(attemptChanged ? { attemptNumber: nextAttemptNumber } : {}),
+        confirmReset: requiresReset,
+        players: playerDrafts.map((player) => ({
+          ...(player.id ? { id: player.id } : {}),
+          displayName: player.displayName.trim(),
+          tags: player.displayName.trim() ? player.tags : [],
+          seat: player.seat,
+        })),
+      }),
+    });
+    if (result) {
+      await afterMutation();
+      toast.success("Room settings saved");
+    }
+  }
+
+  async function deleteRoom() {
+    if (
+      !window.confirm(`Permanently delete ${room.name}? This cannot be undone.`)
+    ) {
+      return;
+    }
+    const result = await request(`/api/admin/rooms/${room.id}`, {
+      method: "DELETE",
+    });
+    if (result) {
+      await afterDelete();
+      toast.success("Room deleted");
+    }
+  }
+
+  return (
+    <form
+      className="min-w-0 space-y-10 pb-8"
+      data-slot="admin-room-editor"
+      aria-label={`Manage ${room.name}`}
+      onSubmit={(event) => void saveSettings(event)}
+    >
+      <section
+        className="grid min-w-0 gap-6 lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-8"
+        aria-labelledby="room-mission-title"
+      >
+        <h2
+          className="text-lg font-semibold tracking-tight"
+          data-slot="admin-section-title"
+          id="room-mission-title"
+        >
+          Mission
+        </h2>
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field
+            className="sm:col-span-1 sm:col-start-1 sm:row-start-1"
+            data-admin-setting="phase"
           >
-          <Field>
-            <FieldLabel htmlFor={`room-name-${room.id}`}>Room name</FieldLabel>
-            <Input
-              id={`room-name-${room.id}`}
-              value={name}
-              minLength={2}
-              maxLength={32}
-              pattern="[A-Za-z0-9 _-]{2,32}"
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
+            <FieldTitle>Phase</FieldTitle>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <div
+                className="flex h-9 min-w-24 flex-1 items-center rounded-md border border-input bg-white px-3 font-mono text-sm shadow-xs"
+                data-slot="admin-room-phase"
+                aria-label="Room phase"
+              >
+                {room.phase}
+              </div>
+              <Button
+                variant="secondary"
+                type="button"
+                disabled={disabled}
+                onClick={() => void roomAction("return-to-preflight")}
+              >
+                <RefreshCw />
+                Reset
+              </Button>
+              {room.phase === "finished" ? (
+                <Button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => void roomAction("advance")}
+                >
+                  Advance mission
+                  <ChevronRight />
+                </Button>
+              ) : null}
+            </div>
           </Field>
-          <Field>
+
+          <Field
+            className="sm:col-span-1 sm:col-start-2 sm:row-start-1"
+            data-admin-setting="edition"
+          >
             <FieldLabel htmlFor={`room-edition-${room.id}`}>Edition</FieldLabel>
             <Select
               value={editionKey}
               onValueChange={(value) => {
                 const nextEditionKey = value as EditionOption["key"];
                 const nextMissions =
-                  editions.find((edition) => edition.key === nextEditionKey)?.missions ?? [];
+                  editions.find((edition) => edition.key === nextEditionKey)
+                    ?.missions ?? [];
                 setEditionKey(nextEditionKey);
                 setMissionKey(nextMissions[0]?.key ?? "");
               }}
@@ -783,424 +933,316 @@ function RoomEditor({
               <SelectContent>
                 {editions.map((edition) => (
                   <SelectItem key={edition.key} value={edition.key}>
-                    {edition.title}
+                    <CrewEdition editionKey={edition.key} />
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </Field>
-          <Field>
+
+          <Field
+            className="sm:col-span-1 sm:col-start-1 sm:row-start-2"
+            data-admin-setting="mission"
+          >
             <FieldLabel htmlFor={`room-mission-${room.id}`}>Mission</FieldLabel>
-            <Select
-              value={selectedMissionKey}
-              onValueChange={setMissionKey}
-            >
-              <SelectTrigger className="w-full" id={`room-mission-${room.id}`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {missionOptions.map((mission) => (
-                  <SelectItem value={mission.key} key={mission.key}>
-                    {mission.number} · {mission.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Button variant="secondary" type="submit" disabled={disabled}>
-            Save settings
-          </Button>
-          </form>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {room.restartRequired ? (
-            <Button
-              variant="secondary"
-              type="button"
-              disabled={disabled || room.players.length < 3 || room.players.length > 5}
-              onClick={() => void roomAction("restart")}
-            >
-              <RefreshCw />
-              Restart level
-            </Button>
-          ) : room.phase === "setup" ? (
-            <Button
-              type="button"
-              disabled={disabled || room.players.length < 3 || room.players.length > 5}
-              onClick={() => void roomAction("start")}
-            >
-              Start mission
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              type="button"
-              disabled={disabled}
-              onClick={() => void roomAction("restart")}
-            >
-              <RefreshCw />
-              Restart level
-            </Button>
-          )}
-          {room.phase === "finished" ? (
-            <Button type="button" disabled={disabled} onClick={() => void roomAction("advance")}>
-              Advance mission
-              <ChevronRight />
-            </Button>
-          ) : null}
-          {(room.phase === "setup" || room.restartRequired) && room.players.length < 3 ? (
-            <span className="text-sm text-muted-foreground">Add at least three players to start.</span>
-          ) : null}
-        </div>
-        </section>
-
-        <section className="border-t pt-6" aria-labelledby="room-players-title">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h3 className="font-semibold" id="room-players-title">
-                Players
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Give each player their own six-character player key.
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
-              {room.players.length}/5 seats
-            </span>
-          </div>
-        <ol className="grid gap-3">
-          {room.players
-            .slice()
-            .sort((a, b) => a.seat - b.seat)
-            .map((player) => (
-              <AdminPlayerRow
-                key={player.id}
-                player={player}
-                roomId={room.id}
-                playerCount={room.players.length}
+            <div className="flex min-w-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                aria-label="Previous mission"
+                title="Previous mission"
+                disabled={disabled || selectedMissionIndex <= 0}
+                onClick={() => {
+                  const previousMission =
+                    missionOptions[selectedMissionIndex - 1];
+                  if (previousMission) setMissionKey(previousMission.key);
+                }}
+              >
+                <ChevronLeft />
+              </Button>
+              <Select
+                value={selectedMissionKey}
+                onValueChange={setMissionKey}
                 disabled={disabled}
-                activeAttempt={activeAttempt}
-                request={request}
-                afterMutation={afterMutation}
+              >
+                <SelectTrigger
+                  className="min-w-0 flex-1"
+                  id={`room-mission-${room.id}`}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {missionOptions.map((mission) => (
+                    <SelectItem value={mission.key} key={mission.key}>
+                      {mission.number} · {mission.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                aria-label="Next mission"
+                title="Next mission"
+                disabled={
+                  disabled ||
+                  selectedMissionIndex < 0 ||
+                  selectedMissionIndex >= missionOptions.length - 1
+                }
+                onClick={() => {
+                  const nextMission = missionOptions[selectedMissionIndex + 1];
+                  if (nextMission) setMissionKey(nextMission.key);
+                }}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+          </Field>
+
+          <Field
+            className="sm:col-span-1 sm:col-start-2 sm:row-start-2"
+            data-admin-setting="attempt"
+          >
+            <FieldLabel htmlFor={`room-attempt-${room.id}`}>Attempt</FieldLabel>
+            <div className="flex min-w-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                aria-label="Previous attempt"
+                title="Previous attempt"
+                disabled={
+                  disabled || !attemptNumberIsValid || parsedAttemptNumber <= 1
+                }
+                onClick={() => stepAttemptNumber(-1)}
+              >
+                <ChevronLeft />
+              </Button>
+              <Input
+                className="min-w-0 flex-1"
+                id={`room-attempt-${room.id}`}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={attemptNumber}
+                disabled={disabled}
+                required
+                onChange={(event) => setAttemptNumber(event.target.value)}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                aria-label="Next attempt"
+                title="Next attempt"
+                disabled={disabled}
+                onClick={() => stepAttemptNumber(1)}
+              >
+                <ChevronRight />
+              </Button>
+            </div>
+          </Field>
+        </div>
+      </section>
+
+      <section
+        className="grid min-w-0 gap-6 lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-8"
+        aria-labelledby="room-players-title"
+      >
+        <h2
+          className="self-start text-lg font-semibold tracking-tight"
+          data-slot="admin-section-title"
+          id="room-players-title"
+        >
+          Players
+        </h2>
+        <div className="min-w-0 space-y-2">
+          <div
+            className="grid grid-cols-2 gap-4 text-sm font-medium"
+            data-slot="admin-player-column-labels"
+          >
+            <span>Player</span>
+            <span>Tags</span>
+          </div>
+          <ol className="grid min-w-0 gap-2">
+            {playerDrafts.map((player) => (
+              <AdminPlayerSettingsRow
+                key={player.seat}
+                player={player}
+                disabled={disabled}
+                onChange={(patch) => updatePlayerDraft(player.seat, patch)}
               />
             ))}
-        </ol>
-
-        {room.players.length < 5 ? (
-          <form
-            className="mt-4 flex flex-col gap-3 rounded-lg border border-dashed bg-muted/20 p-4 sm:flex-row sm:items-end"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              const requiresReset = activeAttempt;
-              if (
-                requiresReset &&
-                !window.confirm("Adding a player will restart this attempt. Continue?")
-              ) {
-                return;
-              }
-              const result = await request(`/api/admin/rooms/${room.id}/players`, {
-                method: "POST",
-                body: JSON.stringify({
-                  displayName: newPlayerName.trim(),
-                  confirmReset: requiresReset,
-                }),
-              });
-              if (result) {
-                setNewPlayerName("");
-                await afterMutation("Player added. Copy their key before they join.");
-              }
-            }}
-          >
-            <Field className="flex-1">
-              <FieldLabel htmlFor={`new-player-${room.id}`}>New player</FieldLabel>
-              <Input
-                id={`new-player-${room.id}`}
-                value={newPlayerName}
-                minLength={1}
-                maxLength={32}
-                onChange={(event) => setNewPlayerName(event.target.value)}
-                placeholder="Display name"
-                required
-              />
-            </Field>
-            <Button variant="secondary" disabled={disabled} type="submit">
-              <Plus />
-              Add player
+          </ol>
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={disabled || filledPlayerCount < 2}
+              onClick={shufflePlayers}
+            >
+              <Shuffle />
+              Shuffle players
             </Button>
-          </form>
-        ) : null}
-        </section>
-
-        <section
-          className="flex flex-col gap-4 rounded-lg border border-destructive/25 bg-destructive/5 p-4 sm:flex-row sm:items-center sm:justify-between"
-          aria-labelledby="danger-zone-title"
-        >
-          <div>
-            <h3 className="font-semibold text-red-800" id="danger-zone-title">
-              Danger zone
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Permanently remove this room, its current attempt, and all player keys.
-            </p>
           </div>
+        </div>
+      </section>
+
+      <section
+        className="grid min-w-0 gap-6 lg:grid-cols-[10rem_minmax(0,1fr)] lg:gap-8"
+        aria-labelledby="room-actions-title"
+      >
+        <h2
+          className="text-lg font-semibold tracking-tight"
+          data-slot="admin-section-title"
+          id="room-actions-title"
+        >
+          Actions
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
           <Button
-            className="shrink-0"
             variant="destructive"
             type="button"
             disabled={disabled}
-            onClick={async () => {
-              if (!window.confirm(`Permanently delete ${room.name}? This cannot be undone.`)) return;
-              const result = await request(`/api/admin/rooms/${room.id}`, { method: "DELETE" });
-              if (result) await afterDelete();
-            }}
+            onClick={() => void deleteRoom()}
           >
             <Trash2 />
-            Delete room
+            Delete Room
           </Button>
-        </section>
-      </CardContent>
-    </Card>
+          <Button type="submit" disabled={disabled}>
+            <Save />
+            Save
+          </Button>
+        </div>
+      </section>
+    </form>
   );
 }
 
-function RoomKeyControl({
-  room,
-  disabled,
-  request,
-  afterMutation,
-}: {
-  room: AdminRoomDetail;
-  disabled: boolean;
-  request: AdminRequest;
-  afterMutation: (message: string) => Promise<void>;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <div className="mb-3 flex min-w-0 flex-wrap items-center gap-2 rounded-lg border bg-muted/20 p-3">
-      <span className="text-xs font-medium text-muted-foreground">Room key</span>
-      <code
-        className="rounded-md bg-background px-2.5 py-1.5 font-mono text-sm font-semibold tracking-[0.16em]"
-        aria-label={`Room key for ${room.name}`}
-      >
-        {room.roomKey}
-      </code>
-      <Button
-        variant="outline"
-        size="sm"
-        type="button"
-        onClick={async () => {
-          await navigator.clipboard.writeText(room.roomKey);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1_500);
-        }}
-      >
-        {copied ? <Check /> : <Clipboard />}
-        {copied ? "Copied" : "Copy"}
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        type="button"
-        disabled={disabled}
-        onClick={async () => {
-          if (
-            !window.confirm(
-              "Rotate this room key? Every saved room login will stop working.",
-            )
-          ) {
-            return;
-          }
-          const result = await request(
-            `/api/admin/rooms/${room.id}/rotate-key`,
-            { method: "POST" },
-          );
-          if (result) await afterMutation("Room key rotated.");
-        }}
-      >
-        <RefreshCw />
-        Rotate
-      </Button>
-    </div>
-  );
-}
-
-function AdminPlayerRow({
+function AdminPlayerSettingsRow({
   player,
-  roomId,
-  playerCount,
   disabled,
-  activeAttempt,
-  request,
-  afterMutation,
+  onChange,
 }: {
-  player: AdminPlayer;
-  roomId: string;
-  playerCount: number;
+  player: AdminPlayerDraft;
   disabled: boolean;
-  activeAttempt: boolean;
-  request: AdminRequest;
-  afterMutation: (message: string) => Promise<void>;
+  onChange: (patch: Partial<Omit<AdminPlayerDraft, "seat">>) => void;
 }) {
-  const [name, setName] = useState(player.displayName);
-  const [copied, setCopied] = useState(false);
-
-  async function update(input: Record<string, unknown>, successMessage: string) {
-    if (
-      activeAttempt &&
-      !window.confirm("Changing the roster will restart this attempt. Continue?")
-    ) {
-      return;
-    }
-    const result = await request(`/api/admin/rooms/${roomId}/players/${player.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ ...input, confirmReset: activeAttempt }),
-    });
-    if (result) await afterMutation(successMessage);
-  }
+  const unused = player.displayName.trim().length === 0;
+  const tagsAnchor = useComboboxAnchor();
 
   return (
     <li
-      className="grid min-w-0 gap-3 rounded-lg border bg-background p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:items-center"
+      className={cn(
+        "grid min-w-0 grid-cols-2 items-center gap-4 py-1 transition-opacity",
+        unused && "opacity-50 hover:opacity-75 focus-within:opacity-100",
+      )}
       data-admin-player-row
+      data-empty={unused ? "true" : undefined}
     >
-      <span
-        className="grid size-9 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary"
-        aria-label={`Seat ${player.seat}`}
-      >
-        {player.seat}
-      </span>
-      <form
-        className="flex min-w-0 items-center gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void update({ displayName: name.trim() }, `${name.trim()} updated.`);
-        }}
-      >
+      <div className="min-w-0">
         <Input
-          aria-label={`Display name for seat ${player.seat}`}
-          value={name}
+          className="min-w-0"
+          aria-label={`Display name for player ${player.seat}`}
+          value={player.displayName}
           maxLength={32}
-          onChange={(event) => setName(event.target.value)}
-          required
-        />
-        {name !== player.displayName ? (
-          <Button size="sm" type="submit" disabled={disabled}>
-            Save
-          </Button>
-        ) : null}
-      </form>
-
-      <Field className="w-auto">
-        <FieldLabel className="sr-only" htmlFor={`player-seat-${player.id}`}>
-          Seat for {player.displayName}
-        </FieldLabel>
-        <Select
-          value={String(player.seat)}
+          pattern="[A-Za-z0-9_-]{0,32}"
+          placeholder="Empty"
           disabled={disabled}
-          onValueChange={(value) =>
-            void update({ seat: Number(value) }, `${player.displayName} reseated.`)
+          onChange={(event) =>
+            onChange({
+              displayName: event.target.value.replace(/[^A-Za-z0-9_-]/g, ""),
+            })
           }
-        >
-          <SelectTrigger className="w-24" id={`player-seat-${player.id}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: playerCount }).map((_, index) => (
-              <SelectItem key={index + 1} value={String(index + 1)}>
-                Seat {index + 1}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-        type="button"
-        disabled={disabled}
-        onClick={async () => {
-          const prompt = activeAttempt
-            ? `Remove ${player.displayName}? This will discard the current attempt and return the room to setup.`
-            : `Remove ${player.displayName} from this room?`;
-          if (!window.confirm(prompt)) return;
-          const result = await request(`/api/admin/rooms/${roomId}/players/${player.id}`, {
-            method: "DELETE",
-            body: JSON.stringify({ confirmReset: activeAttempt }),
-          });
-          if (result) await afterMutation(`${player.displayName} removed.`);
-        }}
-      >
-        <Trash2 />
-        <span className="sr-only">Remove {player.displayName}</span>
-      </Button>
-
-      <div className="col-span-full flex min-w-0 flex-wrap items-center gap-2 border-t pt-3">
-        <span className="text-xs font-medium text-muted-foreground">Player key</span>
-        <code
-          className="rounded-md bg-muted px-2.5 py-1.5 font-mono text-sm font-semibold tracking-[0.16em]"
-          aria-label={`Player key for ${player.displayName}`}
-        >
-          {player.playerKey}
-        </code>
-        <Button
-          variant="outline"
-          size="sm"
-          type="button"
-          title={`Copy key for ${player.displayName}`}
-          onClick={async () => {
-            await navigator.clipboard.writeText(player.playerKey);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1_500);
-          }}
-        >
-          {copied ? <Check /> : <Clipboard />}
-          {copied ? "Copied" : "Copy"}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          type="button"
-          disabled={disabled}
-          onClick={async () => {
-            if (!window.confirm(`Rotate ${player.displayName}'s key? Their old key will stop working.`)) {
-              return;
-            }
-            const result = await request(
-              `/api/admin/rooms/${roomId}/players/${player.id}/rotate-key`,
-              { method: "POST" },
-            );
-            if (result) await afterMutation(`Key rotated for ${player.displayName}.`);
-          }}
-        >
-          <RefreshCw />
-          Rotate
-        </Button>
+        />
       </div>
+
+      {!unused ? (
+        <Combobox
+          disabled={disabled}
+          items={[...PLAYER_TAGS]}
+          multiple
+          value={player.tags}
+          onValueChange={(tags) => onChange({ tags })}
+        >
+          <ComboboxChips className="min-w-0" ref={tagsAnchor}>
+            <ComboboxValue>
+              {player.tags.map((playerTag) => (
+                <ComboboxChip key={playerTag}>{playerTag}</ComboboxChip>
+              ))}
+            </ComboboxValue>
+            <ComboboxChipsInput
+              aria-label={`Tags for ${player.displayName}`}
+              placeholder="Add tags..."
+            />
+          </ComboboxChips>
+          <ComboboxContent anchor={tagsAnchor}>
+            <ComboboxEmpty>No tags found.</ComboboxEmpty>
+            <ComboboxList>
+              {(playerTag) => (
+                <ComboboxItem key={playerTag} value={playerTag}>
+                  {playerTag}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+      ) : null}
     </li>
   );
 }
 
-function PhaseBadge({ phase }: { phase: AdminRoom["phase"] }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex w-fit items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium capitalize text-foreground",
-        (phase === "playing-trick" || phase === "between-tricks") &&
-          "bg-primary/10 text-primary",
-        phase === "finished" && "bg-emerald-100 text-emerald-800",
-        phase === "restart-required" && "bg-destructive/10 text-destructive",
-      )}
-    >
-      {formatPhase(phase)}
-    </span>
-  );
+function emptyPlayerDraft(seat: number): AdminPlayerDraft {
+  return {
+    displayName: "",
+    tags: [],
+    seat,
+  };
 }
 
-function formatPhase(phase: AdminRoom["phase"]) {
-  return phase.replaceAll("-", " ");
+function playerDraftsForRoom(room: AdminRoomDetail): AdminPlayerDraft[] {
+  const drafts = Array.from({ length: 5 }, (_, index) =>
+    emptyPlayerDraft(index + 1),
+  );
+
+  for (const player of room.players) {
+    const preferredIndex = player.seat - 1;
+    const openIndex = drafts[preferredIndex]?.id
+      ? drafts.findIndex((draft) => !draft.id)
+      : preferredIndex;
+    if (openIndex < 0 || !drafts[openIndex]) continue;
+    drafts[openIndex] = {
+      ...player,
+      seat: openIndex + 1,
+    };
+  }
+
+  return drafts;
+}
+
+function hasDraftRosterChanged(
+  currentPlayers: AdminPlayer[],
+  drafts: AdminPlayerDraft[],
+) {
+  const desiredPlayers = drafts.filter(
+    (player) => player.displayName.trim().length > 0,
+  );
+  if (currentPlayers.length !== desiredPlayers.length) return true;
+  const currentPlayersById = new Map(
+    currentPlayers.map((player) => [player.id, player]),
+  );
+  return desiredPlayers.some((player) => {
+    if (!player.id) return true;
+    const current = currentPlayersById.get(player.id);
+    return (
+      !current ||
+      current.displayName !== player.displayName.trim() ||
+      current.seat !== player.seat
+    );
+  });
 }
 
 function formatRelativeTime(value: string) {

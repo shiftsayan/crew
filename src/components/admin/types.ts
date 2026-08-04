@@ -1,4 +1,5 @@
 import type { ActorProjection } from "@/components/game/types";
+import type { PlayerTag } from "@/game/player-tags";
 
 export type MissionOption = {
   key: string;
@@ -15,14 +16,13 @@ export type EditionOption = {
 export type AdminPlayer = {
   id: string;
   displayName: string;
-  playerKey: string;
+  tags: PlayerTag[];
   seat: number;
 };
 
 export type AdminRoom = {
   id: string;
   name: string;
-  roomKey: string;
   editionKey: EditionOption["key"];
   missionKey: string;
   missionNumber?: number;

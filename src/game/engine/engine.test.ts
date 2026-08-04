@@ -5,7 +5,7 @@ import {
   DEEP_SEA_TASKS,
   NON_TRUMP_CARD_IDS,
   applyPlayerCommand,
-  createSetupState,
+  createPreflightState,
   determineTrickWinner,
   getCommunicationQualifiers,
   getPlayableCardIds,
@@ -31,9 +31,9 @@ function start(
   playerCount = 3,
   deckOrder: CardId[] = [...CARD_IDS],
 ): GameState {
-  const setup = createSetupState({ editionKey, missionKey });
+  const preflight = createPreflightState({ editionKey, missionKey });
   return stateFrom(
-    startAttempt(setup, {
+    startAttempt(preflight, {
       playerIds: PLAYER_IDS.slice(0, playerCount),
       deckOrder,
       taskOrder:
@@ -48,15 +48,23 @@ function assignAllTasks(initialState: GameState): GameState {
   let state = initialState;
   while (state.phase === "assigning-tasks") {
     const task = state.tasks.find((candidate) => !candidate.ownerPlayerId);
-    if (!task || !state.currentPlayerId) {
+    const actor = state.seatOrder[state.assignmentTurns % state.seatOrder.length];
+    if (!task || !actor) {
       throw new Error("Invalid task assignment fixture.");
     }
     state = stateFrom(
-      applyPlayerCommand(state, state.currentPlayerId, {
+      applyPlayerCommand(state, actor, {
         type: "claim-task",
         taskId: task.id,
       }),
     );
+  }
+  if (state.phase === "ready-to-start-trick") {
+    const actor = state.seatOrder[0];
+    if (!actor) {
+      throw new Error("Invalid trick-start fixture.");
+    }
+    state = stateFrom(applyPlayerCommand(state, actor, { type: "start-trick" }));
   }
   return state;
 }
@@ -90,7 +98,7 @@ function expectCardConservation(state: GameState): void {
   expect([...cardsInLiveZones].sort()).toEqual([...CARD_IDS].sort());
 }
 
-describe("attempt setup", () => {
+describe("attempt start", () => {
   it.each([
     [3, [14, 13, 13]],
     [4, [10, 10, 10, 10]],
@@ -109,18 +117,18 @@ describe("attempt setup", () => {
   });
 
   it("rejects duplicate or incomplete deck input", () => {
-    const setup = createSetupState({
+    const preflight = createPreflightState({
       editionKey: "planet-nine",
       missionKey: "planet-nine:1",
     });
-    const result = startAttempt(setup, {
+    const result = startAttempt(preflight, {
       playerIds: PLAYER_IDS.slice(0, 3),
       deckOrder: [...CARD_IDS.slice(0, 39), CARD_IDS[0]],
       taskOrder: [...NON_TRUMP_CARD_IDS],
     });
     expect(result).toMatchObject({
       ok: false,
-      error: { code: "INVALID_SETUP" },
+      error: { code: "INVALID_PREFLIGHT" },
     });
   });
 
@@ -145,65 +153,317 @@ describe("attempt setup", () => {
 });
 
 describe("task assignment", () => {
-  it("starts with the captain, rotates, and enters play when all tasks are claimed", () => {
+  it("waits for any player to start the first trick after assignment", () => {
     const state = start("planet-nine", "planet-nine:3");
     expect(state.currentPlayerId).toBe(state.captainPlayerId);
     expect(state.tasks.map((task) => task.order)).toEqual(["one", "two"]);
 
-    const firstActor = state.currentPlayerId as string;
+    const [firstActor, secondActor] = state.seatOrder.filter(
+      (playerId) => playerId !== state.captainPlayerId,
+    );
+    if (!firstActor || !secondActor) {
+      throw new Error("Expected two non-captain selectors.");
+    }
+
     const afterFirst = stateFrom(
       applyPlayerCommand(state, firstActor, {
         type: "claim-task",
-        taskId: state.tasks[0].id,
+        taskId: state.tasks[1].id,
       }),
     );
-    expect(afterFirst.currentPlayerId).not.toBe(firstActor);
+    expect(afterFirst).toMatchObject({
+      phase: "assigning-tasks",
+      currentPlayerId: state.captainPlayerId,
+      tasks: [
+        { ownerPlayerId: null },
+        { ownerPlayerId: firstActor },
+      ],
+    });
+
+    const staleClaim = applyPlayerCommand(afterFirst, secondActor, {
+      type: "claim-task",
+      taskId: afterFirst.tasks[1].id,
+    });
+    expect(staleClaim).toMatchObject({
+      ok: false,
+      error: { code: "TASK_ALREADY_CLAIMED" },
+    });
+    expect(
+      applyPlayerCommand(afterFirst, firstActor, { type: "start-trick" }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_PHASE" },
+    });
 
     const afterSecond = stateFrom(
-      applyPlayerCommand(afterFirst, afterFirst.currentPlayerId as string, {
+      applyPlayerCommand(afterFirst, secondActor, {
         type: "claim-task",
-        taskId: afterFirst.tasks[1].id,
+        taskId: afterFirst.tasks[0].id,
       }),
     );
-    expect(afterSecond.phase).toBe("between-tricks");
-    expect(afterSecond.currentPlayerId).toBe(afterSecond.captainPlayerId);
+    expect(afterSecond.phase).toBe("ready-to-start-trick");
+    expect(afterSecond.currentPlayerId).toBeNull();
+    expect(afterSecond.tasks.map((task) => task.ownerPlayerId)).toEqual([
+      secondActor,
+      firstActor,
+    ]);
+    expect(
+      applyPlayerCommand(afterSecond, firstActor, {
+        type: "claim-task",
+        taskId: afterSecond.tasks[0].id,
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_PHASE" },
+    });
+    expect(
+      applyPlayerCommand(afterSecond, firstActor, {
+        type: "play-card",
+        cardId: afterSecond.players[firstActor].hand[0],
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_PHASE" },
+    });
+    expect(
+      applyPlayerCommand(afterSecond, firstActor, {
+        type: "set-task-outcome",
+        taskId: afterSecond.tasks[0].id,
+        outcome: "success",
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "OUTCOME_NOT_ALLOWED" },
+    });
+
+    const started = stateFrom(
+      applyPlayerCommand(afterSecond, firstActor, { type: "start-trick" }),
+    );
+    expect(started.phase).toBe("between-tricks");
+    expect(started.currentPlayerId).toBe(started.captainPlayerId);
+
+    const staleStart = applyPlayerCommand(started, secondActor, {
+      type: "start-trick",
+    });
+    expect(staleStart).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_PHASE" },
+    });
   });
 
-  it("allows required Deep Sea passes but prevents leaving tasks unassigned", () => {
-    let state = start("deep-sea", "deep-sea:1");
+  it("lets any player claim a Deep Sea task without passing", () => {
+    const state = start("deep-sea", "deep-sea:1");
     expect(state.tasks).toHaveLength(1);
 
-    state = stateFrom(
-      applyPlayerCommand(state, state.currentPlayerId as string, {
-        type: "pass-task",
-      }),
+    const selector = state.seatOrder.find(
+      (playerId) => playerId !== state.captainPlayerId,
     );
-    state = stateFrom(
-      applyPlayerCommand(state, state.currentPlayerId as string, {
-        type: "pass-task",
-      }),
-    );
-    const invalidPass = applyPlayerCommand(
-      state,
-      state.currentPlayerId as string,
-      { type: "pass-task" },
-    );
+    if (!selector) {
+      throw new Error("Expected a non-captain selector.");
+    }
+
+    const invalidPass = applyPlayerCommand(state, selector, {
+      type: "pass-task",
+    });
     expect(invalidPass).toMatchObject({
       ok: false,
       error: { code: "PASS_NOT_ALLOWED" },
     });
 
     const claimed = stateFrom(
-      applyPlayerCommand(state, state.currentPlayerId as string, {
+      applyPlayerCommand(state, selector, {
         type: "claim-task",
         taskId: state.tasks[0].id,
       }),
     );
-    expect(claimed.phase).toBe("between-tricks");
+    expect(claimed.phase).toBe("ready-to-start-trick");
+    expect(claimed.currentPlayerId).toBeNull();
+    expect(claimed.tasks[0].ownerPlayerId).toBe(selector);
+
+    const started = stateFrom(
+      applyPlayerCommand(claimed, selector, { type: "start-trick" }),
+    );
+    expect(started.phase).toBe("between-tricks");
+    expect(started.currentPlayerId).toBe(started.captainPlayerId);
+  });
+
+  it("lets a player deselect only their own task before the first trick", () => {
+    let state = start("planet-nine", "planet-nine:3");
+    const owner = state.seatOrder[0];
+    const otherPlayer = state.seatOrder[1];
+    const [firstTask, secondTask] = state.tasks;
+    if (!owner || !otherPlayer || !firstTask || !secondTask) {
+      throw new Error("Expected two tasks and two seated players.");
+    }
+
+    state = stateFrom(
+      applyPlayerCommand(state, owner, {
+        type: "claim-task",
+        taskId: firstTask.id,
+      }),
+    );
+    expect(state).toMatchObject({
+      phase: "assigning-tasks",
+      assignmentTurns: 1,
+      tasks: [{ ownerPlayerId: owner }, { ownerPlayerId: null }],
+    });
+    expect(
+      applyPlayerCommand(state, otherPlayer, {
+        type: "release-task",
+        taskId: firstTask.id,
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "TASK_NOT_OWNED" },
+    });
+
+    state = stateFrom(
+      applyPlayerCommand(state, owner, {
+        type: "release-task",
+        taskId: firstTask.id,
+      }),
+    );
+    expect(state).toMatchObject({
+      phase: "assigning-tasks",
+      currentPlayerId: state.captainPlayerId,
+      assignmentTurns: 0,
+      tasks: [{ ownerPlayerId: null }, { ownerPlayerId: null }],
+    });
+    expect(
+      applyPlayerCommand(state, owner, {
+        type: "release-task",
+        taskId: firstTask.id,
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "TASK_NOT_OWNED" },
+    });
+
+    state = stateFrom(
+      applyPlayerCommand(state, owner, {
+        type: "claim-task",
+        taskId: firstTask.id,
+      }),
+    );
+    state = stateFrom(
+      applyPlayerCommand(state, otherPlayer, {
+        type: "claim-task",
+        taskId: secondTask.id,
+      }),
+    );
+    expect(state.phase).toBe("ready-to-start-trick");
+
+    state = stateFrom(
+      applyPlayerCommand(state, owner, {
+        type: "release-task",
+        taskId: firstTask.id,
+      }),
+    );
+    expect(state).toMatchObject({
+      phase: "assigning-tasks",
+      currentPlayerId: state.captainPlayerId,
+      assignmentTurns: 1,
+      tasks: [{ ownerPlayerId: null }, { ownerPlayerId: otherPlayer }],
+    });
+
+    state = stateFrom(
+      applyPlayerCommand(state, owner, {
+        type: "claim-task",
+        taskId: firstTask.id,
+      }),
+    );
+    state = stateFrom(
+      applyPlayerCommand(state, otherPlayer, { type: "start-trick" }),
+    );
+    expect(
+      applyPlayerCommand(state, owner, {
+        type: "release-task",
+        taskId: firstTask.id,
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_PHASE" },
+    });
   });
 });
 
 describe("trick-taking rules", () => {
+  it("lets only the next leader communicate, play, or explicitly begin an empty trick", () => {
+    let state = assignAllTasks(start("planet-nine", "planet-nine:1"));
+    const leader = state.currentPlayerId as string;
+    const otherPlayer = state.seatOrder.find((playerId) => playerId !== leader);
+    if (!otherPlayer) {
+      throw new Error("Expected another seated player.");
+    }
+
+    expect(
+      applyPlayerCommand(state, otherPlayer, { type: "begin-trick" }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "NOT_YOUR_TURN" },
+    });
+
+    const communication = state.players[leader].hand
+      .map((cardId) => ({
+        cardId,
+        qualifier: getCommunicationQualifiers(state, leader, cardId)[0],
+      }))
+      .find(
+        (
+          option,
+        ): option is {
+          cardId: CardId;
+          qualifier: "highest" | "only" | "lowest";
+        } => option.qualifier !== undefined,
+      );
+    if (!communication) {
+      throw new Error("Expected the next leader to have a legal communication.");
+    }
+
+    state = stateFrom(
+      applyPlayerCommand(state, leader, {
+        type: "communicate",
+        cardId: communication.cardId,
+        qualifier: communication.qualifier,
+      }),
+    );
+    expect(state).toMatchObject({
+      phase: "between-tricks",
+      currentPlayerId: leader,
+      currentTrick: null,
+    });
+
+    state = stateFrom(
+      applyPlayerCommand(state, leader, { type: "begin-trick" }),
+    );
+    expect(state).toMatchObject({
+      phase: "playing-trick",
+      currentPlayerId: leader,
+      currentTrick: {
+        number: 1,
+        leaderPlayerId: leader,
+        plays: [],
+        winnerPlayerId: null,
+      },
+    });
+    expectCardConservation(state);
+
+    const leadCardId = getPlayableCardIds(state, leader)[0];
+    if (!leadCardId) {
+      throw new Error("Expected the leader to have a playable card.");
+    }
+    state = stateFrom(
+      applyPlayerCommand(state, leader, {
+        type: "play-card",
+        cardId: leadCardId,
+      }),
+    );
+    expect(state.currentTrick?.plays).toEqual([
+      { playerId: leader, cardId: leadCardId },
+    ]);
+    expectCardConservation(state);
+  });
+
   it("conserves every card across assignment, communication, and trick transitions", () => {
     let state = start("planet-nine", "planet-nine:1");
     expectCardConservation(state);
@@ -610,33 +870,80 @@ describe("manual mission adjudication and communication", () => {
     });
   });
 
-  it("finishes immediately on a manual task success or failure", () => {
+  it("waits for the commander to record success or failure after every task status is set", () => {
     const active = assignAllTasks(start("planet-nine", "planet-nine:1"));
-    const actor = active.seatOrder[1];
+    const actor = active.seatOrder.find(
+      (playerId) => playerId !== active.captainPlayerId,
+    ) as string;
+    const commander = active.captainPlayerId as string;
     const taskId = active.tasks[0].id;
-    const won = stateFrom(
+    const successfulTasks = stateFrom(
       applyPlayerCommand(active, actor, {
         type: "set-task-outcome",
         taskId,
         outcome: "success",
       }),
     );
+    expect(successfulTasks).toMatchObject({
+      phase: "between-tricks",
+      result: null,
+      tasks: [{ outcome: "success" }],
+    });
+    expect(
+      applyPlayerCommand(successfulTasks, actor, {
+        type: "set-mission-outcome",
+        outcome: "success",
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "OUTCOME_NOT_ALLOWED" },
+    });
+    const won = stateFrom(
+      applyPlayerCommand(successfulTasks, commander, {
+        type: "set-mission-outcome",
+        outcome: "success",
+      }),
+    );
     expect(won).toMatchObject({ phase: "finished", result: "won" });
 
-    const lost = stateFrom(
+    const failedTasks = stateFrom(
       applyPlayerCommand(active, actor, {
         type: "set-task-outcome",
         taskId,
         outcome: "failure",
       }),
     );
+    expect(failedTasks).toMatchObject({
+      phase: "between-tricks",
+      result: null,
+      tasks: [{ outcome: "failure" }],
+    });
+    const lost = stateFrom(
+      applyPlayerCommand(failedTasks, commander, {
+        type: "set-mission-outcome",
+        outcome: "failure",
+      }),
+    );
     expect(lost).toMatchObject({ phase: "finished", result: "lost" });
   });
 
-  it("uses explicit mission outcomes only for taskless manual-rule missions", () => {
+  it("lets only the commander record a taskless manual mission outcome", () => {
     const taskless = start("deep-sea", "deep-sea:8");
+    const commander = taskless.captainPlayerId as string;
+    const crewMember = taskless.seatOrder.find(
+      (playerId) => playerId !== commander,
+    ) as string;
+    expect(
+      applyPlayerCommand(taskless, crewMember, {
+        type: "set-mission-outcome",
+        outcome: "success",
+      }),
+    ).toMatchObject({
+      ok: false,
+      error: { code: "OUTCOME_NOT_ALLOWED" },
+    });
     const won = stateFrom(
-      applyPlayerCommand(taskless, taskless.seatOrder[0], {
+      applyPlayerCommand(taskless, commander, {
         type: "set-mission-outcome",
         outcome: "success",
       }),
@@ -645,7 +952,7 @@ describe("manual mission adjudication and communication", () => {
 
     const tasked = assignAllTasks(start("deep-sea", "deep-sea:1"));
     expect(
-      applyPlayerCommand(tasked, tasked.seatOrder[0], {
+      applyPlayerCommand(tasked, tasked.captainPlayerId as string, {
         type: "set-mission-outcome",
         outcome: "failure",
       }),
