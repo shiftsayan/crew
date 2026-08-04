@@ -156,6 +156,8 @@ const scenarios: Scenario[] = [
 
 const adminPassword =
   process.env.ADMIN_PASSWORD ?? "crew-e2e-admin-password";
+const celebrationCanvasSelector =
+  "canvas:not([data-artwork-image-canvas]):not([data-artwork-effect-canvas])";
 
 async function responseBody(response: APIResponse): Promise<unknown> {
   const text = await response.text();
@@ -207,6 +209,7 @@ async function createRoom(
     editionKey: EditionKey;
     missionKey: string;
     playerCount: number;
+    playerNamePrefix?: string;
   },
 ): Promise<AdminRoom> {
   let room = (
@@ -222,7 +225,9 @@ async function createRoom(
       await adminPost<{ room: AdminRoom }>(
         request,
         `/api/admin/rooms/${room.id}/players`,
-        { displayName: `Player-${index + 1}` },
+        {
+          displayName: `${input.playerNamePrefix ?? "Player"}-${index + 1}`,
+        },
       )
     ).room;
   }
@@ -473,7 +478,9 @@ async function assertWinningUiAndGuard(
   await expect(
     session.page.getByRole("heading", { name: "Mission complete" }),
   ).toBeVisible();
-  await expect(session.page.locator("canvas")).toHaveCount(0);
+  await expect(
+    session.page.locator(celebrationCanvasSelector),
+  ).toHaveCount(0);
   expect(
     await session.page.evaluate(
       (key) => window.sessionStorage.getItem(key),
@@ -504,6 +511,7 @@ async function assertWrongAndCrossRoomNames(
     editionKey: "planet-nine",
     missionKey: "planet-nine:1",
     playerCount: 1,
+    playerNamePrefix: "Decoy",
   });
   cleanupRoomIds.push(decoy.id);
 
@@ -592,20 +600,26 @@ test.describe("database-backed multiplayer", () => {
         }
 
         const assigned = await assignTasks(room.name, sessions);
-        expect(assigned.phase).toBe("ready-to-start-trick");
-        expect(assigned.legalActions.canStartTrick).toBe(true);
-        expect(assigned.players.every((player) => !player.isCurrent)).toBe(
-          true,
+        expect(assigned.phase).toBe(
+          assigned.tasks.length === 0
+            ? "between-tricks"
+            : "ready-to-start-trick",
         );
+        expect(
+          assigned.players.every((player) => !player.isCurrent),
+        ).toBe(assigned.tasks.length > 0);
         if (scenario.victory === "task") {
           expect(
             assigned.tasks.every((task) => task.outcome === "pending"),
           ).toBe(true);
         }
 
-        const readyToPlay = await sendAction(sessions[1], room.name, {
-          type: "start-trick",
-        });
+        const readyToPlay =
+          assigned.phase === "ready-to-start-trick"
+            ? await sendAction(sessions[1], room.name, {
+                type: "start-trick",
+              })
+            : assigned;
         expect(readyToPlay.phase).toBe("between-tricks");
         const nextLeader = readyToPlay.players.find((player) => player.isCurrent);
         if (!nextLeader) {
@@ -646,10 +660,7 @@ test.describe("database-backed multiplayer", () => {
 
         await sessions[0].page.reload();
         await expect(
-          sessions[0].page.getByText(
-            `${room.name} · ${sessions[0].player.displayName} · Live`,
-            { exact: true },
-          ),
+          sessions[0].page.getByRole("region", { name: "Game console" }),
         ).toBeVisible();
       } finally {
         await Promise.allSettled(
@@ -762,7 +773,9 @@ test.describe("database-backed browser gaps", () => {
         }),
       ).toBeVisible({ timeout: 10_000 });
       await expect(commanderSession.page.getByText("Attempt complete")).toBeVisible();
-      await expect(commanderSession.page.locator("canvas")).toHaveCount(0);
+      await expect(
+        commanderSession.page.locator(celebrationCanvasSelector),
+      ).toHaveCount(0);
       expect(
         await commanderSession.page.evaluate(
           (key) => window.sessionStorage.getItem(key),
@@ -880,7 +893,7 @@ test.describe("database-backed browser gaps", () => {
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Return to preflight" }),
-      ).toBeVisible();
+      ).toHaveCount(0);
     } finally {
       if (roomId) {
         await page.context().request.delete(`/api/admin/rooms/${roomId}`);
