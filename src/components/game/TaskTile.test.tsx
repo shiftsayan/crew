@@ -2,7 +2,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import type { Card, ProjectedTask } from "./types";
-import { TaskBoot } from "./TaskBoot";
 import { TaskTile } from "./TaskTile";
 
 const cards = [

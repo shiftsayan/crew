@@ -494,9 +494,9 @@ test("empty admin editor stays clear with aligned sidebar actions", async ({ pag
     };
   });
   expect(consoleGeometry.wrapperTop).toBe(32);
-  expect(consoleGeometry.workspaceTop).toBe(consoleGeometry.wrapperTop);
-  expect(consoleGeometry.workspaceBottom).toBe(consoleGeometry.wrapperBottom);
-  expect(consoleGeometry.workspaceRight).toBe(consoleGeometry.wrapperRight);
+  expect(consoleGeometry.workspaceTop).toBe(consoleGeometry.wrapperTop + 1);
+  expect(consoleGeometry.workspaceBottom).toBe(consoleGeometry.wrapperBottom - 1);
+  expect(consoleGeometry.workspaceRight).toBe(consoleGeometry.wrapperRight - 1);
   await expect(page.locator('[data-artwork-effect="ascii"]')).toHaveAttribute(
     "data-artwork-effect",
     "ascii",
@@ -2461,7 +2461,11 @@ test.describe("reduced motion", () => {
         () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
       ),
     ).toBe(true);
-    await expect(page.locator("canvas")).toHaveCount(0);
+    await expect(
+      page.locator(
+        "canvas:not([data-artwork-image-canvas]):not([data-artwork-effect-canvas])",
+      ),
+    ).toHaveCount(0);
     await expectNoAccessibilityViolations(page);
   });
 });

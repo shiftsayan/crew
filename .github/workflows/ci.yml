@@ -58,7 +58,7 @@ jobs:
 
       - name: Export local database URL
         shell: bash
-        run: npx supabase status -o env | sed -n 's/^DB_URL=/DATABASE_URL=/p' >> "$GITHUB_ENV"
+        run: npx supabase status -o json | jq -r '"DATABASE_URL=\(.DB_URL)"' >> "$GITHUB_ENV"
 
       - name: Reapply database migrations
         run: npx supabase db reset --local --no-seed
@@ -100,7 +100,7 @@ jobs:
 
       - name: Export local database URL
         shell: bash
-        run: npx supabase status -o env | sed -n 's/^DB_URL=/DATABASE_URL=/p' >> "$GITHUB_ENV"
+        run: npx supabase status -o json | jq -r '"DATABASE_URL=\(.DB_URL)"' >> "$GITHUB_ENV"
 
       - name: Reapply database migrations
         run: npx supabase db reset --local --no-seed
