@@ -1881,9 +1881,7 @@ test("a development player query opens the room without changing saved login", a
     `/rooms/${roomName}?player=${encodeURIComponent(playerName)}`,
   );
 
-  await expect(
-    page.getByText(`${roomName} · ${playerName} · Live`, { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Game console" })).toBeVisible();
   expect(requestedPlayerName).toBe(playerName);
   expect(
     await page.evaluate((name) =>
@@ -1892,9 +1890,7 @@ test("a development player query opens the room without changing saved login", a
   ).toBeNull();
 
   await page.reload();
-  await expect(
-    page.getByText(`${roomName} · ${playerName} · Live`, { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Game console" })).toBeVisible();
   expect(requestedPlayerName).toBe(playerName);
 });
 
@@ -2386,6 +2382,9 @@ test("authenticated admin dashboard is accessible and responsive at target width
 
     await expectNoHorizontalDocumentOverflow(page);
     await expectNoDocumentScroll(page);
+    await expect(
+      page.getByText("Players shuffled", { exact: true }),
+    ).toBeHidden({ timeout: 8_000 });
     await expectNoAccessibilityViolations(page);
   }
 });

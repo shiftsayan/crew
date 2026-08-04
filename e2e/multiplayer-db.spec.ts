@@ -222,7 +222,7 @@ async function createRoom(
       await adminPost<{ room: AdminRoom }>(
         request,
         `/api/admin/rooms/${room.id}/players`,
-        { displayName: `Player ${index + 1}` },
+        { displayName: `Player-${index + 1}` },
       )
     ).room;
   }
@@ -832,8 +832,8 @@ test.describe("database-backed browser gaps", () => {
       roomId = created.room.id;
 
       await expect(
-        page.getByRole("heading", { name: roomName, exact: true }),
-      ).toBeVisible();
+        page.locator('[data-slot="admin-room-title-name"]'),
+      ).toHaveText(roomName);
       await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Delete Room" })).toBeVisible();
 
