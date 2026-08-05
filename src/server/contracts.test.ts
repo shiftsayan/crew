@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   AddPlayerSchema,
   AdminRoomActionSchema,
+  CreateRoomSchema,
   PlayerLoginSchema,
   RoomNameSchema,
   SaveAdminRoomSettingsSchema,
@@ -10,6 +11,35 @@ import {
 } from "@/server/contracts";
 
 describe("player tag contracts", () => {
+  it("creates a room without accepting a starting mission", () => {
+    expect(
+      CreateRoomSchema.parse({
+        name: "Europa",
+        editionKey: "planet-nine",
+      }),
+    ).toEqual({ name: "Europa", editionKey: "planet-nine" });
+    expect(() =>
+      CreateRoomSchema.parse({
+        name: "Europa",
+        editionKey: "planet-nine",
+        missionKey: "planet-nine:1",
+      }),
+    ).toThrow();
+  });
+
+  it("accepts an explicitly unset mission in room settings", () => {
+    expect(
+      SaveAdminRoomSettingsSchema.parse({
+        editionKey: "planet-nine",
+        missionKey: null,
+        players: Array.from({ length: 5 }, (_, index) => ({
+          displayName: "",
+          seat: index + 1,
+        })),
+      }).missionKey,
+    ).toBeNull();
+  });
+
   it("accepts configured tags and removes duplicates", () => {
     expect(
       UpdatePlayerSchema.parse({

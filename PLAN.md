@@ -101,9 +101,11 @@ Admin APIs provide:
 - Admin login/logout.
 - Room list/create/read/update/delete.
 - Player add/rename/reseat/remove and tags.
-- Edition/mission selection.
-- Return-to-preflight and mission advancement. Only a player command starts an
-  attempt and performs the shuffle and deal.
+- Edition/mission selection, including an unset mission. New rooms default to
+  the missionless state.
+- Return-to-preflight and mission advancement. Advancing a completed final
+  mission returns the room to the missionless state. Only a player command
+  starts an attempt and performs the shuffle and deal.
 
 Roster or definition changes during active play require explicit reset
 confirmation.
@@ -115,13 +117,14 @@ React, Postgres, network, clock, or global random behavior.
 
 Stored phases:
 
-1. `preflight`
-2. `assigning-tasks`
-3. `ready-to-start-trick`
-4. `between-tricks`
-5. `playing-trick`
-6. `adjudicating`
-7. `finished`
+1. `missionless` (room lifecycle phase; no game state exists)
+2. `preflight`
+3. `assigning-tasks`
+4. `ready-to-start-trick`
+5. `between-tricks`
+6. `playing-trick`
+7. `adjudicating`
+8. `finished`
 
 Rules:
 
@@ -192,7 +195,8 @@ must not overflow at 320px.
 
 - `/admin` — password prompt and room dashboard.
 - Show room name, edition, mission, phase, player count, and update time.
-- Create draft rooms and manage roster, mission, reset/advance, and deletion.
+- Create missionless rooms and manage roster, mission, reset/advance, and
+  deletion.
 - Show public state only; do not expose hands, raw JSON, or impersonation.
 
 The public `/reset` and `/tasks` routes are removed.

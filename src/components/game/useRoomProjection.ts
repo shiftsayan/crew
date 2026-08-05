@@ -17,6 +17,7 @@ type ConnectionState =
   | "reconnecting"
   | "unauthorized"
   | "not-found"
+  | "missionless"
   | "restart-required";
 
 type FetchResult = "success" | "retry" | "terminal";
@@ -56,7 +57,20 @@ export function useRoomProjection(
         const body = (await response.json().catch(() => ({}))) as ApiErrorBody | ActorProjection;
 
         if (!response.ok) {
-          if ((body as ApiErrorBody).error?.code === "LEVEL_RESTART_REQUIRED") {
+          if ((body as ApiErrorBody).error?.code === "MISSION_UNSET") {
+            projectionRef.current = null;
+            setProjection(null);
+            failures.current = 0;
+            terminal.current = false;
+            setConnection("missionless");
+            setMessage(
+              apiErrorMessage(
+                body as ApiErrorBody,
+                "Ask the room admin to set a mission.",
+              ),
+            );
+            return "success";
+          } else if ((body as ApiErrorBody).error?.code === "LEVEL_RESTART_REQUIRED") {
             terminal.current = true;
             setConnection("restart-required");
             setMessage(apiErrorMessage(body as ApiErrorBody, "This room needs to be returned to preflight."));

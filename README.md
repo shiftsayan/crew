@@ -5,6 +5,10 @@ Planet Nine** and **The Crew: Mission Deep Sea**. Players join with separate
 room and player display names; a small password-protected admin interface
 manages rooms, rosters, missions, and resets.
 
+New rooms begin without a mission. Players can join immediately and see a
+mission-needed view until an admin selects one; an admin can also return any
+room to that missionless state.
+
 The application is a single Next.js service backed by a private Supabase
 Postgres schema. Game definitions live in TypeScript, and browsers never
 connect to Supabase directly.

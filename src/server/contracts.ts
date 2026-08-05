@@ -40,14 +40,13 @@ export const AdminLoginSchema = z.strictObject({
 export const CreateRoomSchema = z.strictObject({
   name: RoomNameSchema,
   editionKey: EditionKeySchema,
-  missionKey: MissionKeySchema,
 });
 
 export const UpdateRoomSchema = z
   .strictObject({
     name: RoomNameSchema.optional(),
     editionKey: EditionKeySchema.optional(),
-    missionKey: MissionKeySchema.optional(),
+    missionKey: MissionKeySchema.nullable().optional(),
     confirmReset: z.boolean().optional().default(false),
   })
   .refine(
@@ -97,7 +96,7 @@ const AdminPlayerSettingsSchema = z.strictObject({
 export const SaveAdminRoomSettingsSchema = z
   .strictObject({
     editionKey: EditionKeySchema,
-    missionKey: MissionKeySchema,
+    missionKey: MissionKeySchema.nullable(),
     attemptNumber: z.number().int().positive().optional(),
     players: z.array(AdminPlayerSettingsSchema).length(5),
     confirmReset: z.boolean().optional().default(false),
@@ -160,8 +159,8 @@ export interface RoomRow {
   id: string;
   name: string;
   editionKey: string;
-  missionKey: string;
-  stateVersion: number;
+  missionKey: string | null;
+  stateVersion: number | null;
   state: unknown;
   createdAt: Date;
   updatedAt: Date;
@@ -180,13 +179,13 @@ export interface AdminRoomSummary {
   id: string;
   name: string;
   editionKey: string;
-  missionKey: string;
-  missionNumber: number;
-  missionTitle: string;
-  stateVersion: number;
+  missionKey: string | null;
+  missionNumber: number | null;
+  missionTitle: string | null;
+  stateVersion: number | null;
   phase: string;
   result: string | null;
-  attemptNumber: number;
+  attemptNumber: number | null;
   playerCount: number;
   restartRequired: boolean;
   createdAt: string;

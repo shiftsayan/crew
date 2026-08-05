@@ -371,8 +371,8 @@ test("Planet X task cards use the outlined mini Crew pill", async ({
     await expect(tile).toHaveCSS("width", "56px");
     await expect(boot).toHaveCSS("height", "20px");
     await expect(boot).toHaveCSS("width", "56px");
-    await expect(status).toHaveCSS("height", "12px");
-    await expect(status).toHaveCSS("width", "12px");
+    await expect(status).toHaveCSS("height", "14px");
+    await expect(status).toHaveCSS("width", "14px");
     const defaultGeometry = await task.evaluate((element) => {
       const face = element
         .querySelector<HTMLElement>('[data-slot="task-face"]')!

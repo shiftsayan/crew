@@ -184,10 +184,30 @@ test("asset controls reach every meaningful card and goal state", async ({
     .toHaveAttribute("data-task-outcome", "success");
   const deepSeaBoot = firstDeepSeaGoal.locator('[data-slot="task-boot"]');
   await expect(deepSeaBoot).toBeVisible();
-  await expect(deepSeaBoot.locator('[data-slot="task-status"]')).toBeVisible();
-  await expect(
-    deepSeaBoot.locator('[data-slot="deep-sea-task-difficulty"]'),
-  ).toBeVisible();
+  await expect(deepSeaBoot).toHaveCSS(
+    "background-color",
+    "oklch(0.929 0.013 255.508)",
+  );
+  const deepSeaStatus = deepSeaBoot.locator('[data-slot="task-status"]');
+  await expect(deepSeaStatus).toBeVisible();
+  await expect(deepSeaStatus).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  await expect(deepSeaStatus.locator("svg")).toHaveCSS(
+    "color",
+    "oklch(0.723 0.219 149.579)",
+  );
+  const difficultyBadge = deepSeaBoot.locator(
+    '[data-slot="deep-sea-task-difficulty"]',
+  );
+  await expect(difficultyBadge).toBeVisible();
+  await expect(difficultyBadge).toHaveCSS("height", "14px");
+  await expect(difficultyBadge).toHaveCSS("width", "14px");
+  await expect(difficultyBadge).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
   await expect(deepSeaBoot.locator('[data-slot="task-order"]')).toHaveCount(0);
   await expect(firstDeepSeaGoal.getByRole("img")).toHaveAccessibleName(
     /Unassigned\. Successful\. Difficulty \d+\./,
@@ -196,6 +216,21 @@ test("asset controls reach every meaningful card and goal state", async ({
     name: /View details for/,
   });
   await expect(infoButton).toBeVisible();
+  await expect(infoButton).toHaveCSS("height", "14px");
+  await expect(infoButton).toHaveCSS("width", "14px");
+  await expect(infoButton).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  await infoButton.hover();
+  await expect(infoButton).toHaveCSS(
+    "background-color",
+    "oklch(0.968 0.007 247.896)",
+  );
+  await expect(infoButton).toHaveCSS(
+    "color",
+    "oklch(0.457 0.24 277.023)",
+  );
   await infoButton.click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(

@@ -87,9 +87,6 @@ export { adminEditionOptions };
 export async function createAdminRoom(
   input: CreateRoomInput,
 ): Promise<AdminRoomDetail> {
-  const mission = assertMission(input.editionKey, input.missionKey);
-  const state = makePreflightState(mission.editionKey, mission.missionKey);
-
   const result = await query<RoomRow>(
     `
       insert into private.rooms (
@@ -99,16 +96,10 @@ export async function createAdminRoom(
         state_version,
         state
       )
-      values ($1, $2, $3, $4, $5::jsonb)
+      values ($1, $2, null, null, null)
       returning ${roomColumns}
     `,
-    [
-      input.name,
-      mission.editionKey,
-      mission.missionKey,
-      CURRENT_STATE_VERSION,
-      JSON.stringify(state),
-    ],
+    [input.name, input.editionKey],
   );
 
   return adminDetail(result.rows[0], []);
@@ -135,22 +126,25 @@ export async function updateAdminRoom(
   await withTransaction(async (client) => {
     const room = await getRoomForUpdate(client, roomId);
     const editionKey = input.editionKey ?? room.editionKey;
-    const missionKey = input.missionKey ?? room.missionKey;
-    const mission = assertMission(editionKey, missionKey);
+    const missionKey =
+      input.missionKey === undefined ? room.missionKey : input.missionKey;
+    const mission =
+      missionKey === null ? null : assertMission(editionKey, missionKey);
     const gameChanged =
-      mission.editionKey !== room.editionKey ||
-      mission.missionKey !== room.missionKey;
+      editionKey !== room.editionKey || missionKey !== room.missionKey;
 
     let state = room.state;
     let stateVersion = room.stateVersion;
     if (gameChanged) {
       const reset = resetStateForMutation(room, input.confirmReset);
-      state = makePreflightState(
-        mission.editionKey,
-        mission.missionKey,
-        reset.attemptNumber,
-      );
-      stateVersion = CURRENT_STATE_VERSION;
+      state = mission
+        ? makePreflightState(
+            mission.editionKey,
+            mission.missionKey,
+            reset.attemptNumber,
+          )
+        : null;
+      stateVersion = mission ? CURRENT_STATE_VERSION : null;
     }
 
     await client.query(
@@ -168,10 +162,10 @@ export async function updateAdminRoom(
       [
         roomId,
         input.name ?? room.name,
-        mission.editionKey,
-        mission.missionKey,
+        mission?.editionKey ?? editionKey,
+        mission?.missionKey ?? null,
         stateVersion,
-        JSON.stringify(state),
+        state === null ? null : JSON.stringify(state),
       ],
     );
   });
@@ -203,13 +197,17 @@ export async function saveAdminRoomSettings(
       }
     }
 
-    const mission = assertMission(input.editionKey, input.missionKey);
+    const mission =
+      input.missionKey === null
+        ? null
+        : assertMission(input.editionKey, input.missionKey);
     const gameChanged =
-      mission.editionKey !== room.editionKey ||
-      mission.missionKey !== room.missionKey;
+      input.editionKey !== room.editionKey ||
+      input.missionKey !== room.missionKey;
     const rosterChanged = hasRosterChanged(currentPlayers, desiredPlayers);
     const parsedState = GameStateSchema.safeParse(room.state);
     const attemptChanged =
+      mission !== null &&
       input.attemptNumber !== undefined &&
       input.attemptNumber !== attemptNumber(room);
     const attemptRequiresReset =
@@ -297,7 +295,10 @@ export async function saveAdminRoomSettings(
 
     let state = room.state;
     let stateVersion = room.stateVersion;
-    if (reset) {
+    if (!mission) {
+      state = null;
+      stateVersion = null;
+    } else if (reset) {
       state = makePreflightState(
         mission.editionKey,
         mission.missionKey,
@@ -330,10 +331,10 @@ export async function saveAdminRoomSettings(
       `,
       [
         roomId,
-        mission.editionKey,
-        mission.missionKey,
+        mission?.editionKey ?? input.editionKey,
+        mission?.missionKey ?? null,
         stateVersion,
-        JSON.stringify(state),
+        state === null ? null : JSON.stringify(state),
       ],
     );
   });
@@ -506,23 +507,21 @@ export async function runAdminRoomAction(
         );
       }
       currentAttempt = current.attemptNumber;
-      const nextMission = nextMissionFor(room.editionKey, room.missionKey);
-      if (!nextMission) {
-        throw new AppError(
-          "CONFLICT",
-          "This is the last configured mission in this edition.",
-          409,
-        );
-      }
-      editionKey = nextMission.editionKey;
-      missionKey = nextMission.missionKey;
+      const nextMission = nextMissionFor(
+        current.editionKey,
+        current.missionKey,
+      );
+      editionKey = nextMission?.editionKey ?? room.editionKey;
+      missionKey = nextMission?.missionKey ?? null;
     }
 
-    const state = makePreflightState(
-      editionKey,
-      missionKey,
-      currentAttempt + 1,
-    );
+    if (missionKey === null && action !== "advance") {
+      throw missionUnset();
+    }
+    const state =
+      missionKey === null
+        ? null
+        : makePreflightState(editionKey, missionKey, currentAttempt + 1);
 
     await client.query(
       `
@@ -539,8 +538,8 @@ export async function runAdminRoomAction(
         roomId,
         editionKey,
         missionKey,
-        CURRENT_STATE_VERSION,
-        JSON.stringify(state),
+        state === null ? null : CURRENT_STATE_VERSION,
+        state === null ? null : JSON.stringify(state),
       ],
     );
   });
@@ -613,6 +612,9 @@ export async function getPlayerRoom(
       parsedPlayerName.data,
     );
     const players = await getPlayersWithClient(client, room.id);
+    if (isMissionlessRoom(room)) {
+      throw missionUnset();
+    }
     const state = compatibleState(room, players);
 
     return makePlayerProjection(state, player.id, {
@@ -647,6 +649,9 @@ export async function applyPlayerRoomCommand(
       parsedPlayerName.data,
     );
     const players = await getPlayersWithClient(client, room.id);
+    if (isMissionlessRoom(room)) {
+      throw missionUnset();
+    }
     const state = compatibleState(room, players);
     let nextState: GameState;
     if (command.type === "start-mission") {
@@ -1073,6 +1078,9 @@ function resetStateForMutation(
   room: RoomRow,
   confirmReset: boolean,
 ): { attemptNumber: number } {
+  if (isMissionlessRoom(room)) {
+    return { attemptNumber: 1 };
+  }
   const parsed = GameStateSchema.safeParse(room.state);
   const broken =
     room.stateVersion !== CURRENT_STATE_VERSION ||
@@ -1107,6 +1115,9 @@ async function resetRoomForRosterMutation(
   room: RoomRow,
   confirmReset: boolean,
 ): Promise<void> {
+  if (isMissionlessRoom(room)) {
+    return;
+  }
   const reset = resetStateForMutation(room, confirmReset);
   const parsed = GameStateSchema.safeParse(room.state);
   const requiresReset =
@@ -1116,6 +1127,9 @@ async function resetRoomForRosterMutation(
 
   if (!requiresReset) {
     return;
+  }
+  if (room.missionKey === null) {
+    throw restartRequired();
   }
 
   const state = makePreflightState(
@@ -1233,6 +1247,24 @@ function adminSummary(
   playerCount: number,
   roster?: PlayerRow[],
 ): AdminRoomSummary {
+  if (isMissionlessRoom(room)) {
+    return {
+      id: room.id,
+      name: room.name,
+      editionKey: room.editionKey,
+      missionKey: null,
+      missionNumber: null,
+      missionTitle: null,
+      stateVersion: null,
+      phase: "missionless",
+      result: null,
+      attemptNumber: null,
+      playerCount,
+      restartRequired: false,
+      createdAt: asIsoString(room.createdAt),
+      updatedAt: asIsoString(room.updatedAt),
+    };
+  }
   const parsed = GameStateSchema.safeParse(room.state);
   const configuredMission = getMissionDefinition(
     room.editionKey,
@@ -1272,8 +1304,11 @@ function adminSummary(
 
 function getMissionDefinition(
   editionKey: string,
-  missionKey: string,
+  missionKey: string | null,
 ): { number: number; title: string } | null {
+  if (missionKey === null) {
+    return null;
+  }
   const edition = adminEditionOptions().find(
     (candidate) => candidate.key === editionKey,
   );
@@ -1308,6 +1343,22 @@ function invalidPlayerCredentials(): AppError {
     "INVALID_CREDENTIALS",
     "The room name or player name is incorrect.",
     401,
+  );
+}
+
+function isMissionlessRoom(room: RoomRow): boolean {
+  return (
+    room.missionKey === null &&
+    room.stateVersion === null &&
+    room.state === null
+  );
+}
+
+function missionUnset(): AppError {
+  return new AppError(
+    "MISSION_UNSET",
+    "Ask the room admin to set a mission.",
+    409,
   );
 }
 

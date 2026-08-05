@@ -398,7 +398,7 @@ async function expectKeyboardReachable(page: Page, label: string) {
 
 async function mockAuthenticatedAdmin(
   page: Page,
-  rooms = [adminRoom],
+  rooms: Array<Record<string, unknown> & { id: string }> = [adminRoom],
 ) {
   await page.route("**/api/admin/rooms**", async (route) => {
     const request = route.request();
@@ -445,6 +445,66 @@ test("admin displays the canonical phase identifier", async ({ page }) => {
     .click();
 
   await expect(page.getByLabel("Room phase")).toHaveText("assigning-tasks");
+});
+
+test("admin can manage a missionless room", async ({ page }) => {
+  const missionlessRoom = {
+    ...adminRoom,
+    missionKey: null,
+    missionNumber: null,
+    missionTitle: null,
+    stateVersion: null,
+    phase: "missionless",
+    attemptNumber: null,
+  };
+  await mockAuthenticatedAdmin(page, [missionlessRoom]);
+  await page.goto("/admin");
+  await page
+    .getByRole("button", { name: `Manage ${missionlessRoom.name}` })
+    .click();
+
+  await expect(page.getByLabel("Room phase")).toHaveText("missionless");
+  await expect(
+    page.getByRole("combobox", { name: "Mission", exact: true }),
+  ).toHaveText("Unset");
+  await expect(page.getByRole("button", { name: "Reset" })).toHaveCount(0);
+  await expect(page.getByRole("spinbutton", { name: "Attempt" })).toBeDisabled();
+  await expectNoAccessibilityViolations(page);
+});
+
+test("a missionless player room asks the admin for a mission", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ name, storedPlayerName }) => {
+      window.localStorage.setItem(
+        `crew:credentials:${name.toLowerCase()}`,
+        JSON.stringify({ roomName: name, playerName: storedPlayerName }),
+      );
+    },
+    { name: roomName, storedPlayerName: playerName },
+  );
+  await page.route(`**/api/rooms/${roomName}`, async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: {
+          code: "MISSION_UNSET",
+          message: "Ask the room admin to set a mission.",
+        },
+      }),
+      status: 409,
+    });
+  });
+
+  await page.goto(`/rooms/${roomName}`);
+
+  await expect(
+    page.getByRole("heading", { name: "Mission needed" }),
+  ).toBeVisible();
+  await expect(page.getByText("Ask the room admin to set a mission.")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Game console" })).toHaveCount(0);
+  await expectNoAccessibilityViolations(page);
 });
 
 test("empty admin editor stays clear with aligned sidebar actions", async ({ page }) => {
@@ -2051,7 +2111,7 @@ test("authenticated admin dashboard is accessible and responsive at target width
     if (width === 879) {
       await page.getByRole("button", { name: "New room" }).click();
       const createRoomForm = page.getByRole("form", { name: "Create room" });
-      await expect(createRoomForm.locator('[data-slot="select-trigger"]')).toHaveCount(2);
+      await expect(createRoomForm.locator('[data-slot="select-trigger"]')).toHaveCount(1);
       await expect(
         createRoomForm.getByRole("combobox", { name: "Edition", exact: true }),
       ).toHaveAttribute("data-slot", "select-trigger");

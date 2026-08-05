@@ -24,12 +24,12 @@ export type AdminRoom = {
   id: string;
   name: string;
   editionKey: EditionOption["key"];
-  missionKey: string;
-  missionNumber?: number;
-  missionTitle?: string;
-  phase: ActorProjection["phase"] | "restart-required";
+  missionKey: string | null;
+  missionNumber?: number | null;
+  missionTitle?: string | null;
+  phase: ActorProjection["phase"] | "missionless" | "restart-required";
   restartRequired: boolean;
-  attemptNumber?: number;
+  attemptNumber?: number | null;
   playerCount: number;
   updatedAt: string;
   players?: AdminPlayer[];

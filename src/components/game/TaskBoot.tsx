@@ -26,10 +26,10 @@ const orderCopy: Record<NonNullable<ProjectedTask["order"]>, string> = {
   "last-trick": "Ω",
 };
 
-const statusClassName: Record<TaskOutcome, string> = {
-  pending: "bg-blue-400",
-  success: "bg-green-500",
-  failure: "bg-red-600",
+const statusIconClassName: Record<TaskOutcome, string> = {
+  pending: "text-blue-400",
+  success: "text-green-500",
+  failure: "text-red-600",
 };
 
 const orderSuitClassName: Record<Card["suit"], string> = {
@@ -67,13 +67,13 @@ export function TaskBoot({
 
   const boot = (
     <div
-      className="flex h-5 w-14 items-center gap-px rounded-b-md bg-slate-300 px-px text-task-ink"
+      className="flex h-5 w-14 items-center justify-between rounded-b-md bg-slate-200 px-1 text-task-ink"
       data-slot="task-boot"
     >
       <span
         className={cn(
-          "grid size-3 shrink-0 place-items-center rounded-full text-white",
-          statusClassName[task.outcome],
+          "grid size-3.5 shrink-0 place-items-center rounded-full bg-white",
+          statusIconClassName[task.outcome],
         )}
         data-slot="task-status"
         aria-hidden="true"
@@ -81,61 +81,59 @@ export function TaskBoot({
         <TaskStatusIcon outcome={task.outcome} />
       </span>
 
-      <span className="ml-auto flex min-w-0 items-center gap-px">
-        {order ? (
-          <span
-            className={cn(
-              "inline-flex size-3.5 shrink-0 items-center justify-center rounded-full border bg-white text-[0.55rem] leading-none text-task-ink forced-colors:border-[CanvasText]",
-              orderSuitClassName[order.suit],
-            )}
-            data-slot="task-order"
-            aria-hidden="true"
-          >
-            {order.copy}
-          </span>
-        ) : null}
+      {order ? (
+        <span
+          className={cn(
+            "inline-flex size-3.5 shrink-0 items-center justify-center rounded-full border bg-white text-[0.55rem] leading-none text-task-ink forced-colors:border-[CanvasText]",
+            orderSuitClassName[order.suit],
+          )}
+          data-slot="task-order"
+          aria-hidden="true"
+        >
+          {order.copy}
+        </span>
+      ) : null}
 
-        {deepSeaDefinition && task.difficulty !== null ? (
-          <span
-            className="flex items-center gap-px text-[0.65rem] leading-none"
-            data-slot="deep-sea-task-difficulty"
-            aria-label={`Difficulty ${task.difficulty}`}
-          >
-            <Gauge className="size-2.5" aria-hidden="true" />
-            <span aria-hidden="true">{task.difficulty}</span>
-          </span>
-        ) : null}
+      {deepSeaDefinition && task.difficulty !== null ? (
+        <span
+          className="inline-flex size-3.5 shrink-0 items-center justify-center gap-px rounded-full bg-white text-[0.45rem] leading-none"
+          data-slot="deep-sea-task-difficulty"
+          aria-label={`Difficulty ${task.difficulty}`}
+        >
+          <Gauge className="size-2" aria-hidden="true" />
+          <span aria-hidden="true">{task.difficulty}</span>
+        </span>
+      ) : null}
 
-        {showInfo && deepSeaDefinition ? (
-          <Dialog>
-            <DialogTrigger asChild>
-              <button
-                className="grid size-5 shrink-0 cursor-pointer place-items-center rounded-sm border-0 bg-transparent p-0 text-task-ink hover:bg-white/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-700"
-                type="button"
-                aria-label={`View details for ${task.title}`}
-              >
-                <BadgeInfo className="size-3" aria-hidden="true" />
-              </button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Task {deepSeaDefinition.number}</DialogTitle>
-                <DialogDescription>{task.title}</DialogDescription>
-              </DialogHeader>
-              <p className="m-0 text-sm text-gray-600">
-                Difficulty: 3P {deepSeaDefinition.difficulty[3]} · 4P{" "}
-                {deepSeaDefinition.difficulty[4]} · 5P{" "}
-                {deepSeaDefinition.difficulty[5]}
+      {showInfo && deepSeaDefinition ? (
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              className="relative grid size-3.5 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-white p-0 text-task-ink transition-colors before:absolute before:-inset-1 before:rounded-full hover:bg-slate-100 hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-700"
+              type="button"
+              aria-label={`View details for ${task.title}`}
+            >
+              <BadgeInfo className="size-3" aria-hidden="true" />
+            </button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Task {deepSeaDefinition.number}</DialogTitle>
+              <DialogDescription>{task.title}</DialogDescription>
+            </DialogHeader>
+            <p className="m-0 text-sm text-gray-600">
+              Difficulty: 3P {deepSeaDefinition.difficulty[3]} · 4P{" "}
+              {deepSeaDefinition.difficulty[4]} · 5P{" "}
+              {deepSeaDefinition.difficulty[5]}
+            </p>
+            {task.footnote ? (
+              <p className="m-0 text-sm italic text-gray-600">
+                {task.footnote}
               </p>
-              {task.footnote ? (
-                <p className="m-0 text-sm italic text-gray-600">
-                  {task.footnote}
-                </p>
-              ) : null}
-            </DialogContent>
-          </Dialog>
-        ) : null}
-      </span>
+            ) : null}
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </div>
   );
 

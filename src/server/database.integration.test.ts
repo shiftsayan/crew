@@ -3,12 +3,17 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { CURRENT_STATE_VERSION, createPreflightState } from "@/game";
+import {
+  CURRENT_STATE_VERSION,
+  createPreflightState,
+  type GameState,
+} from "@/game";
 import { PlayerTag } from "@/game/player-tags";
 import { getPool } from "@/server/db";
 import { AppError } from "@/server/errors";
 import {
   applyPlayerRoomCommand,
+  createAdminRoom,
   getAdminRoom,
   getPlayerRoom,
   loginPlayer,
@@ -174,6 +179,10 @@ databaseDescribe("private database schema", () => {
       | {
           editionKey: "deep-sea";
           missionKey: "deep-sea:1";
+        }
+      | {
+          editionKey: "deep-sea";
+          missionKey: "deep-sea:32";
         } = {
       editionKey: "planet-nine",
       missionKey: "planet-nine:1",
@@ -328,6 +337,90 @@ databaseDescribe("private database schema", () => {
     );
     await expectSqlState(insertRoom({ stateVersion: 0 }), "23514");
     await expectSqlState(insertRoom({ state: ["not", "an", "object"] }), "23514");
+  });
+
+  it("creates rooms without a mission and supports assigning and unsetting one", async () => {
+    const name = uniqueRoomName("missionless");
+    const created = await createAdminRoom({
+      name,
+      editionKey: "deep-sea",
+    });
+    roomIds.add(created.id);
+
+    expect(created).toMatchObject({
+      missionKey: null,
+      missionNumber: null,
+      missionTitle: null,
+      stateVersion: null,
+      phase: "missionless",
+      attemptNumber: null,
+      restartRequired: false,
+    });
+
+    await insertPlayer({ roomId: created.id, displayName: "Ada", seat: 1 });
+    await expect(getPlayerRoom(name, "Ada")).rejects.toMatchObject({
+      code: "MISSION_UNSET",
+      status: 409,
+    });
+
+    const assigned = await updateAdminRoom(created.id, {
+      missionKey: "deep-sea:1",
+      confirmReset: false,
+    });
+    expect(assigned).toMatchObject({
+      missionKey: "deep-sea:1",
+      phase: "preflight",
+      attemptNumber: 1,
+    });
+    await expect(getPlayerRoom(name, "Ada")).resolves.toMatchObject({
+      phase: "preflight",
+      mission: { missionKey: "deep-sea:1" },
+    });
+
+    const unset = await updateAdminRoom(created.id, {
+      missionKey: null,
+      confirmReset: false,
+    });
+    expect(unset).toMatchObject({
+      missionKey: null,
+      stateVersion: null,
+      phase: "missionless",
+      attemptNumber: null,
+    });
+  });
+
+  it("moves a completed final mission into the missionless phase", async () => {
+    const room = await createPlayableRoom({
+      editionKey: "deep-sea",
+      missionKey: "deep-sea:32",
+    });
+    const stored = await pool.query<{ state: GameState }>(
+      "select state from private.rooms where id = $1",
+      [room.id],
+    );
+    const finished = stored.rows[0].state;
+    finished.phase = "finished";
+    finished.result = "won";
+    finished.currentPlayerId = null;
+    finished.tasks = finished.tasks.map((task, index) => ({
+      ...task,
+      ownerPlayerId: room.players[index % room.players.length].id,
+    }));
+    finished.assignmentTurns = finished.tasks.length;
+    await pool.query(
+      "update private.rooms set state = $2::jsonb where id = $1",
+      [room.id, JSON.stringify(finished)],
+    );
+
+    expect((await getAdminRoom(room.id)).phase).toBe("finished");
+    const advanced = await runAdminRoomAction(room.id, "advance");
+    expect(advanced).toMatchObject({
+      editionKey: "deep-sea",
+      missionKey: null,
+      phase: "missionless",
+      attemptNumber: null,
+      restartRequired: false,
+    });
   });
 
   it("enforces scoped player identities, seats, and room ownership", async () => {
@@ -512,7 +605,7 @@ databaseDescribe("private database schema", () => {
   it("updates the attempt counter without restarting a valid active room", async () => {
     const room = await createPlayableRoom();
     const before = await getAdminRoom(room.id);
-    const desiredAttemptNumber = before.attemptNumber + 5;
+    const desiredAttemptNumber = before.attemptNumber! + 5;
 
     const updated = await saveAdminRoomSettings(room.id, {
       editionKey: before.editionKey as "planet-nine",
@@ -570,7 +663,7 @@ databaseDescribe("private database schema", () => {
     });
 
     expect(updated.phase).toBe("preflight");
-    expect(updated.attemptNumber).toBe(before.attemptNumber + 1);
+    expect(updated.attemptNumber).toBe(before.attemptNumber! + 1);
     expect(updated.players).toHaveLength(3);
     expect(updated.players.map(({ displayName, seat }) => ({ displayName, seat }))).toEqual([
       { displayName: "Ada", seat: 1 },
@@ -596,7 +689,7 @@ databaseDescribe("private database schema", () => {
     const shuffled = await runAdminRoomAction(room.id, "shuffle", true);
 
     expect(shuffled.phase).toBe("preflight");
-    expect(shuffled.attemptNumber).toBe(before.attemptNumber + 1);
+    expect(shuffled.attemptNumber).toBe(before.attemptNumber! + 1);
     expect(shuffled.players.map((player) => player.seat)).toEqual([1, 2, 3]);
     expect(shuffled.players.map((player) => player.id)).not.toEqual(
       before.players.map((player) => player.id),

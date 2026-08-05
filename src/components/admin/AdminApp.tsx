@@ -92,6 +92,7 @@ import {
 } from "./types";
 
 type AuthState = "checking" | "locked" | "authenticated";
+const unsetMissionValue = "__unset__";
 
 function AdminTopbar({ room }: { room: AdminRoomDetail | null }) {
   const [copiedRoomId, setCopiedRoomId] = useState<string | null>(null);
@@ -256,7 +257,6 @@ export function AdminApp() {
   async function createRoom(input: {
     name: string;
     editionKey: string;
-    missionKey: string;
   }) {
     const created = await adminRequest<AdminRoom | { room: AdminRoom }>(
       "/api/admin/rooms",
@@ -437,7 +437,6 @@ function AdminSidebar({
   onCreate: (input: {
     name: string;
     editionKey: string;
-    missionKey: string;
   }) => Promise<boolean>;
   onSelect: (roomId: string) => void;
   onSignOut: () => void;
@@ -496,17 +495,11 @@ function CreateRoom({
   onCreate: (input: {
     name: string;
     editionKey: string;
-    missionKey: string;
   }) => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [editionKey, setEditionKey] = useState(editions[0]?.key ?? "planet-nine");
-  const missions = editions.find((edition) => edition.key === editionKey)?.missions ?? [];
-  const [missionKey, setMissionKey] = useState(missions[0]?.key ?? "planet-nine:1");
-  const selectedMissionKey = missions.some((mission) => mission.key === missionKey)
-    ? missionKey
-    : (missions[0]?.key ?? "");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -520,7 +513,7 @@ function CreateRoom({
         <DialogHeader>
           <DialogTitle>Create a room</DialogTitle>
           <DialogDescription>
-            Choose the edition and starting mission. You can add players next.
+            Choose an edition. The room starts without a mission.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -531,7 +524,6 @@ function CreateRoom({
             void onCreate({
               name: name.trim(),
               editionKey,
-              missionKey: selectedMissionKey,
             }).then((created) => {
               if (created) {
                 setName("");
@@ -561,14 +553,9 @@ function CreateRoom({
             <FieldLabel htmlFor="new-room-edition">Edition</FieldLabel>
             <Select
               value={editionKey}
-              onValueChange={(value) => {
-                const nextEditionKey = value as EditionOption["key"];
-                const nextMissions =
-                  editions.find((edition) => edition.key === nextEditionKey)
-                    ?.missions ?? [];
-                setEditionKey(nextEditionKey);
-                setMissionKey(nextMissions[0]?.key ?? "");
-              }}
+              onValueChange={(value) =>
+                setEditionKey(value as EditionOption["key"])
+              }
             >
               <SelectTrigger className="w-full" id="new-room-edition">
                 <SelectValue />
@@ -577,21 +564,6 @@ function CreateRoom({
                 {editions.map((edition) => (
                   <SelectItem key={edition.key} value={edition.key}>
                     <CrewEdition editionKey={edition.key} />
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="new-room-mission">Mission</FieldLabel>
-            <Select value={selectedMissionKey} onValueChange={setMissionKey}>
-              <SelectTrigger className="w-full" id="new-room-mission">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {missions.map((mission) => (
-                  <SelectItem key={mission.key} value={mission.key}>
-                    {mission.number} · {mission.title}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -715,12 +687,15 @@ function RoomEditor({
     () => editions.find((edition) => edition.key === editionKey)?.missions ?? [],
     [editionKey, editions],
   );
-  const activeAttempt = room.phase !== "preflight" && room.phase !== "finished";
+  const activeAttempt =
+    room.phase !== "missionless" &&
+    room.phase !== "preflight" &&
+    room.phase !== "finished";
   const selectedMissionKey = missionOptions.some(
     (mission) => mission.key === missionKey,
   )
     ? missionKey
-    : (missionOptions[0]?.key ?? "");
+    : null;
   const selectedMissionIndex = missionOptions.findIndex(
     (mission) => mission.key === selectedMissionKey,
   );
@@ -736,7 +711,7 @@ function RoomEditor({
       !window.confirm(
         type === "return-to-preflight"
           ? "Are you sure you want to reset the room?"
-          : "Advance this room to the next configured mission and return it to preflight?",
+          : "Advance to the next configured mission? The room becomes missionless after the final mission.",
       )
     ) {
       return;
@@ -805,7 +780,9 @@ function RoomEditor({
     const missionChanged =
       editionKey !== room.editionKey || selectedMissionKey !== room.missionKey;
     const nextAttemptNumber = Number(attemptNumber);
-    const attemptChanged = nextAttemptNumber !== (room.attemptNumber ?? 1);
+    const attemptChanged =
+      selectedMissionKey !== null &&
+      nextAttemptNumber !== (room.attemptNumber ?? 1);
     const rosterChanged = hasDraftRosterChanged(room.players, playerDrafts);
     const requiresReset =
       activeAttempt &&
@@ -889,15 +866,17 @@ function RoomEditor({
               >
                 {room.phase}
               </div>
-              <Button
-                variant="secondary"
-                type="button"
-                disabled={disabled}
-                onClick={() => void roomAction("return-to-preflight")}
-              >
-                <RefreshCw />
-                Reset
-              </Button>
+              {room.phase !== "missionless" ? (
+                <Button
+                  variant="secondary"
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => void roomAction("return-to-preflight")}
+                >
+                  <RefreshCw />
+                  Reset
+                </Button>
+              ) : null}
               {room.phase === "finished" ? (
                 <Button
                   type="button"
@@ -924,7 +903,9 @@ function RoomEditor({
                   editions.find((edition) => edition.key === nextEditionKey)
                     ?.missions ?? [];
                 setEditionKey(nextEditionKey);
-                setMissionKey(nextMissions[0]?.key ?? "");
+                if (missionKey !== null) {
+                  setMissionKey(nextMissions[0]?.key ?? null);
+                }
               }}
             >
               <SelectTrigger className="w-full" id={`room-edition-${room.id}`}>
@@ -962,8 +943,10 @@ function RoomEditor({
                 <ChevronLeft />
               </Button>
               <Select
-                value={selectedMissionKey}
-                onValueChange={setMissionKey}
+                value={selectedMissionKey ?? unsetMissionValue}
+                onValueChange={(value) =>
+                  setMissionKey(value === unsetMissionValue ? null : value)
+                }
                 disabled={disabled}
               >
                 <SelectTrigger
@@ -973,6 +956,7 @@ function RoomEditor({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={unsetMissionValue}>Unset</SelectItem>
                   {missionOptions.map((mission) => (
                     <SelectItem value={mission.key} key={mission.key}>
                       {mission.number} · {mission.title}
@@ -988,11 +972,11 @@ function RoomEditor({
                 title="Next mission"
                 disabled={
                   disabled ||
-                  selectedMissionIndex < 0 ||
                   selectedMissionIndex >= missionOptions.length - 1
                 }
                 onClick={() => {
-                  const nextMission = missionOptions[selectedMissionIndex + 1];
+                  const nextMission =
+                    missionOptions[Math.max(0, selectedMissionIndex + 1)];
                   if (nextMission) setMissionKey(nextMission.key);
                 }}
               >
@@ -1014,7 +998,10 @@ function RoomEditor({
                 aria-label="Previous attempt"
                 title="Previous attempt"
                 disabled={
-                  disabled || !attemptNumberIsValid || parsedAttemptNumber <= 1
+                  disabled ||
+                  selectedMissionKey === null ||
+                  !attemptNumberIsValid ||
+                  parsedAttemptNumber <= 1
                 }
                 onClick={() => stepAttemptNumber(-1)}
               >
@@ -1028,7 +1015,7 @@ function RoomEditor({
                 min={1}
                 step={1}
                 value={attemptNumber}
-                disabled={disabled}
+                disabled={disabled || selectedMissionKey === null}
                 required
                 onChange={(event) => setAttemptNumber(event.target.value)}
               />
@@ -1038,7 +1025,7 @@ function RoomEditor({
                 type="button"
                 aria-label="Next attempt"
                 title="Next attempt"
-                disabled={disabled}
+                disabled={disabled || selectedMissionKey === null}
                 onClick={() => stepAttemptNumber(1)}
               >
                 <ChevronRight />

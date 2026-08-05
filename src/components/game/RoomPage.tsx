@@ -101,6 +101,10 @@ export function RoomPage({
     );
   }
 
+  if (connection === "missionless") {
+    return <MissionlessRoomFallback message={message} />;
+  }
+
   if (!projection) {
     return (
       <RoomFallback
@@ -129,6 +133,19 @@ export function RoomPage({
       actionPending={actionPending}
       sendCommand={sendCommand}
       onForget={forgetRoom}
+    />
+  );
+}
+
+export function MissionlessRoomFallback({ message = "" }: { message?: string }) {
+  return (
+    <RoomFallback
+      containerClassName="p-2 sm:p-8"
+      role="status"
+      aria-labelledby="mission-needed-title"
+      title="Mission needed"
+      titleId="mission-needed-title"
+      subtitle={message || "Ask the room admin to set a mission."}
     />
   );
 }
