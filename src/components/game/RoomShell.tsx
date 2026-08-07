@@ -113,6 +113,9 @@ const qualifierCopy: Record<CommunicationQualifier, string> = {
 const cardsById = new Map(CARD_DECK.map((card) => [card.id, card]));
 const playDropId = "crew:play-card";
 const communicationDropId = "crew:communicate-card";
+const taskClaimDragId = (taskId: string) => `crew:claim-task:${taskId}`;
+const taskClaimDropId = (playerId: string) =>
+  `crew:claim-task-player:${playerId}`;
 const reconnectingMessage =
   "Connection interrupted. Showing the latest confirmed state while we retry.";
 
@@ -198,6 +201,7 @@ export function RoomShell({
     cardId: CardId | null;
   }>(() => ({ scope: handScope, mode: false, cardId: null }));
   const [draggedCardId, setDraggedCardId] = useState<CardId | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [interactionAnnouncement, setInteractionAnnouncement] = useState("");
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -214,6 +218,8 @@ export function RoomShell({
       ? communicationState.cardId
       : null;
   const draggedCard = projectedCard(draggedCardId);
+  const draggedTask =
+    projection.tasks.find((task) => task.id === draggedTaskId) ?? null;
   const won = projection.phase === "finished" && projection.result === "won";
   const connectionToastId = `room-connection:${projection.room.id}`;
   const messageToastId = `room-message:${projection.room.id}`;
@@ -247,11 +253,33 @@ export function RoomShell({
   }, [connectionToastId, messageToastId]);
 
   function handleDragStart({ active }: DragStartEvent) {
+    if (active.data.current?.type === "claim-task") {
+      const taskId = active.data.current.taskId;
+      const task = projection.tasks.find(
+        (candidate) => candidate.id === taskId,
+      );
+      if (
+        !task ||
+        !projection.legalActions.claimableTaskIds.includes(task.id)
+      ) {
+        return;
+      }
+
+      setDraggedCardId(null);
+      setDraggedTaskId(task.id);
+      setInteractionAnnouncement(
+        `Dragging ${task.title}. Drop it on your Crew station to assign it to yourself.`,
+      );
+      return;
+    }
+
+    if (active.data.current?.type !== "hand-card") return;
     const card = projection.self.hand.find(
-      (candidate) => candidate.id === active.id,
+      (candidate) => candidate.id === active.data.current?.cardId,
     );
     if (!card) return;
 
+    setDraggedTaskId(null);
     setDraggedCardId(card.id);
     setInteractionAnnouncement(
       `Dragging ${cardName(card)}. Drop it on your played or communication station.`,
@@ -259,8 +287,40 @@ export function RoomShell({
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
+    if (active.data.current?.type === "claim-task") {
+      const taskId = active.data.current.taskId;
+      const task = projection.tasks.find(
+        (candidate) => candidate.id === taskId,
+      );
+      setDraggedTaskId(null);
+
+      if (
+        !task ||
+        !over ||
+        actionPending ||
+        over.id !== taskClaimDropId(projection.self.id) ||
+        !projection.legalActions.claimableTaskIds.includes(task.id)
+      ) {
+        setInteractionAnnouncement(
+          task ? `${task.title} returned to the mission board.` : "Task drag cancelled.",
+        );
+        return;
+      }
+
+      setInteractionAnnouncement(`Assigning ${task.title} to you.`);
+      void sendCommand({ type: "claim-task", taskId: task.id }).then((sent) => {
+        setInteractionAnnouncement(
+          sent
+            ? `${task.title} assigned to you.`
+            : `${task.title} could not be assigned.`,
+        );
+      });
+      return;
+    }
+
+    if (active.data.current?.type !== "hand-card") return;
     const card = projection.self.hand.find(
-      (candidate) => candidate.id === active.id,
+      (candidate) => candidate.id === active.data.current?.cardId,
     );
     setDraggedCardId(null);
 
@@ -305,6 +365,12 @@ export function RoomShell({
   }
 
   function handleDragCancel() {
+    if (draggedTask) {
+      setDraggedTaskId(null);
+      setInteractionAnnouncement(`Stopped dragging ${draggedTask.title}.`);
+      return;
+    }
+
     const card = projectedCard(draggedCardId);
     setDraggedCardId(null);
     setInteractionAnnouncement(
@@ -333,6 +399,7 @@ export function RoomShell({
             projection={projection}
             pending={actionPending}
             draggedCard={draggedCard}
+            draggedTask={draggedTask}
             sendCommand={sendCommand}
             onForget={onForget}
           />
@@ -356,8 +423,23 @@ export function RoomShell({
         }
       />
       <DragOverlay dropAnimation={null}>
-        {draggedCard ? (
-          <div aria-hidden="true" className="rotate-2 opacity-95 shadow-xl">
+        {draggedTask ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none rotate-2 opacity-95 shadow-xl"
+          >
+            <TaskTile
+              emphasized
+              showBoot={false}
+              task={draggedTask}
+              card={projectedCard(draggedTask.cardId)}
+            />
+          </div>
+        ) : draggedCard ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none rotate-2 opacity-95 shadow-xl"
+          >
             <GameCard card={draggedCard} />
           </div>
         ) : null}
@@ -370,12 +452,14 @@ function RoomConsole({
   projection,
   pending,
   draggedCard,
+  draggedTask,
   sendCommand,
   onForget,
 }: {
   projection: ActorProjection;
   pending: boolean;
   draggedCard: Card | null;
+  draggedTask: ActorProjection["tasks"][number] | null;
   sendCommand: RoomShellProps["sendCommand"];
   onForget: () => void;
 }) {
@@ -393,6 +477,7 @@ function RoomConsole({
             layout="main"
             pending={pending}
             draggedCard={draggedCard}
+            draggedTask={draggedTask}
             sendCommand={sendCommand}
           />
         ) : (
@@ -418,6 +503,7 @@ function RoomConsole({
           }
           pending={pending}
           draggedCard={draggedCard}
+          draggedTask={draggedTask}
           sendCommand={sendCommand}
         />
       )}
@@ -513,9 +599,7 @@ function TaskBoard({
   sendCommand: (command: PlayerCommand) => Promise<boolean>;
 }) {
   const isAssigning = projection.phase === "assigning-tasks";
-  const showTaskInfo =
-    projection.mission.editionKey === "deep-sea" &&
-    (isAssigning || projection.phase === "ready-to-start-trick");
+  const showTaskInfo = projection.mission.editionKey === "deep-sea";
   const visibleTasks = isAssigning
     ? projection.tasks.filter((task) => task.ownerPlayerId === null)
     : projection.tasks;
@@ -545,8 +629,13 @@ function TaskBoard({
           const releasable = projection.legalActions.releasableTaskIds.includes(task.id);
           const canResolve = projection.legalActions.taskOutcomeTaskIds.includes(task.id);
           const selectionBoot =
-            showTaskInfo && (claimable || releasable) ? (
-              <TaskBoot emphasized={isAssigning} showInfo task={task} />
+            claimable || releasable ? (
+              <TaskBoot
+                card={projectedCard(task.cardId)}
+                emphasized={isAssigning}
+                showInfo={showTaskInfo}
+                task={task}
+              />
             ) : undefined;
           const tile = (
             <TaskTile
@@ -621,29 +710,61 @@ function TaskBoard({
   );
 }
 
-function TaskSelectionButton({
-  action,
-  task,
-  pending,
-  sendCommand,
-  children,
-  boot,
-}: {
+type TaskSelectionButtonProps = {
   action: "claim" | "release";
   task: ActorProjection["tasks"][number];
   pending: boolean;
   sendCommand: (command: PlayerCommand) => Promise<boolean>;
   children: ReactNode;
   boot?: ReactNode;
-}) {
+};
+
+type TaskSelectionDragProps = Pick<
+  ReturnType<typeof useDraggable>,
+  "isDragging" | "listeners" | "setNodeRef"
+>;
+
+function TaskSelectionButton(props: TaskSelectionButtonProps) {
+  return props.action === "claim" ? (
+    <DraggableTaskClaimButton {...props} />
+  ) : (
+    <TaskSelectionControl {...props} />
+  );
+}
+
+function DraggableTaskClaimButton(props: TaskSelectionButtonProps) {
+  const drag = useDraggable({
+    id: taskClaimDragId(props.task.id),
+    disabled: props.pending,
+    data: { type: "claim-task", taskId: props.task.id },
+  });
+
+  return <TaskSelectionControl {...props} drag={drag} />;
+}
+
+function TaskSelectionControl({
+  action,
+  task,
+  pending,
+  sendCommand,
+  children,
+  boot,
+  drag,
+}: TaskSelectionButtonProps & { drag?: TaskSelectionDragProps }) {
   const isClaim = action === "claim";
 
   const selectionButton = (
     <button
+      {...drag?.listeners}
       className={cn(
         "cursor-pointer rounded-md border-0 bg-transparent p-0 text-inherit focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-task-focus focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60",
         boot && "*:data-task-outcome:pb-0",
+        isClaim && "cursor-grab touch-pan-y active:cursor-grabbing",
+        drag?.isDragging && "opacity-30",
       )}
+      data-task-dragging={drag ? (drag.isDragging ? "true" : "false") : undefined}
+      data-task-id={task.id}
+      ref={drag?.setNodeRef}
       type="button"
       disabled={pending}
       aria-label={isClaim ? `Assign ${task.title} to me` : `Deselect ${task.title}`}
@@ -975,20 +1096,82 @@ function MissionOutcomeActions({
   );
 }
 
+function TaskDroppableCrewStation({
+  taskDropId: dropId,
+  taskDropEnabled,
+  taskDropTarget,
+  taskDragging,
+  className,
+  children,
+  ...props
+}: ComponentPropsWithoutRef<"article"> & {
+  taskDropId: string;
+  taskDropEnabled: boolean;
+  taskDropTarget: boolean;
+  taskDragging: boolean;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: dropId,
+    disabled: !taskDropEnabled,
+    data: { type: "claim-task-target" },
+  });
+  const dropState = taskDragging && taskDropTarget
+    ? taskDropEnabled
+      ? isOver
+        ? "active"
+        : "available"
+      : "unavailable"
+    : "idle";
+
+  return (
+    <article
+      {...props}
+      className={cn(
+        "relative transition-[background-color,box-shadow] motion-reduce:transition-none",
+        dropState === "available" &&
+          "bg-indigo-50/80 ring-2 ring-inset ring-indigo-300",
+        dropState === "active" &&
+          "bg-indigo-100 ring-4 ring-inset ring-indigo-600",
+        className,
+      )}
+      data-task-drop-state={taskDropTarget ? dropState : undefined}
+      data-task-drop-target={taskDropTarget ? "claim" : undefined}
+      ref={setNodeRef}
+    >
+      {children}
+      {taskDragging && taskDropTarget && taskDropEnabled ? (
+        <span
+          className={cn(
+            "pointer-events-none absolute inset-0 z-30 grid place-items-center rounded-xl border-2 border-dashed border-indigo-500 bg-white/90 px-2 text-center text-xs leading-tight font-bold text-indigo-700 uppercase backdrop-blur-sm",
+            dropState === "active" &&
+              "border-solid bg-indigo-100/95 text-indigo-900",
+          )}
+          aria-hidden="true"
+        >
+          Assign to me
+        </span>
+      ) : null}
+    </article>
+  );
+}
+
 function CrewPanels({
   projection,
   layout,
   pending,
   draggedCard,
+  draggedTask,
   sendCommand,
 }: {
   projection: ActorProjection;
   layout: "compact" | "main" | "strip";
   pending: boolean;
   draggedCard: Card | null;
+  draggedTask: ActorProjection["tasks"][number] | null;
   sendCommand: (command: PlayerCommand) => Promise<boolean>;
 }) {
   const visibleTrick = projection.currentTrick ?? projection.lastTrick;
+  const showTaskInfo = projection.mission.editionKey === "deep-sea";
 
   return (
     <section
@@ -1027,15 +1210,25 @@ function CrewPanels({
               (option) => option.cardId === draggedCard.id,
             ),
         );
+        const canDropTask = Boolean(
+          isSelf &&
+            draggedTask &&
+            !pending &&
+            projection.legalActions.claimableTaskIds.includes(draggedTask.id),
+        );
 
         return (
-          <article
+          <TaskDroppableCrewStation
             className={cn(
               "min-h-0 min-w-0 border-l-2 border-solid border-l-gray-200 px-4 pt-1 pb-2 first:border-l-0 min-[701px]:max-[1100px]:px-2 max-[700px]:snap-center max-[700px]:overflow-y-auto",
               layout === "main" ? "overflow-y-auto" : "overflow-hidden",
             )}
             key={player.id}
             aria-label={`${player.displayName} station`}
+            taskDropEnabled={canDropTask}
+            taskDropId={taskClaimDropId(player.id)}
+            taskDropTarget={isSelf}
+            taskDragging={Boolean(draggedTask)}
           >
             <header className="flex min-h-12 items-center justify-center gap-[0.45rem] min-[701px]:[@media(max-height:720px)]:min-h-10">
               <span
@@ -1109,11 +1302,20 @@ function CrewPanels({
                     projection.legalActions.taskOutcomeTaskIds.includes(task.id);
                   const releasable =
                     projection.legalActions.releasableTaskIds.includes(task.id);
+                  const selectionBoot = releasable ? (
+                    <TaskBoot
+                      card={projectedCard(task.cardId)}
+                      showInfo={showTaskInfo}
+                      task={task}
+                    />
+                  ) : undefined;
                   const tile = (
                     <TaskTile
                       task={task}
                       card={projectedCard(task.cardId)}
                       ownerName={player.displayName}
+                      showBoot={!selectionBoot}
+                      showInfo={showTaskInfo}
                       action={
                         canResolve ? (
                           <TaskOutcomeActions
@@ -1133,6 +1335,7 @@ function CrewPanels({
                       pending={pending}
                       sendCommand={sendCommand}
                       task={task}
+                      boot={selectionBoot}
                     >
                       {tile}
                     </TaskSelectionButton>
@@ -1142,7 +1345,7 @@ function CrewPanels({
                 })}
               </div>
             ) : null}
-          </article>
+          </TaskDroppableCrewStation>
         );
       })}
     </section>
@@ -1266,7 +1469,7 @@ function RoomDock({
 }) {
   const dockRef = useRef<HTMLElement>(null);
   const firstQualifierRef = useRef<HTMLButtonElement>(null);
-  const selectedCardRef = useRef<HTMLButtonElement>(null);
+  const communicatingCardRef = useRef<HTMLButtonElement>(null);
   const canCommunicate =
     projection.legalActions.communicationOptions.length > 0;
   const isCommunicationMode = communicationMode && canCommunicate;
@@ -1282,7 +1485,7 @@ function RoomDock({
   }, [communicatingCardId]);
 
   function closeCommunicationPicker() {
-    selectedCardRef.current?.focus();
+    communicatingCardRef.current?.focus();
     onCommunicationChange(isCommunicationMode, null);
   }
 
@@ -1327,7 +1530,7 @@ function RoomDock({
                 projection.legalActions.communicationOptions.some(
                   (option) => option.cardId === card.id,
                 );
-              const interactive = isCommunicationMode
+              const canActivate = isCommunicationMode
                 ? communicable
                 : playable;
 
@@ -1336,10 +1539,9 @@ function RoomDock({
                   card={card}
                   disabled={pending}
                   key={card.id}
-                  selected={communicatingCardId === card.id}
                   buttonRef={
                     communicatingCardId === card.id
-                      ? selectedCardRef
+                      ? communicatingCardRef
                       : undefined
                   }
                   labelPrefix={
@@ -1352,7 +1554,7 @@ function RoomDock({
                         : "Unavailable"
                   }
                   onClick={
-                    interactive
+                    canActivate
                       ? isCommunicationMode
                         ? () => onCommunicationChange(true, card.id)
                         : () =>
@@ -1425,14 +1627,12 @@ function RoomDock({
 function DraggableHandCard({
   card,
   disabled,
-  selected,
   buttonRef,
   labelPrefix,
   onClick,
 }: {
   card: Card;
   disabled: boolean;
-  selected: boolean;
   buttonRef?: Ref<HTMLButtonElement>;
   labelPrefix: string;
   onClick?: () => void;
@@ -1440,7 +1640,7 @@ function DraggableHandCard({
   const { isDragging, listeners, setNodeRef } = useDraggable({
     id: card.id,
     disabled,
-    data: { type: "hand-card" },
+    data: { type: "hand-card", cardId: card.id },
   });
 
   return (
@@ -1463,7 +1663,6 @@ function DraggableHandCard({
         <GameCard
           card={card}
           disabled={disabled}
-          selected={selected}
           buttonRef={buttonRef}
           labelPrefix={labelPrefix}
           onClick={onClick}

@@ -1,5 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Route,
+} from "@playwright/test";
 
 import type { ActorProjection, Card } from "../src/components/game/types";
 
@@ -96,6 +102,47 @@ function makeProjection(): ActorProjection {
   };
 }
 
+function makeTaskAssignmentProjection(): ActorProjection {
+  const projection = makeProjection();
+
+  return {
+    ...projection,
+    mission: {
+      ...projection.mission,
+      editionKey: "deep-sea",
+      missionKey: "deep-sea:1",
+      title: "First Dive",
+      manualRule: false,
+    },
+    phase: "assigning-tasks",
+    players: projection.players.map((player) => ({
+      ...player,
+      isCurrent: false,
+    })),
+    tasks: [
+      {
+        id: "task-1",
+        definitionId: "deep-sea-task-85",
+        difficulty: 3,
+        cardId: null,
+        order: null,
+        ownerPlayerId: null,
+        ownerDisplayName: null,
+        outcome: "pending",
+        title: "I will win exactly two 9s",
+        footnote: null,
+      },
+    ],
+    legalActions: {
+      ...projection.legalActions,
+      canStartTrick: false,
+      claimableTaskIds: ["task-1"],
+      playableCardIds: [],
+      communicationOptions: [],
+    },
+  };
+}
+
 type Projection = ActorProjection;
 
 async function fulfillJson(route: Route, body: unknown) {
@@ -109,8 +156,9 @@ async function fulfillJson(route: Route, body: unknown) {
 async function openMockedRoom(
   page: Page,
   onAction: (command: Record<string, unknown>, projection: Projection) => Projection,
+  initialProjection: Projection = makeProjection(),
 ) {
-  let projection = makeProjection();
+  let projection = initialProjection;
   const actions: Array<Record<string, unknown>> = [];
 
   await page.addInitScript(
@@ -171,6 +219,45 @@ async function dragCard(page: Page, cardId: string, targetSelector: string) {
     .dragTo(page.locator(targetSelector), { steps: 12 });
 }
 
+async function dragTaskFace(
+  page: Page,
+  taskButton: Locator,
+  target: Locator,
+  ownStation: Locator,
+  allowed: boolean,
+) {
+  const source = taskButton.locator('[data-slot="task-face"]');
+  const [sourceBox, targetBox] = await Promise.all([
+    source.boundingBox(),
+    target.boundingBox(),
+  ]);
+  expect(sourceBox).not.toBeNull();
+  expect(targetBox).not.toBeNull();
+
+  const sourcePoint = {
+    x: sourceBox!.x + sourceBox!.width / 2,
+    y: sourceBox!.y + sourceBox!.height / 2,
+  };
+  const targetPoint = {
+    x: targetBox!.x + targetBox!.width / 2,
+    y: targetBox!.y + targetBox!.height / 2,
+  };
+
+  await page.mouse.move(sourcePoint.x, sourcePoint.y);
+  await page.mouse.down();
+  await page.mouse.move(sourcePoint.x + 12, sourcePoint.y, { steps: 2 });
+  await expect(ownStation).toHaveAttribute(
+    "data-task-drop-state",
+    "available",
+  );
+  await page.mouse.move(targetPoint.x, targetPoint.y, { steps: 12 });
+  await expect(ownStation).toHaveAttribute(
+    "data-task-drop-state",
+    allowed ? "active" : "available",
+  );
+  await page.mouse.up();
+}
+
 async function expectNoAccessibilityViolations(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -178,6 +265,176 @@ async function expectNoAccessibilityViolations(page: Page) {
 
   expect(results.violations).toEqual([]);
 }
+
+test("a task face only assigns when dropped on the current player's Crew station", async ({
+  page,
+}) => {
+  const initialProjection = makeTaskAssignmentProjection();
+  const { actions } = await openMockedRoom(
+    page,
+    (command, projection) => {
+      if (command.type !== "claim-task") return projection;
+
+      return {
+        ...projection,
+        phase: "ready-to-start-trick",
+        tasks: projection.tasks.map((task) =>
+          task.id === command.taskId
+            ? {
+                ...task,
+                ownerPlayerId: projection.self.id,
+                ownerDisplayName: projection.self.displayName,
+              }
+            : task,
+        ),
+        legalActions: {
+          ...projection.legalActions,
+          canStartTrick: true,
+          claimableTaskIds: [],
+          releasableTaskIds: [command.taskId as string],
+        },
+      };
+    },
+    initialProjection,
+  );
+  const taskButton = page.getByRole("button", {
+    name: "Assign I will win exactly two 9s to me",
+  });
+  const ownStation = page.locator('[data-task-drop-target="claim"]');
+  const otherStation = page.getByRole("article", {
+    name: "Grace station",
+  });
+
+  await expect(taskButton.locator('[data-slot="task-face"]')).toBeVisible();
+  await expect(taskButton.locator('[data-slot="task-boot"]')).toHaveCount(0);
+  await dragTaskFace(page, taskButton, otherStation, ownStation, false);
+  await expect(taskButton).toHaveAttribute("data-task-dragging", "false");
+  await expect(ownStation).toHaveAttribute("data-task-drop-state", "idle");
+  expect(actions).toEqual([]);
+
+  await dragTaskFace(page, taskButton, ownStation, ownStation, true);
+
+  await expect.poll(() => actions).toEqual([
+    { type: "claim-task", taskId: "task-1" },
+  ]);
+  await expect(
+    page
+      .getByRole("region", { name: "Mission board" })
+      .getByRole("button", {
+        name: "Deselect I will win exactly two 9s",
+      }),
+  ).toBeVisible();
+});
+
+test("task assignment keeps click and keyboard fallbacks", async ({ page }) => {
+  const { actions } = await openMockedRoom(
+    page,
+    (_command, projection) => projection,
+    makeTaskAssignmentProjection(),
+  );
+  const taskButton = page.getByRole("button", {
+    name: "Assign I will win exactly two 9s to me",
+  });
+
+  await taskButton.locator('[data-slot="task-face"]').click();
+  await expect.poll(() => actions).toEqual([
+    { type: "claim-task", taskId: "task-1" },
+  ]);
+  await expect(taskButton).toBeEnabled();
+
+  actions.length = 0;
+  await taskButton.focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => actions).toEqual([
+    { type: "claim-task", taskId: "task-1" },
+  ]);
+  await expect(taskButton).toBeEnabled();
+
+  actions.length = 0;
+  await taskButton.focus();
+  await page.keyboard.press("Space");
+  await expect.poll(() => actions).toEqual([
+    { type: "claim-task", taskId: "task-1" },
+  ]);
+});
+
+test("a long-press touch drag assigns a task on a touch screen", async ({
+  browser,
+}, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  if (typeof baseURL !== "string") {
+    throw new Error("The Playwright project must define a base URL.");
+  }
+
+  const context = await browser.newContext({
+    baseURL,
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 1024, height: 640 },
+  });
+  const page = await context.newPage();
+
+  try {
+    const { actions } = await openMockedRoom(
+      page,
+      (_command, projection) => projection,
+      makeTaskAssignmentProjection(),
+    );
+    const source = page
+      .getByRole("button", {
+        name: "Assign I will win exactly two 9s to me",
+      })
+      .locator('[data-slot="task-face"]');
+    const target = page.locator('[data-task-drop-target="claim"]');
+    const [sourceBox, targetBox] = await Promise.all([
+      source.boundingBox(),
+      target.boundingBox(),
+    ]);
+    expect(sourceBox).not.toBeNull();
+    expect(targetBox).not.toBeNull();
+
+    const sourcePoint = {
+      x: sourceBox!.x + sourceBox!.width / 2,
+      y: sourceBox!.y + sourceBox!.height / 2,
+    };
+    const targetPoint = {
+      x: targetBox!.x + targetBox!.width / 2,
+      y: targetBox!.y + targetBox!.height / 2,
+    };
+    const client = await context.newCDPSession(page);
+
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [sourcePoint],
+    });
+    await page.waitForTimeout(220);
+    await expect(target).toHaveAttribute("data-task-drop-state", "available");
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [
+        {
+          x: (sourcePoint.x + targetPoint.x) / 2,
+          y: (sourcePoint.y + targetPoint.y) / 2,
+        },
+      ],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [targetPoint],
+    });
+    await expect(target).toHaveAttribute("data-task-drop-state", "active");
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+
+    await expect.poll(() => actions).toEqual([
+      { type: "claim-task", taskId: "task-1" },
+    ]);
+  } finally {
+    await context.close();
+  }
+});
 
 test("dragging a legal card to the played station plays it", async ({
   page,
@@ -250,8 +507,8 @@ test("dragging a legal card to the played station plays it", async ({
   await expect(
     page
       .getByRole("article", { name: "Ada station" })
-      .getByRole("img", { name: "Pink 1", exact: true }),
-  ).toBeVisible();
+      .getByRole("button", { name: "Pink 1", exact: true }),
+  ).toBeDisabled();
   await expect(page.getByRole("region", { name: "Crew" })).toHaveAttribute(
     "data-crew-layout",
     "main",

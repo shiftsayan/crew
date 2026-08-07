@@ -110,7 +110,7 @@ describe("RoomShellImpl", () => {
       />,
     );
     const infoLabel =
-      'aria-label="View details for I will win exactly two 9s"';
+      'aria-label="Difficulty 3. View details for I will win exactly two 9s"';
 
     function expectSiblingBoot(markup: string, selectionLabel: string) {
       const labelIndex = markup.indexOf(`aria-label="${selectionLabel}"`);
@@ -121,6 +121,7 @@ describe("RoomShellImpl", () => {
 
       expect(labelIndex).toBeGreaterThan(-1);
       expect(selectionButton.match(/<button/g)).toHaveLength(1);
+      expect(selectionButton).toContain(`data-task-id="${deepSeaTask.id}"`);
       expect(selectionButton).not.toContain(infoLabel);
       expect(selectionButton).not.toContain('data-slot="task-boot"');
       expect(bootIndex).toBeGreaterThan(buttonEnd);
@@ -167,12 +168,12 @@ describe("RoomShellImpl", () => {
 
     expectSiblingBoot(readyMarkup, "Deselect I will win exactly two 9s");
     expect(readyMarkup).toContain(
-      'aria-label="View details for I will win a trick using a 5"',
+      'aria-label="Difficulty 2. View details for I will win a trick using a 5"',
     );
   });
 
-  it("keeps the active Deep Sea boot without its pregame info trigger", () => {
-    const projection = deepSeaProjection("between-tricks");
+  it("opens Deep Sea details from difficulty during an active trick", () => {
+    const projection = deepSeaProjection("playing-trick");
     projection.tasks = [
       {
         ...deepSeaTask,
@@ -195,6 +196,9 @@ describe("RoomShellImpl", () => {
     expect(markup).toContain('data-slot="task-boot"');
     expect(markup).toContain('data-slot="task-status"');
     expect(markup).toContain('data-slot="deep-sea-task-difficulty"');
-    expect(markup).not.toContain("View details for");
+    expect(markup).toContain(
+      'aria-label="Difficulty 3. View details for I will win exactly two 9s"',
+    );
+    expect(markup).not.toContain('data-slot="task-info"');
   });
 });
