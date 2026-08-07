@@ -33,7 +33,7 @@ test("assets exposes every canonical card and goal", async ({ page }) => {
   );
   await expect(
     page.getByRole("button", { name: /View details for/ }),
-  ).toHaveCount(DEEP_SEA_TASKS.length);
+  ).toHaveCount(0);
   await expect(
     page.locator('[data-slot="deep-sea-task-difficulty"]'),
   ).toHaveCount(0);
@@ -46,6 +46,15 @@ test("assets exposes every canonical card and goal", async ({ page }) => {
       '[data-asset-mode="deep-sea"] [aria-label^="Difficulty:"]',
     ),
   ).toHaveCount(0);
+  const deepSeaAssets = page.locator('[data-asset-mode="deep-sea"]');
+  await expect(
+    deepSeaAssets.getByText("WIN =0×", { exact: true }),
+  ).toHaveCount(9);
+  await expect(deepSeaAssets.getByText("0×", { exact: true })).toHaveCount(2);
+  await expect(
+    deepSeaAssets.getByText("Win 0× tricks", { exact: true }),
+  ).toHaveCount(1);
+  await expect(deepSeaAssets.getByText(/0(?:x|ˣ)/)).toHaveCount(0);
 
   const task88 = page.locator('[data-asset-task="deep-sea-task-88"]');
   const task88Spacing = await task88.evaluate((element) => {
@@ -130,20 +139,44 @@ test("assets exposes every canonical card and goal", async ({ page }) => {
   await expect(page.getByText("36 goals", { exact: true })).toBeVisible();
 });
 
+test("cards are interactive unless disabled without a disabled appearance", async ({
+  page,
+}) => {
+  await page.goto("/assets");
+
+  await expect(
+    page.getByRole("combobox", { name: "Selection", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("combobox", { name: "Element", exact: true }),
+  ).toHaveCount(0);
+  const firstCard = page.locator("[data-asset-card]").first();
+  await expect(page.locator("[data-asset-card]")).toHaveCount(CARD_DECK.length);
+  await expect(firstCard.getByRole("button")).toBeEnabled();
+  await expect(firstCard).not.toHaveAttribute("data-asset-interactive", /.+/);
+  await expect(firstCard).not.toHaveAttribute("data-asset-selected", /.+/);
+
+  await choose(page, "Availability", "Disabled");
+  await expect(firstCard).toHaveAttribute("data-asset-disabled", "true");
+  await expect(firstCard.getByRole("button")).toBeDisabled();
+  await expect(firstCard.getByRole("button")).toHaveCSS("filter", "none");
+  await expect(firstCard.getByRole("button")).toHaveCSS("opacity", "1");
+  await expect(firstCard.getByRole("button")).not.toHaveAttribute(
+    "aria-pressed",
+    /.+/,
+  );
+});
+
 test("asset controls reach every meaningful card and goal state", async ({
   page,
 }) => {
   await page.goto("/assets");
 
-  await choose(page, "Element", "Interactive");
-  await choose(page, "Selection", "Selected");
   await choose(page, "Availability", "Disabled");
   await choose(page, "Scale", "Communication · 80%");
 
   const firstCard = page.locator("[data-asset-card]").first();
   await expect(page.locator("[data-asset-card]")).toHaveCount(CARD_DECK.length);
-  await expect(firstCard).toHaveAttribute("data-asset-interactive", "true");
-  await expect(firstCard).toHaveAttribute("data-asset-selected", "true");
   await expect(firstCard).toHaveAttribute("data-asset-disabled", "true");
   await expect(firstCard).toHaveAttribute(
     "data-asset-scale",
@@ -184,26 +217,27 @@ test("asset controls reach every meaningful card and goal state", async ({
     .toHaveAttribute("data-task-outcome", "success");
   const deepSeaBoot = firstDeepSeaGoal.locator('[data-slot="task-boot"]');
   await expect(deepSeaBoot).toBeVisible();
-  await expect(deepSeaBoot).toHaveCSS(
-    "background-color",
-    "oklch(0.929 0.013 255.508)",
-  );
+  await expect(deepSeaBoot).toHaveClass(/bg-slate-200/);
   const deepSeaStatus = deepSeaBoot.locator('[data-slot="task-status"]');
   await expect(deepSeaStatus).toBeVisible();
-  await expect(deepSeaStatus).toHaveCSS(
-    "background-color",
-    "rgb(255, 255, 255)",
-  );
+  await expect(deepSeaStatus).toHaveClass(/bg-green-500/);
+  await expect(deepSeaStatus).toHaveCSS("border-width", "0px");
+  await expect(deepSeaStatus).toHaveCSS("height", "14px");
+  await expect(deepSeaStatus).toHaveCSS("width", "14px");
   await expect(deepSeaStatus.locator("svg")).toHaveCSS(
     "color",
-    "oklch(0.723 0.219 149.579)",
+    "rgb(255, 255, 255)",
   );
   const difficultyBadge = deepSeaBoot.locator(
     '[data-slot="deep-sea-task-difficulty"]',
   );
   await expect(difficultyBadge).toBeVisible();
   await expect(difficultyBadge).toHaveCSS("height", "14px");
-  await expect(difficultyBadge).toHaveCSS("width", "14px");
+  const difficultyWidth = await difficultyBadge.evaluate(
+    (element) => element.getBoundingClientRect().width,
+  );
+  expect(difficultyWidth).toBeGreaterThan(14);
+  expect(difficultyWidth).toBeLessThan(28);
   await expect(difficultyBadge).toHaveCSS(
     "background-color",
     "rgb(255, 255, 255)",
@@ -212,26 +246,57 @@ test("asset controls reach every meaningful card and goal state", async ({
   await expect(firstDeepSeaGoal.getByRole("img")).toHaveAccessibleName(
     /Unassigned\. Successful\. Difficulty \d+\./,
   );
-  const infoButton = deepSeaBoot.getByRole("button", {
+  const difficultyButton = deepSeaBoot.getByRole("button", {
     name: /View details for/,
   });
-  await expect(infoButton).toBeVisible();
-  await expect(infoButton).toHaveCSS("height", "14px");
-  await expect(infoButton).toHaveCSS("width", "14px");
-  await expect(infoButton).toHaveCSS(
+  await expect(difficultyButton).toBeVisible();
+  const difficultyFontSize = await difficultyButton.evaluate(
+    (element) => getComputedStyle(element).fontSize,
+  );
+  await expect(difficultyButton).toHaveAttribute(
+    "data-slot",
+    "deep-sea-task-difficulty",
+  );
+  expect(
+    await deepSeaBoot.evaluate((element) =>
+      Array.from(element.children, (child) => child.getAttribute("data-slot")),
+    ),
+  ).toEqual(["deep-sea-task-difficulty", "task-status"]);
+  expect(
+    await deepSeaBoot
+      .locator(":scope > [data-slot]")
+      .evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect().height),
+      ),
+  ).toEqual([14, 14]);
+  await expect(difficultyButton).toHaveCSS("height", "14px");
+  expect(
+    await difficultyButton.evaluate(
+      (element) => element.getBoundingClientRect().width,
+    ),
+  ).toBe(difficultyWidth);
+  await expect(difficultyButton).toHaveCSS(
     "background-color",
     "rgb(255, 255, 255)",
   );
-  await infoButton.hover();
-  await expect(infoButton).toHaveCSS(
+  const difficultyNumber = difficultyButton.locator("span");
+  const difficultyIcon = difficultyButton.locator("svg");
+  await expect(difficultyNumber).toHaveCSS("color", "rgb(40, 35, 93)");
+  const restingIconColor = await difficultyIcon.evaluate(
+    (element) => getComputedStyle(element).color,
+  );
+  await difficultyButton.hover();
+  await expect(difficultyButton).toHaveCSS(
     "background-color",
-    "oklch(0.968 0.007 247.896)",
+    "rgb(255, 255, 255)",
   );
-  await expect(infoButton).toHaveCSS(
-    "color",
-    "oklch(0.457 0.24 277.023)",
+  await expect(difficultyIcon).toHaveClass(
+    /group-hover:text-slate-600/,
   );
-  await infoButton.click();
+  expect(await difficultyIcon.evaluate((element) => getComputedStyle(element).color))
+    .not.toBe(restingIconColor);
+  await expect(difficultyNumber).toHaveCSS("color", "rgb(40, 35, 93)");
+  await difficultyButton.click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Task 1" }),
@@ -242,6 +307,29 @@ test("asset controls reach every meaningful card and goal state", async ({
       .getByText("I will win a trick using a 5", { exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
+
+  await choose(page, "Outcome", "Pending");
+  await expect(firstDeepSeaGoal.locator("[data-task-outcome]"))
+    .toHaveAttribute("data-task-outcome", "pending");
+  await expect(deepSeaStatus).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  await expect(deepSeaStatus.locator("svg")).toHaveCSS(
+    "color",
+    "rgb(0, 0, 0)",
+  );
+
+  await choose(page, "Outcome", "Failed");
+  await expect(firstDeepSeaGoal.locator("[data-task-outcome]"))
+    .toHaveAttribute("data-task-outcome", "failure");
+  await expect(deepSeaStatus).toHaveClass(/bg-red-600/);
+  await expect(deepSeaStatus.locator("svg")).toHaveCSS(
+    "color",
+    "rgb(255, 255, 255)",
+  );
+
+  await choose(page, "Outcome", "Successful");
 
   await choose(page, "Asset mode", "Planet X");
   await expect(
@@ -273,8 +361,28 @@ test("asset controls reach every meaningful card and goal state", async ({
     .toHaveAttribute("data-task-outcome", "success");
   const planetXBoot = firstPlanetXGoal.locator('[data-slot="task-boot"]');
   await expect(planetXBoot).toBeVisible();
-  await expect(planetXBoot.locator('[data-slot="task-status"]')).toBeVisible();
-  await expect(planetXBoot.locator('[data-slot="task-order"]')).toBeVisible();
+  const planetXStatus = planetXBoot.locator('[data-slot="task-status"]');
+  await expect(planetXStatus).toBeVisible();
+  const planetXOrder = planetXBoot.locator('[data-slot="task-order"]');
+  await expect(planetXOrder).toBeVisible();
+  await expect(planetXOrder).toHaveCSS("border-width", "0px");
+  expect(
+    await planetXOrder.evaluate(
+      (element) => getComputedStyle(element).fontSize,
+    ),
+  ).toBe(difficultyFontSize);
+  expect(
+    await planetXBoot.evaluate((element) =>
+      Array.from(element.children, (child) => child.getAttribute("data-slot")),
+    ),
+  ).toEqual(["task-order", "task-status"]);
+  expect(
+    await planetXBoot
+      .locator(":scope > [data-slot]")
+      .evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect().height),
+      ),
+  ).toEqual([14, 14]);
   await expect(
     planetXBoot.locator('[data-slot="deep-sea-task-difficulty"]'),
   ).toHaveCount(0);

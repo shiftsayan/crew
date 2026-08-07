@@ -317,8 +317,12 @@ test("Planet X task cards use the outlined mini Crew pill", async ({
     const pill = element
       .querySelector<HTMLElement>('[data-slot="task-card"]')!
       .getBoundingClientRect();
+    const boot = element
+      .querySelector<HTMLElement>('[data-slot="task-boot"]')!
+      .getBoundingClientRect();
 
     return {
+      bootTopDelta: boot.top - face.bottom,
       faceHeight: face.height,
       faceWidth: face.width,
       pillHeight: pill.height,
@@ -328,12 +332,36 @@ test("Planet X task cards use the outlined mini Crew pill", async ({
     };
   });
 
+  expect(emphasizedGeometry.bootTopDelta).toBeCloseTo(0, 1);
   expect(emphasizedGeometry.faceHeight).toBeCloseTo(84, 1);
   expect(emphasizedGeometry.faceWidth).toBeCloseTo(84, 1);
   expect(emphasizedGeometry.pillHeight).toBeCloseTo(33.6, 1);
   expect(emphasizedGeometry.pillWidth).toBeCloseTo(57.6, 1);
   expect(emphasizedGeometry.xCenterDelta).toBeCloseTo(0, 1);
   expect(emphasizedGeometry.yCenterDelta).toBeCloseTo(0, 1);
+  const bootFrame = emphasizedTask.locator('[data-slot="task-boot-frame"]');
+  await expect(bootFrame).toHaveClass(/before:bg-slate-200/);
+  const bootExtension = await bootFrame.evaluate((element) => {
+      const style = getComputedStyle(element, "::before");
+      const boot = element.querySelector<HTMLElement>('[data-slot="task-boot"]')!;
+      return {
+        backgroundColor: style.backgroundColor,
+        bootBackgroundColor: getComputedStyle(boot).backgroundColor,
+        height: style.height,
+        top: style.top,
+        zIndex: style.zIndex,
+      };
+    });
+  expect(bootExtension.backgroundColor).toBe(
+    bootExtension.bootBackgroundColor,
+  );
+  expect(bootExtension).toEqual({
+    backgroundColor: bootExtension.bootBackgroundColor,
+    bootBackgroundColor: bootExtension.bootBackgroundColor,
+    height: "4px",
+    top: "-4px",
+    zIndex: "0",
+  });
 
   await page.getByRole("combobox", { name: "Size", exact: true }).click();
   await page.getByRole("option", { name: "Default · 56px" }).click();
@@ -380,14 +408,19 @@ test("Planet X task cards use the outlined mini Crew pill", async ({
       const pill = element
         .querySelector<HTMLElement>('[data-slot="task-card"]')!
         .getBoundingClientRect();
+      const bootRect = element
+        .querySelector<HTMLElement>('[data-slot="task-boot"]')!
+        .getBoundingClientRect();
 
       return {
+        bootTopDelta: bootRect.top - face.bottom,
         pillHeight: pill.height,
         pillWidth: pill.width,
         xCenterDelta: (pill.left + pill.right - face.left - face.right) / 2,
         yCenterDelta: (pill.top + pill.bottom - face.top - face.bottom) / 2,
       };
     });
+    expect(defaultGeometry.bootTopDelta).toBeCloseTo(0, 1);
     expect(defaultGeometry.pillHeight).toBeCloseTo(26.4, 1);
     expect(defaultGeometry.pillWidth).toBeCloseTo(44.8, 1);
     expect(defaultGeometry.xCenterDelta).toBeCloseTo(0, 1);

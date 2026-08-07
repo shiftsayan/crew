@@ -15,8 +15,8 @@ import {
 import { TaskBoot } from "./TaskBoot";
 import type { Card, ProjectedTask, TaskOutcome } from "./types";
 
-const LEGACY_RAINBOW_BACKGROUND_IMAGE =
-  'url("data:image/png;base64,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")';
+const ANY_COLOR_BACKGROUND_IMAGE =
+  "conic-gradient(var(--color-red-400), var(--color-amber-400), var(--color-emerald-500), var(--color-sky-500), var(--color-red-400))";
 
 const statusLabel: Record<TaskOutcome, string> = {
   pending: "Pending",
@@ -69,14 +69,14 @@ export function TaskTile({
   return (
     <div
       className={cn(
-        "inline-grid w-max justify-items-center gap-0 p-[0.45rem]",
+        "relative isolate inline-grid w-max justify-items-center gap-0 p-[0.45rem]",
         className,
       )}
       data-task-outcome={task.outcome}
     >
       <div
         className={cn(
-          "relative grid place-items-center text-task-ink",
+          "relative z-1 grid place-items-center text-task-ink",
           emphasized ? "size-21" : "size-14",
         )}
         data-slot="task-tile"
@@ -245,12 +245,12 @@ function TaskMiniPill({ item }: { item: DeepSeaTaskVisualItem }) {
         "grid size-5 place-items-center rounded-full bg-cover font-display leading-none",
         item.suit
           ? [CARD_SUIT_COLOR_CLASS_NAME[item.suit], "bg-current"]
-          : "text-black",
+          : "text-white",
       )}
       style={
         item.suit
           ? undefined
-          : { backgroundImage: LEGACY_RAINBOW_BACKGROUND_IMAGE }
+          : { backgroundImage: ANY_COLOR_BACKGROUND_IMAGE }
       }
       data-card-suit={item.suit ?? "wild"}
       data-slot="deep-sea-task-mini-card"

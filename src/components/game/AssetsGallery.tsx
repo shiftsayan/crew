@@ -28,8 +28,6 @@ import { TaskTile } from "./TaskTile";
 
 type AssetMode = "cards" | "deep-sea" | "planet-nine";
 type CardConfiguration = {
-  interactive: boolean;
-  selected: boolean;
   disabled: boolean;
   scale: "full" | "communication";
 };
@@ -101,16 +99,6 @@ const modeDetails = {
   },
 } satisfies Record<AssetMode, { label: string; summary: string }>;
 
-const cardInteractionOptions = [
-  { label: "Static", value: "static" },
-  { label: "Interactive", value: "interactive" },
-] as const satisfies readonly ControlOption[];
-
-const cardSelectionOptions = [
-  { label: "Not selected", value: "false" },
-  { label: "Selected", value: "true" },
-] as const satisfies readonly ControlOption[];
-
 const cardAvailabilityOptions = [
   { label: "Available", value: "false" },
   { label: "Disabled", value: "true" },
@@ -156,8 +144,6 @@ export function AssetsGallery() {
   const [mode, setMode] = useState<AssetMode>("cards");
   const [cardConfiguration, setCardConfiguration] =
     useState<CardConfiguration>({
-      interactive: false,
-      selected: false,
       disabled: false,
       scale: "full",
     });
@@ -245,15 +231,7 @@ export function AssetsGallery() {
             </div>
 
             {mode === "cards" ? (
-              <PlayingCards
-                configuration={cardConfiguration}
-                onToggleSelected={() =>
-                  setCardConfiguration((current) => ({
-                    ...current,
-                    selected: !current.selected,
-                  }))
-                }
-              />
+              <PlayingCards configuration={cardConfiguration} />
             ) : null}
             {mode === "deep-sea" ? (
               <DeepSeaGoals
@@ -281,25 +259,9 @@ function CardControls({
 }) {
   return (
     <PreviewControls
-      description="These settings apply to all 40 cards without changing the deck. Disabled only affects the interactive form."
+      description="These settings apply to all 40 cards without changing the deck. Disabled prevents interaction without changing the card appearance."
       title="Card state"
     >
-      <ControlSelect
-        label="Element"
-        name="card-interaction"
-        options={cardInteractionOptions}
-        value={configuration.interactive ? "interactive" : "static"}
-        onValueChange={(value) =>
-          onChange({ interactive: value === "interactive" })
-        }
-      />
-      <ControlSelect
-        label="Selection"
-        name="card-selection"
-        options={cardSelectionOptions}
-        value={String(configuration.selected)}
-        onValueChange={(value) => onChange({ selected: value === "true" })}
-      />
       <ControlSelect
         label="Availability"
         name="card-availability"
@@ -461,10 +423,8 @@ function ControlSelect({
 
 function PlayingCards({
   configuration,
-  onToggleSelected,
 }: {
   configuration: CardConfiguration;
-  onToggleSelected: () => void;
 }) {
   return (
     <div
@@ -492,29 +452,18 @@ function PlayingCards({
                 className="flex justify-center"
                 data-asset-card={card.id}
                 data-asset-disabled={configuration.disabled}
-                data-asset-interactive={configuration.interactive}
                 data-asset-scale={configuration.scale}
-                data-asset-selected={configuration.selected}
               >
                 <GameCard
                   card={card}
                   disabled={configuration.disabled}
                   labelPrefix={
-                    configuration.interactive
-                      ? configuration.disabled
-                        ? "Unavailable"
-                        : configuration.selected
-                          ? "Deselect preview"
-                          : "Select preview"
-                      : undefined
+                    configuration.disabled ? "Unavailable" : "Preview"
                   }
-                  selected={configuration.selected}
                   transformScale={
                     configuration.scale === "communication" ? 0.8 : undefined
                   }
-                  onClick={
-                    configuration.interactive ? onToggleSelected : undefined
-                  }
+                  onClick={() => undefined}
                 />
               </div>
             ))}

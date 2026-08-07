@@ -27,7 +27,7 @@ export const DEEP_SEA_TASK_VISUALS = [
   },
   { kind: "text", text: "Win =X tricks (public)" },
   { kind: "header", header: "WIN USING", items: [{ value: 2 }] },
-  { kind: "header", header: "WIN =0x", items: [{ value: 5 }] },
+  { kind: "header", header: "WIN =0×", items: [{ value: 5 }] },
   { kind: "header", header: "WIN >1x", items: [{ value: 7 }] },
   { kind: "text", text: "Win first and second trick" },
   {
@@ -90,8 +90,8 @@ export const DEEP_SEA_TASK_VISUALS = [
   {
     kind: "cards",
     cards: [
-      { value: "0ˣ", suit: "yellow" },
-      { value: "0ˣ", suit: "green" },
+      { value: "0×", suit: "yellow" },
+      { value: "0×", suit: "green" },
     ],
   },
   { kind: "header", header: "WIN USING", items: [{ value: 6 }] },
@@ -106,7 +106,7 @@ export const DEEP_SEA_TASK_VISUALS = [
     text: "Win a trick with value >{23,28,31}\n(no Trump)",
   },
   { kind: "text", text: "Not win any of the first 5 tricks" },
-  { kind: "header", header: "WIN =0x", items: [{ suit: "pink" }] },
+  { kind: "header", header: "WIN =0×", items: [{ suit: "pink" }] },
   { kind: "header", header: "WIN =3x", items: [{ suit: "trump" }] },
   {
     kind: "cards",
@@ -142,12 +142,12 @@ export const DEEP_SEA_TASK_VISUALS = [
   },
   {
     kind: "header",
-    header: "WIN =0x",
+    header: "WIN =0×",
     items: [{ suit: "pink" }, { suit: "blue" }],
   },
   { kind: "cards", cards: [{ value: 3, suit: "pink" }] },
   { kind: "header", header: "WIN >2x", items: [{ value: 5 }] },
-  { kind: "header", header: "WIN =0x", items: [{ value: 1 }] },
+  { kind: "header", header: "WIN =0×", items: [{ value: 1 }] },
   { kind: "text", text: "Win a trick with value 22/33\n(no Trump)" },
   {
     kind: "cards",
@@ -156,7 +156,7 @@ export const DEEP_SEA_TASK_VISUALS = [
       { value: 5, suit: "blue" },
     ],
   },
-  { kind: "text", text: "Win 0x tricks" },
+  { kind: "text", text: "Win 0× tricks" },
   { kind: "text", text: "Win Trump 1 and no other Trump" },
   {
     kind: "header",
@@ -198,11 +198,11 @@ export const DEEP_SEA_TASK_VISUALS = [
   { kind: "text", text: "Not win any 1, 2, or 3" },
   {
     kind: "header",
-    header: "WIN =0x",
+    header: "WIN =0×",
     items: [{ value: 8 }, { value: 9 }],
   },
   { kind: "text", text: "Win only the first trick" },
-  { kind: "header", header: "WIN =0x", items: [{ suit: "green" }] },
+  { kind: "header", header: "WIN =0×", items: [{ suit: "green" }] },
   { kind: "cards", cards: [{ value: 1, suit: "yellow" }] },
   {
     kind: "cards",
@@ -219,13 +219,13 @@ export const DEEP_SEA_TASK_VISUALS = [
     items: [{ value: 5 }, { text: "w" }, { value: 7 }],
   },
   { kind: "text", text: "Win as many tricks as the commander" },
-  { kind: "header", header: "WIN =0x", items: [{ suit: "yellow" }] },
+  { kind: "header", header: "WIN =0×", items: [{ suit: "yellow" }] },
   {
     kind: "text",
     text: "Win equal #Green and #Yellow in 1 trick (>0)",
   },
   { kind: "text", text: "Win the last trick" },
-  { kind: "header", header: "WIN =0x", items: [{ value: 9 }] },
+  { kind: "header", header: "WIN =0×", items: [{ value: 9 }] },
   { kind: "cards", cards: [{ value: 6, suit: "green" }] },
   { kind: "header", header: "WIN =2x", items: [{ value: 9 }] },
   {
@@ -238,7 +238,7 @@ export const DEEP_SEA_TASK_VISUALS = [
   { kind: "cards", cards: [{ value: 4, suit: "blue" }] },
   { kind: "header", header: "WIN =1x", items: [{ suit: "trump" }] },
   { kind: "text", text: "Not open with Yellow, Red, or Blue" },
-  { kind: "header", header: "WIN =0x", items: [{ suit: "trump" }] },
+  { kind: "header", header: "WIN =0×", items: [{ suit: "trump" }] },
   { kind: "text", text: "Win exactly 2 tricks" },
   { kind: "text", text: "Win all cards of 1+ color" },
   { kind: "text", text: "Win 1+ cards of all colors" },

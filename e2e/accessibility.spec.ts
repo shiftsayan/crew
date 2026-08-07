@@ -1551,8 +1551,8 @@ test("assigning tasks uses direct task claims and keeps played cards in the crew
   );
 
   await expect(
-    adaStation.getByRole("img", { name: "Pink 1", exact: true }),
-  ).toBeVisible();
+    adaStation.getByRole("button", { name: "Pink 1", exact: true }),
+  ).toBeDisabled();
   await expect(
     adaStation.getByRole("group", { name: "Resolve Win the Pink 1" }),
   ).toBeVisible();
@@ -1582,18 +1582,18 @@ test("assigning tasks uses direct task claims and keeps played cards in the crew
   await expect(
     page
       .getByRole("article", { name: "Ada station" })
-      .getByRole("img", { name: "Pink 1", exact: true }),
-  ).toBeVisible();
+      .getByRole("button", { name: "Pink 1", exact: true }),
+  ).toBeDisabled();
   await expect(
     page
       .getByRole("article", { name: "Grace station" })
-      .getByRole("img", { name: "Blue 2", exact: true }),
-  ).toBeVisible();
+      .getByRole("button", { name: "Blue 2", exact: true }),
+  ).toBeDisabled();
   await expect(
     page
       .getByRole("article", { name: "Katherine station" })
-      .getByRole("img", { name: "Green 3", exact: true }),
-  ).toBeVisible();
+      .getByRole("button", { name: "Green 3", exact: true }),
+  ).toBeDisabled();
   await expect(
     page.getByRole("heading", { name: "Current trick" }),
   ).toHaveCount(0);

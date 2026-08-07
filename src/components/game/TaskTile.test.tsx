@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { DEEP_SEA_TASK_VISUALS } from "@/game/config/deep-sea-task-visuals";
+
 import type { Card, ProjectedTask } from "./types";
 import { TaskTile } from "./TaskTile";
 
@@ -34,7 +36,7 @@ function taskFor(
 }
 
 describe("TaskTile", () => {
-  it("puts Deep Sea status, difficulty, and optional info in TaskBoot", () => {
+  it("uses the Deep Sea difficulty as the optional TaskBoot info trigger", () => {
     const markup = renderToStaticMarkup(
       <TaskTile
         emphasized
@@ -51,9 +53,25 @@ describe("TaskTile", () => {
     expect(markup).toContain('data-slot="task-status"');
     expect(markup).toContain('data-slot="deep-sea-task-difficulty"');
     expect(markup).toContain("lucide-gauge");
-    expect(markup).toContain("lucide-badge-info");
+    expect(markup).toContain("h-3.5");
+    expect(markup).toContain("px-0.5");
+    expect(markup).not.toContain("w-7");
+    expect(markup).toContain("size-2.5");
+    expect(markup).not.toContain("lucide-badge-info");
+    expect(markup).not.toContain('data-slot="task-info"');
+    expect(markup).toContain(
+      'aria-label="Difficulty 3. View details for I will win exactly two 9s"',
+    );
     expect(markup).toContain("View details for I will win exactly two 9s");
     expect(markup).not.toContain('data-slot="task-order"');
+    expect(
+      markup.match(
+        /data-slot="(?:deep-sea-task-difficulty|task-info|task-status)"/g,
+      ),
+    ).toEqual([
+      'data-slot="deep-sea-task-difficulty"',
+      'data-slot="task-status"',
+    ]);
   });
 
   it("shows Deep Sea difficulty without requiring the info button", () => {
@@ -129,12 +147,39 @@ describe("TaskTile", () => {
     expect(header).toContain("WIN MORE");
     expect(header.match(/WIN MORE/g)).toHaveLength(1);
     expect(wildcard).toContain('data-card-suit="wild"');
-    expect(wildcard).toContain("data:image/png;base64,");
+    expect(wildcard).toMatch(
+      /class="[^"]*text-white[^"]*"[^>]*data-card-suit="wild"/,
+    );
+    expect(wildcard).toContain("background-image:conic-gradient(");
+    expect(wildcard).toContain("var(--color-red-400)");
+    expect(wildcard).toContain("var(--color-amber-400)");
+    expect(wildcard).toContain("var(--color-emerald-500)");
+    expect(wildcard).toContain("var(--color-sky-500)");
+    expect(wildcard).not.toContain("data:image/");
     expect(text).toContain('data-slot="deep-sea-task-text"');
     expect(text).toContain("Win =X tricks (public)");
     expect(cardsFace).toContain('data-slot="deep-sea-task-cards"');
     expect(
       cardsFace.match(/data-slot="deep-sea-task-mini-card"/g),
     ).toHaveLength(4);
+  });
+
+  it("uses centered multiplication signs for zero-count Deep Sea visuals", () => {
+    const visuals = JSON.stringify(DEEP_SEA_TASK_VISUALS);
+    const header = renderToStaticMarkup(
+      <TaskTile task={taskFor(null, { definitionId: "deep-sea-task-6" })} />,
+    );
+    const cardsFace = renderToStaticMarkup(
+      <TaskTile task={taskFor(null, { definitionId: "deep-sea-task-26" })} />,
+    );
+    const text = renderToStaticMarkup(
+      <TaskTile task={taskFor(null, { definitionId: "deep-sea-task-51" })} />,
+    );
+
+    expect(visuals).toContain("0×");
+    expect(visuals).not.toMatch(/0(?:x|ˣ)/);
+    expect(header).toContain("WIN =0×");
+    expect(cardsFace.match(/0×/g)).toHaveLength(2);
+    expect(text).toContain("Win 0× tricks");
   });
 });

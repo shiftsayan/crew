@@ -1,4 +1,4 @@
-import { BadgeInfo, Check, Gauge, Radio, X } from "lucide-react";
+import { Check, Gauge, Radio, X } from "lucide-react";
 
 import {
   Dialog,
@@ -26,18 +26,10 @@ const orderCopy: Record<NonNullable<ProjectedTask["order"]>, string> = {
   "last-trick": "Ω",
 };
 
-const statusIconClassName: Record<TaskOutcome, string> = {
-  pending: "text-blue-400",
-  success: "text-green-500",
-  failure: "text-red-600",
-};
-
-const orderSuitClassName: Record<Card["suit"], string> = {
-  pink: "border-card-pink",
-  blue: "border-card-blue",
-  green: "border-card-green",
-  yellow: "border-card-yellow",
-  trump: "border-card-trump",
+const statusClassName: Record<TaskOutcome, string> = {
+  pending: "bg-white text-black",
+  success: "bg-green-500 text-white",
+  failure: "bg-red-600 text-white",
 };
 
 export type TaskBootProps = {
@@ -60,60 +52,37 @@ export function TaskBoot({
   const deepSeaDefinition = resolvedCard
     ? null
     : findDeepSeaTask(task.definitionId);
-  const order =
-    resolvedCard && task.order
-      ? { copy: orderCopy[task.order], suit: resolvedCard.suit }
-      : null;
+  const order = resolvedCard && task.order ? orderCopy[task.order] : null;
 
   const boot = (
     <div
-      className="flex h-5 w-14 items-center justify-between rounded-b-md bg-slate-200 px-1 text-task-ink"
+      className="grid h-5 w-14 grid-cols-2 items-center rounded-b-md bg-slate-200 px-1 text-task-ink"
       data-slot="task-boot"
     >
-      <span
-        className={cn(
-          "grid size-3.5 shrink-0 place-items-center rounded-full bg-white",
-          statusIconClassName[task.outcome],
-        )}
-        data-slot="task-status"
-        aria-hidden="true"
-      >
-        <TaskStatusIcon outcome={task.outcome} />
-      </span>
-
       {order ? (
         <span
-          className={cn(
-            "inline-flex size-3.5 shrink-0 items-center justify-center rounded-full border bg-white text-[0.55rem] leading-none text-task-ink forced-colors:border-[CanvasText]",
-            orderSuitClassName[order.suit],
-          )}
+          className="col-start-1 row-start-1 inline-flex size-3.5 shrink-0 items-center justify-center justify-self-start rounded-full bg-white text-[0.55rem] leading-none text-task-ink"
           data-slot="task-order"
           aria-hidden="true"
         >
-          {order.copy}
+          {order}
         </span>
       ) : null}
 
-      {deepSeaDefinition && task.difficulty !== null ? (
-        <span
-          className="inline-flex size-3.5 shrink-0 items-center justify-center gap-px rounded-full bg-white text-[0.45rem] leading-none"
-          data-slot="deep-sea-task-difficulty"
-          aria-label={`Difficulty ${task.difficulty}`}
-        >
-          <Gauge className="size-2" aria-hidden="true" />
-          <span aria-hidden="true">{task.difficulty}</span>
-        </span>
-      ) : null}
-
-      {showInfo && deepSeaDefinition ? (
+      {showInfo && deepSeaDefinition && task.difficulty !== null ? (
         <Dialog>
           <DialogTrigger asChild>
             <button
-              className="relative grid size-3.5 shrink-0 cursor-pointer place-items-center rounded-full border-0 bg-white p-0 text-task-ink transition-colors before:absolute before:-inset-1 before:rounded-full hover:bg-slate-100 hover:text-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-700"
+              className="group relative col-start-1 row-start-1 inline-flex h-3.5 shrink-0 cursor-pointer items-center justify-center justify-self-start gap-px rounded-full border-0 bg-white px-0.5 py-0 text-[0.55rem] leading-none text-task-ink before:absolute before:-inset-1 before:rounded-full focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-indigo-700"
+              data-slot="deep-sea-task-difficulty"
               type="button"
-              aria-label={`View details for ${task.title}`}
+              aria-label={`Difficulty ${task.difficulty}. View details for ${task.title}`}
             >
-              <BadgeInfo className="size-3" aria-hidden="true" />
+              <Gauge
+                className="size-2.5 transition-colors group-hover:text-slate-600"
+                aria-hidden="true"
+              />
+              <span aria-hidden="true">{task.difficulty}</span>
             </button>
           </DialogTrigger>
           <DialogContent>
@@ -133,16 +102,38 @@ export function TaskBoot({
             ) : null}
           </DialogContent>
         </Dialog>
+      ) : deepSeaDefinition && task.difficulty !== null ? (
+        <span
+          className="col-start-1 row-start-1 inline-flex h-3.5 shrink-0 items-center justify-center justify-self-start gap-px rounded-full bg-white px-0.5 text-[0.55rem] leading-none"
+          data-slot="deep-sea-task-difficulty"
+          aria-label={`Difficulty ${task.difficulty}`}
+        >
+          <Gauge className="size-2.5" aria-hidden="true" />
+          <span aria-hidden="true">{task.difficulty}</span>
+        </span>
       ) : null}
+
+      <span
+        className={cn(
+          "col-start-2 row-start-1 grid size-3.5 shrink-0 place-items-center justify-self-end rounded-full",
+          statusClassName[task.outcome],
+        )}
+        data-slot="task-status"
+        aria-hidden="true"
+      >
+        <TaskStatusIcon outcome={task.outcome} />
+      </span>
     </div>
   );
 
   return (
     <div
       className={cn(
+        "relative before:absolute before:inset-x-0 before:-top-1 before:z-0 before:h-1 before:bg-slate-200 before:content-['']",
         emphasized ? "h-7.5 w-21" : "h-5 w-14",
         className,
       )}
+      data-slot="task-boot-frame"
     >
       <div className={emphasized ? "origin-top-left scale-150" : undefined}>
         {boot}
