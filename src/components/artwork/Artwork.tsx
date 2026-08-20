@@ -454,13 +454,8 @@ export function Artwork({
     }
 
     function animate(timestamp: number) {
-      animationFrame = 0;
-      const canAnimate =
-        !root.hidden &&
-        !reducedMotion.matches &&
-        document.visibilityState === "visible";
       const tintIntroFrame =
-        hasTintIntro && !tintIntroCompleted && canAnimate;
+        hasTintIntro && !tintIntroCompleted && !reducedMotion.matches;
       if (tintIntroFrame) {
         refreshSamples(timestamp);
         if (
@@ -470,6 +465,8 @@ export function Artwork({
           tintIntroCompleted = true;
         }
       }
+      const canAnimate =
+        !reducedMotion.matches && document.visibilityState === "visible";
       const samplingFrameDue =
         canAnimate &&
         normalizedEffect.kind === "ascii" &&
@@ -491,15 +488,7 @@ export function Artwork({
       ) {
         drawEffect(timestamp, samplingFrameDue);
       }
-      if (!root.hidden) {
-        animationFrame = window.requestAnimationFrame(animate);
-      }
-    }
-
-    function hiddenStateChanged() {
-      if (!root.hidden && !animationFrame) {
-        animationFrame = window.requestAnimationFrame(animate);
-      }
+      animationFrame = window.requestAnimationFrame(animate);
     }
 
     function motionPreferenceChanged() {
@@ -513,12 +502,7 @@ export function Artwork({
     }
 
     const resizeObserver = new ResizeObserver(prepare);
-    const hiddenObserver = new MutationObserver(hiddenStateChanged);
     resizeObserver.observe(root);
-    hiddenObserver.observe(root, {
-      attributeFilter: ["hidden"],
-      attributes: true,
-    });
     image.addEventListener("load", prepare);
     reducedMotion.addEventListener("change", motionPreferenceChanged);
     if (image.complete) prepare();
@@ -527,7 +511,6 @@ export function Artwork({
     return () => {
       window.cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
-      hiddenObserver.disconnect();
       image.removeEventListener("load", prepare);
       reducedMotion.removeEventListener("change", motionPreferenceChanged);
       renderer?.destroy();
