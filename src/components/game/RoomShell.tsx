@@ -13,6 +13,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { EllipsisVertical, LogOut, Play } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -118,6 +119,35 @@ const taskClaimDropId = (playerId: string) =>
   `crew:claim-task-player:${playerId}`;
 const reconnectingMessage =
   "Connection interrupted. Showing the latest confirmed state while we retry.";
+
+const taskListRevealVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: {
+      delayChildren: 0.08,
+      staggerChildren: 0.07,
+    },
+  },
+};
+
+const taskRevealVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.92,
+    y: 14,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      damping: 24,
+      mass: 0.7,
+      stiffness: 340,
+      type: "spring",
+    },
+  },
+};
 
 type CardId = Card["id"];
 
@@ -531,7 +561,14 @@ function GameView({
     projection.phase === "adjudicating"
   ) {
     content = (
-      <TaskBoard projection={projection} pending={pending} sendCommand={sendCommand} />
+      <TaskBoard
+        projection={projection}
+        pending={pending}
+        revealOnMount={
+          projection.phase === "assigning-tasks" && projection.tasks.length > 0
+        }
+        sendCommand={sendCommand}
+      />
     );
   }
 
@@ -592,13 +629,18 @@ function ResultView({ projection }: { projection: ActorProjection }) {
 function TaskBoard({
   projection,
   pending,
+  revealOnMount,
   sendCommand,
 }: {
   projection: ActorProjection;
   pending: boolean;
+  revealOnMount: boolean;
   sendCommand: (command: PlayerCommand) => Promise<boolean>;
 }) {
+  const prefersReducedMotion = useReducedMotion();
+  const [isRevealing, setIsRevealing] = useState(revealOnMount);
   const isAssigning = projection.phase === "assigning-tasks";
+  const shouldAnimateReveal = isRevealing && !prefersReducedMotion;
   const showTaskInfo = projection.mission.editionKey === "deep-sea";
   const visibleTasks = isAssigning
     ? projection.tasks.filter((task) => task.ownerPlayerId === null)
@@ -619,9 +661,15 @@ function TaskBoard({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <ul
+      <motion.ul
         className="m-0 flex min-h-0 flex-1 list-none flex-wrap content-center justify-center gap-x-6 gap-y-3 overflow-auto p-6 max-[520px]:gap-2 max-[520px]:px-[0.15rem] max-[520px]:py-3"
         aria-label={isAssigning ? "Unassigned tasks" : "Tasks"}
+        animate="visible"
+        initial={shouldAnimateReveal ? "hidden" : false}
+        onAnimationComplete={
+          shouldAnimateReveal ? () => setIsRevealing(false) : undefined
+        }
+        variants={shouldAnimateReveal ? taskListRevealVariants : undefined}
       >
         {visibleTasks.map((task) => {
           const owner = projection.players.find((player) => player.id === task.ownerPlayerId);
@@ -649,7 +697,11 @@ function TaskBoard({
 
           if (isAssigning) {
             return (
-              <li className="grid justify-items-center" key={task.id}>
+              <motion.li
+                className="grid justify-items-center"
+                key={task.id}
+                variants={shouldAnimateReveal ? taskRevealVariants : undefined}
+              >
                 {claimable ? (
                   <TaskSelectionButton
                     action="claim"
@@ -669,12 +721,16 @@ function TaskBoard({
                     showInfo={showTaskInfo}
                   />
                 )}
-              </li>
+              </motion.li>
             );
           }
 
           return (
-            <li className="grid justify-items-center" key={task.id}>
+            <motion.li
+              className="grid justify-items-center"
+              key={task.id}
+              variants={shouldAnimateReveal ? taskRevealVariants : undefined}
+            >
               {releasable ? (
                 <TaskSelectionButton
                   action="release"
@@ -702,10 +758,10 @@ function TaskBoard({
                   }
                 />
               )}
-            </li>
+            </motion.li>
           );
         })}
-      </ul>
+      </motion.ul>
     </div>
   );
 }
